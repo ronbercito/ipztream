@@ -10,56 +10,60 @@
 - Preparar una base responsive para futuras pantallas.
 - Crear un instalador inicial para desplegar la base en un único contenedor Linux.
 
-**Archivos implementados:**
-- `package.json` — base React/Vite.
-- `index.html` — entrada web.
-- `src/main.jsx` — shell del dashboard y componentes visuales iniciales.
-- `src/styles.css` — design system visual y responsive.
-- `install.sh` — instalador inicial para contenedor.
-- `INSTALL.md` — instrucciones y verificación.
-- `README.md` — descripción del proyecto.
-
-**Resultado:** base visual inicial implementada en el repositorio y preparada para pruebas en un contenedor Linux. Los datos del dashboard son demostrativos en esta etapa.
-
-**Nota:** el instalador actual es de desarrollo/pruebas. El instalador comercial y el sistema de releases firmados se construirán posteriormente.
+**Resultado:** base visual inicial implementada en el repositorio y probada en un contenedor Debian 13. El dashboard funciona con datos demostrativos.
 
 ---
 
 ## 2026-09-14 — Corrección 1 — Instalador ejecutado desde `/opt/ipztream`
 
-**Motivo:** durante la primera prueba real en el contenedor Debian 13, `install.sh` intentó copiar `/opt/ipztream` sobre sí mismo y se detuvo con `cp: '/opt/ipztream/.' and '/opt/ipztream/.' are the same file`.
+**Motivo:** durante la primera prueba real, `install.sh` intentó copiar `/opt/ipztream` sobre sí mismo.
 
-**Causa:** el instalador asumía que el código fuente estaría en una ubicación diferente a `APP_DIR` (`/opt/ipztream`). Al ejecutarlo desde el clon del repositorio en esa misma ruta, la operación de copia era innecesaria y fallaba.
+**Corrección:** el instalador detecta cuando origen y destino son el mismo directorio y omite la copia; conserva la copia cuando el origen es externo.
 
-**Corrección:** hacer que el instalador detecte cuando `SOURCE_DIR` y `APP_DIR` son la misma ubicación. En ese caso, no debe borrar ni copiar el proyecto; debe trabajar directamente sobre el directorio existente. Cuando la fuente sea externa, conserva el comportamiento de copiar el proyecto a `APP_DIR`.
-
-**Resultado:** la corrección fue publicada y posteriormente el contenedor recuperó el repositorio desde GitHub para continuar la prueba.
+**Resultado:** corrección publicada y repositorio recuperado correctamente en el contenedor.
 
 ---
 
 ## 2026-09-14 — Mejora 1 — Botón de actualización del panel
 
-**Motivo:** agregar al panel IPZStream un botón de actualización visible, siguiendo la referencia funcional del proyecto Z-Hub del usuario.
+**Motivo:** agregar al panel un botón de actualización similar al flujo visual usado en Z-Hub.
+
+**Resultado:** botón `Actualizar` agregado a la barra superior. En esta etapa refresca la vista; posteriormente se conectará al updater real mediante releases controlados y firmados.
+
+---
+
+## 2026-09-14 — Etapa 2 — Habilitación integral del panel y navegación de módulos
+
+**Motivo:** el usuario solicitó habilitar el panel completo para poder avanzar con una primera versión funcional y posteriormente corregir, agregar y mejorar sobre una base ya navegable.
 
 **Objetivo:**
-- Incorporar un botón `Actualizar` en la barra superior.
-- Mantener el lenguaje visual actual del dashboard.
-- Preparar la interfaz para que posteriormente el botón pueda conectarse al sistema real de actualización/release de IPZStream.
-- En esta etapa, el botón actualizará la vista/panel; el mecanismo de actualización de la aplicación se implementará posteriormente mediante el updater controlado y releases firmados.
+- Convertir el menú lateral en navegación funcional.
+- Habilitar las pantallas principales: Dashboard, Usuarios, Servidores/Nodos, Canales, VOD/Series, EPG, Listas M3U, Paquetes/Perfiles, Conexiones Activas, Dispositivos, Logs/Auditoría, Estadísticas y Configuración.
+- Incorporar búsqueda, filtros, tablas, estados, acciones y formularios básicos donde corresponda.
+- Mantener una única identidad visual y comportamiento responsive.
+- Preparar la estructura para sustituir los datos demostrativos por API y PostgreSQL sin rehacer la interfaz.
+- Mantener el botón de actualización del panel.
 
-**Archivos a modificar:**
-- `src/main.jsx`
-- `src/styles.css`
+**Alcance de esta etapa:** interfaz funcional con datos locales demostrativos. No se simula como si existiera todavía un backend real, autenticación real, PostgreSQL o control de streams en producción. Esas piezas serán conectadas en las siguientes etapas.
 
-**Regla:** la intención de esta mejora queda registrada antes de modificar el código.
+**Respaldo:** se creó `src/main.jsx.bak` antes de la modificación estructural.
+
+**Archivos principales:**
+- `src/main.jsx` — navegación, módulos, tablas, filtros, formularios y acciones de interfaz.
+- `src/styles.css` — estilos compartidos para navegación, módulos, tablas, formularios, modales y responsive.
+
+**Resultado esperado:** panel completo navegable, con todas las secciones visibles y operativas a nivel de interfaz, listo para comenzar la conexión con backend/API.
+
+**Regla:** esta entrada queda registrada antes de modificar el código.
 
 ---
 
 ## Protocolo permanente
 Toda mejora o corrección futura debe seguir este orden:
 1. Registrar la intención/cambio en esta bitácora.
-2. Implementar el código.
-3. Verificar el resultado.
-4. Registrar el resultado de la implementación.
-5. Publicar la actualización.
-6. Informar al usuario qué cambió y cómo probarlo.
+2. Crear respaldo cuando el cambio sea estructural.
+3. Implementar el código.
+4. Verificar el resultado.
+5. Registrar el resultado de la implementación.
+6. Publicar la actualización.
+7. Informar al usuario qué cambió y cómo probarlo.
