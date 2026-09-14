@@ -87,7 +87,7 @@ src/
 2. **Usuarios** — consolidar el módulo de usuarios, CRUD de demostración, filtros, validaciones, persistencia local temporal y preparación limpia para API/RBAC. **COMPLETADA Y VALIDADA.**
 3. **Servidores / Nodos** — módulo independiente para alta, estado y gestión de nodos. **COMPLETADA Y VALIDADA.**
 4. **Canales / Fuentes** — módulo independiente para administrar canales, fuentes de streaming, estado y parámetros de reproducción. **COMPLETADA Y VALIDADA.**
-5. **VOD / Series / EPG / M3U** — separar y consolidar gestión de contenido y listas. **EN CURSO.**
+5. **VOD / Series / EPG / M3U** — separar y consolidar gestión de contenido y listas. **IMPLEMENTADA, PENDIENTE DE VALIDACIÓN.**
 6. **Paquetes / Conexiones / Dispositivos** — gestión comercial y control de sesiones/dispositivos.
 7. **Logs / Auditoría / Estadísticas** — observabilidad, métricas y cierre de integración visual del panel.
 
@@ -102,7 +102,6 @@ src/
 - URL de prueba: `http://192.168.10.220`.
 - Nginx publica el panel desde `/var/www/ipztream`.
 - Código fuente del proyecto: `/opt/ipztream`.
-- Build de producción validado antes de iniciar esta etapa.
 - Instalador validado desde `/opt/ipztream` sin intentar copiar el proyecto sobre sí mismo.
 - Dashboard y navegación principal funcionales.
 - Usuarios funciona con módulo independiente en `src/modules/users/` y fue validado por el usuario.
@@ -113,6 +112,7 @@ src/
 - Canales está separado en `src/modules/channels/`, con API compartida y persistencia en `data/channels.json`.
 - Canales fue validado por el usuario: nuevo canal, edición, activar/desactivar, eliminar, búsqueda, filtros y administración de fuentes.
 - El estado `Activo/Activa` de Canales representa actualmente estado administrativo/demo; todavía no equivale a una comprobación real de conectividad del stream.
+- VOD, Series, EPG y M3U ya tienen módulos independientes y endpoints API compartidos; la validación del usuario está pendiente.
 - El backend real completo con PostgreSQL, autenticación/RBAC y API integral todavía no está conectado.
 - El botón `Actualizar` del panel todavía es una interfaz de actualización; el updater real se implementará posteriormente mediante releases controlados y firmados.
 
@@ -124,6 +124,7 @@ src/
 - `backup/pre-etapa-3-7-nodes`
 - `backup/pre-correccion-nodos-persistencia`
 - `backup/pre-etapa-4-7-channels`
+- `backup/pre-etapa-5-7-vod-series-epg-m3u`
 - Se han utilizado copias previas de `src/main.jsx` antes de modificaciones estructurales.
 
 ## Referencia visual aprobada
@@ -134,9 +135,6 @@ No generar nuevos mockups salvo solicitud explícita; utilizar la referencia vis
 ## Estado de validación actual
 ### Validado
 - Instalación en Debian 13.
-- `npm install` sin vulnerabilidades reportadas.
-- `npm run build` exitoso antes de iniciar esta etapa.
-- Publicación mediante Nginx exitosa.
 - Navegación general del panel.
 - Usuarios: alta, edición, eliminación, búsqueda, persistencia después de recarga y validaciones probadas por el usuario.
 - Configuración: menú de opciones completo visible y validado por el usuario.
@@ -145,39 +143,33 @@ No generar nuevos mockups salvo solicitud explícita; utilizar la referencia vis
 - Canales: nuevo canal, edición, activar/desactivar, eliminación, búsqueda, filtros y administración de fuentes; todo validado por el usuario.
 
 ### Etapa actual
-**Etapa 5/7 — VOD / Series / EPG / M3U: INICIO.**
+**Etapa 5/7 — VOD / Series / EPG / M3U: IMPLEMENTADA, PENDIENTE DE VALIDACIÓN FUNCIONAL.**
 
-Objetivo de esta etapa:
-- Separar la gestión de contenido de video bajo demanda y series en módulos independientes.
-- Consolidar EPG como módulo independiente para programación electrónica.
-- Consolidar M3U como módulo independiente para listas/importación/exportación de contenido.
-- Mantener componentes, servicios/API y estilos separados.
-- Preparar modelos y relaciones para que VOD, series, temporadas, episodios, categorías, EPG y listas M3U puedan conectarse posteriormente a PostgreSQL y a fuentes reales.
-- Evitar repetir la dependencia de `localStorage` como fuente compartida principal; cuando se requiera persistencia funcional en esta etapa, usar la API compartida existente.
-- Mantener `src/main.jsx` solamente como punto de integración.
+Implementación realizada:
+- `src/modules/vod/Vod.jsx` + `vod.css`: VOD y Series con alta, edición, eliminación y búsqueda.
+- `src/modules/epg/Epg.jsx` + `epg.css`: programación EPG con alta, edición, eliminación y búsqueda.
+- `src/modules/m3u/M3u.jsx` + `m3u.css`: listas M3U con alta, edición, eliminación, búsqueda e interfaz inicial de importación/exportación.
+- `src/main.jsx`: integración directa de los tres módulos sin trasladar su lógica al archivo principal.
+- `server/index.js`: persistencia compartida para VOD, Series, EPG y M3U mediante archivos JSON temporales y endpoints CRUD.
 
-### Alcance inicial de Etapa 5/7
-**VOD:** catálogo de películas, título, descripción, categoría, año, duración, poster, URL/fuente y estado administrativo.
+### Pendiente de validación
+1. Sincronizar el contenedor con `origin/main`.
+2. Ejecutar `npm install`.
+3. Ejecutar `npm run build`.
+4. Reiniciar `ipztream-api`.
+5. Publicar el `dist` actualizado en `/var/www/ipztream`.
+6. Probar VOD.
+7. Probar Series.
+8. Probar EPG.
+9. Probar M3U.
+10. Confirmar persistencia después de recargar y, cuando corresponda, desde otro navegador.
 
-**Series:** series, temporadas y episodios con estructura separada para permitir crecimiento posterior.
-
-**EPG:** canales/programación, fecha/hora de inicio y fin, título, descripción y estado de programación.
-
-**M3U:** gestión de listas, importación de contenido, identificación de canales/streams y preparación para exportación.
-
-**No se implementará todavía:** transcodificación, reproductor completo, ingestión EPG de proveedores externos, sincronización automática de M3U externos, health checks reales de streams, PostgreSQL completo, autenticación/RBAC o balanceo de nodos. Se prepararán interfaces y servicios para esas capacidades posteriores.
-
-### Orden de implementación previsto
-1. Actualizar `BITACORA.md` con el inicio de Etapa 5.
-2. Crear respaldo estructural antes de modificar módulos de contenido.
-3. Revisar las pantallas existentes VOD, Series, EPG y M3U para evitar duplicar lógica.
-4. Crear módulos independientes y sus componentes.
-5. Crear/ajustar API compartida y persistencia temporal de servidor cuando corresponda.
-6. Integrar navegación desde `src/main.jsx` sin concentrar lógica allí.
-7. Ejecutar build y pruebas.
-8. Validar funcionalmente por bloques con el usuario.
-9. Registrar resultado final en `BITACORA.md`.
-10. Publicar y reportar.
+### Límites conocidos de esta etapa
+- La importación M3U todavía registra la fuente/lista y no realiza sincronización automática con proveedores externos.
+- La exportación M3U está preparada a nivel de interfaz/API para una iteración posterior.
+- EPG todavía no ingiere fuentes XMLTV externas.
+- Series usa una estructura inicial de temporadas/episodios; la edición granular de episodios se ampliará posteriormente.
+- No se implementan todavía reproductor, transcodificación, health checks reales, PostgreSQL, autenticación/RBAC ni balanceo.
 
 ## Protocolo obligatorio por etapa
 1. **Actualizar primero `CONTINUITY.md`.**
@@ -191,4 +183,4 @@ Objetivo de esta etapa:
 9. Informar al usuario qué se cambió y cómo probarlo.
 
 ## Próximo paso
-Registrar el inicio de Etapa 5/7 en `BITACORA.md`, crear el respaldo estructural correspondiente y comenzar la revisión/implementación modular de VOD, Series, EPG y M3U.
+Validar la implementación de Etapa 5/7 en el contenedor. No cerrar la etapa hasta que el usuario confirme VOD, Series, EPG y M3U.
