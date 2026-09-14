@@ -86,8 +86,8 @@ src/
 1. **Configuración** — estructura modular, secciones de configuración y persistencia inicial. **COMPLETADA.**
 2. **Usuarios** — consolidar el módulo de usuarios, CRUD de demostración, filtros, validaciones, persistencia local temporal y preparación limpia para API/RBAC. **COMPLETADA Y VALIDADA.**
 3. **Servidores / Nodos** — módulo independiente para alta, estado y gestión de nodos. **COMPLETADA Y VALIDADA.**
-4. **Canales / Fuentes** — módulo independiente para administrar canales, fuentes de streaming, estado y parámetros de reproducción. **EN CURSO.**
-5. **VOD / Series / EPG / M3U** — separar y consolidar gestión de contenido y listas.
+4. **Canales / Fuentes** — módulo independiente para administrar canales, fuentes de streaming, estado y parámetros de reproducción. **COMPLETADA Y VALIDADA.**
+5. **VOD / Series / EPG / M3U** — separar y consolidar gestión de contenido y listas. **EN CURSO.**
 6. **Paquetes / Conexiones / Dispositivos** — gestión comercial y control de sesiones/dispositivos.
 7. **Logs / Auditoría / Estadísticas** — observabilidad, métricas y cierre de integración visual del panel.
 
@@ -110,6 +110,9 @@ src/
 - Nodos está separado en `src/modules/nodes/` con API compartida mínima, persistencia en `data/nodes.json`, proxy Nginx y servicio systemd `ipztream-api`.
 - Nodos fue validado por el usuario: alta, persistencia compartida entre navegadores, rechazo de IP duplicada, mensaje visible, formulario abierto y corrección posterior de IP.
 - `localStorage` de Nodos queda como compatibilidad/fallback temporal, no como fuente compartida principal.
+- Canales está separado en `src/modules/channels/`, con API compartida y persistencia en `data/channels.json`.
+- Canales fue validado por el usuario: nuevo canal, edición, activar/desactivar, eliminar, búsqueda, filtros y administración de fuentes.
+- El estado `Activo/Activa` de Canales representa actualmente estado administrativo/demo; todavía no equivale a una comprobación real de conectividad del stream.
 - El backend real completo con PostgreSQL, autenticación/RBAC y API integral todavía no está conectado.
 - El botón `Actualizar` del panel todavía es una interfaz de actualización; el updater real se implementará posteriormente mediante releases controlados y firmados.
 
@@ -138,38 +141,43 @@ No generar nuevos mockups salvo solicitud explícita; utilizar la referencia vis
 - Usuarios: alta, edición, eliminación, búsqueda, persistencia después de recarga y validaciones probadas por el usuario.
 - Configuración: menú de opciones completo visible y validado por el usuario.
 - Nodos: alta, aparición del nodo, sincronización entre navegadores/perfiles, rechazo de duplicados, mensaje visible, formulario sin parpadeo/cierre y modificación posterior de IP; todo validado por el usuario.
-- API de Canales: `GET /api/channels` responde correctamente y devuelve los canales iniciales ESPN, HBO Max y TUDN.
+- API de Canales: `GET /api/channels` responde correctamente.
+- Canales: nuevo canal, edición, activar/desactivar, eliminación, búsqueda, filtros y administración de fuentes; todo validado por el usuario.
 
 ### Etapa actual
-**Etapa 4/7 — Canales / Fuentes: EN CURSO — CORRECCIÓN DE DESPLIEGUE.**
+**Etapa 5/7 — VOD / Series / EPG / M3U: INICIO.**
 
-Durante la validación el usuario confirmó que los canales iniciales aparecen, pero las acciones de edición/gestión no funcionan en la interfaz. La revisión del código del repositorio muestra que `Channels.jsx` y `ChannelTable.jsx` sí contienen las acciones de nuevo, editar, activar/desactivar y eliminar. La API también responde correctamente. Por tanto, antes de modificar la lógica del módulo se debe sincronizar el build del frontend instalado en Nginx con el código de `main`, ya que el build que se ejecutó ocurrió antes de completar la sincronización del repositorio con la implementación de Canales.
+Objetivo de esta etapa:
+- Separar la gestión de contenido de video bajo demanda y series en módulos independientes.
+- Consolidar EPG como módulo independiente para programación electrónica.
+- Consolidar M3U como módulo independiente para listas/importación/exportación de contenido.
+- Mantener componentes, servicios/API y estilos separados.
+- Preparar modelos y relaciones para que VOD, series, temporadas, episodios, categorías, EPG y listas M3U puedan conectarse posteriormente a PostgreSQL y a fuentes reales.
+- Evitar repetir la dependencia de `localStorage` como fuente compartida principal; cuando se requiera persistencia funcional en esta etapa, usar la API compartida existente.
+- Mantener `src/main.jsx` solamente como punto de integración.
 
-Objetivo de la corrección:
-- Actualizar el checkout local al `main` que contiene la implementación completa de Canales.
-- Ejecutar un nuevo `npm install`/`npm run build` cuando corresponda.
-- Publicar el nuevo `dist` en `/var/www/ipztream`.
-- Mantener `data/` y la persistencia de canales intactas.
-- Reiniciar/verificar `ipztream-api` solamente si es necesario.
-- Verificar que la interfaz muestre y permita las acciones CRUD y de estado implementadas.
+### Alcance inicial de Etapa 5/7
+**VOD:** catálogo de películas, título, descripción, categoría, año, duración, poster, URL/fuente y estado administrativo.
 
-No se debe marcar Etapa 4/7 como validada hasta que el usuario confirme las pruebas funcionales del panel.
+**Series:** series, temporadas y episodios con estructura separada para permitir crecimiento posterior.
 
-## Etapa 4/7 — alcance funcional pendiente de validación
-- Listado de canales.
-- Alta y edición de canales.
-- Activar/desactivar canal.
-- Búsqueda y filtros.
-- Identidad del canal: nombre, número, logo y grupo/categoría.
-- Gestión de una o varias fuentes por canal.
-- URL de fuente y tipo/protocolo.
-- Estado de fuente y canal.
-- Prioridad de fuentes para definir cuál se intenta primero.
-- Validaciones de datos y mensajes visibles.
-- Persistencia compartida mediante API.
-- Preparación para conectar posteriormente fuentes reales, health checks, failover y agentes/nodos.
+**EPG:** canales/programación, fecha/hora de inicio y fin, título, descripción y estado de programación.
 
-No se implementará todavía un reproductor completo, transcodificación, health check real contra cada stream ni PostgreSQL/RBAC. Esas capacidades se conectarán en etapas posteriores sobre el servicio/API ya separado.
+**M3U:** gestión de listas, importación de contenido, identificación de canales/streams y preparación para exportación.
+
+**No se implementará todavía:** transcodificación, reproductor completo, ingestión EPG de proveedores externos, sincronización automática de M3U externos, health checks reales de streams, PostgreSQL completo, autenticación/RBAC o balanceo de nodos. Se prepararán interfaces y servicios para esas capacidades posteriores.
+
+### Orden de implementación previsto
+1. Actualizar `BITACORA.md` con el inicio de Etapa 5.
+2. Crear respaldo estructural antes de modificar módulos de contenido.
+3. Revisar las pantallas existentes VOD, Series, EPG y M3U para evitar duplicar lógica.
+4. Crear módulos independientes y sus componentes.
+5. Crear/ajustar API compartida y persistencia temporal de servidor cuando corresponda.
+6. Integrar navegación desde `src/main.jsx` sin concentrar lógica allí.
+7. Ejecutar build y pruebas.
+8. Validar funcionalmente por bloques con el usuario.
+9. Registrar resultado final en `BITACORA.md`.
+10. Publicar y reportar.
 
 ## Protocolo obligatorio por etapa
 1. **Actualizar primero `CONTINUITY.md`.**
@@ -183,4 +191,4 @@ No se implementará todavía un reproductor completo, transcodificación, health
 9. Informar al usuario qué se cambió y cómo probarlo.
 
 ## Próximo paso
-Sin modificar todavía la lógica de Canales, sincronizar el build publicado con el `main` actual y repetir la validación funcional. Si después de publicar el build actualizado las acciones siguen sin responder, se hará una corrección específica del módulo siguiendo nuevamente este protocolo.
+Registrar el inicio de Etapa 5/7 en `BITACORA.md`, crear el respaldo estructural correspondiente y comenzar la revisión/implementación modular de VOD, Series, EPG y M3U.
