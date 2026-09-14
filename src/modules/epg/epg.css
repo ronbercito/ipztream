@@ -1,0 +1,1 @@
+.epg-page{display:flex;flex-direction:column;gap:18px}.epg-modal{max-width:850px}.epg-error{padding:11px 13px;border:1px solid #ef4444;background:#fff1f2;color:#b91c1c;border-radius:10px}.form-grid .full{grid-column:1/-1}.row-actions{display:flex;gap:6px}@media(max-width:800px){.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:auto}}
