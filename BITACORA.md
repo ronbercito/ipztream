@@ -185,7 +185,7 @@ Pruebas confirmadas por el usuario:
 - El formulario permanece abierto sin parpadear ni cerrarse: OK.
 - Cambiar la IP y guardar correctamente: OK.
 
-**Resultado:** Etapa 3/7 cerrada y validada. No avanzar a la siguiente etapa hasta dejar documentado este resultado.
+**Resultado:** Etapa 3/7 cerrada y validada. No se detectaron regresiones en las funciones probadas.
 
 ## 2026-09-14 — Etapa 4/7 — Canales / Fuentes — INICIO
 **Motivo:** comenzar la cuarta de las siete subetapas actuales del panel, reemplazando la pantalla genérica de Canales por un módulo independiente para administrar canales y sus fuentes de streaming.
@@ -220,11 +220,35 @@ src/modules/channels/
     └── channels.css
 ```
 
-**Respaldo:** se debe crear un punto de restauración `backup/pre-etapa-4-7-channels` antes de modificar código estructural.
+**Respaldo:** `backup/pre-etapa-4-7-channels` creado antes de modificar código estructural mediante una rama de restauración sobre el estado previo de la etapa.
 
 **Resultado esperado:** Canales queda aislado del resto del panel, con CRUD visual funcional, fuentes administrables, validaciones visibles y persistencia compartida por API.
 
 **Regla:** esta entrada queda registrada antes de modificar el código.
+
+## 2026-09-14 — Implementación Etapa 4/7 — Canales / Fuentes — IMPLEMENTADA, PENDIENTE DE VALIDACIÓN
+Se creó el módulo independiente `src/modules/channels/` con:
+- `Channels.jsx` como orquestador de estado y operaciones.
+- `components/ChannelFilters.jsx` para búsqueda y filtros.
+- `components/ChannelForm.jsx` para alta/edición y validaciones.
+- `components/ChannelTable.jsx` para listado y acciones.
+- `components/SourceEditor.jsx` para múltiples fuentes, protocolo, estado y prioridad.
+- `services/channelsApi.js` para acceso separado a `/api/channels`.
+- `styles/channels.css` para estilos propios y responsive.
+
+Se amplió `server/index.js` para crear `data/channels.json` y exponer:
+- `GET /api/channels`
+- `POST /api/channels`
+- `PUT /api/channels/:id`
+- `DELETE /api/channels/:id`
+
+La API valida número de canal, duplicados de número, nombre/categoría, existencia de fuentes, URL de fuente y prioridad. La persistencia es compartida entre navegadores mediante el mismo backend, siguiendo el patrón validado previamente con Nodos.
+
+`src/main.jsx` solamente integra `ChannelsPage`; la lógica del módulo permanece fuera del archivo principal.
+
+**Respaldo creado:** rama `backup/pre-etapa-4-7-channels` sobre el estado previo de la etapa.
+
+**Validación pendiente:** ejecutar `npm run build`, actualizar/reiniciar la API en el contenedor y probar alta, edición, activación/desactivación, fuentes múltiples, filtros, duplicado de número y persistencia desde otro navegador.
 
 ---
 
