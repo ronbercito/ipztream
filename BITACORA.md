@@ -151,6 +151,27 @@ El usuario completó satisfactoriamente la prueba funcional completa del módulo
 
 **Regla:** esta entrada queda registrada antes de modificar el código.
 
+## 2026-09-14 — Corrección Etapa 3/7 — Nodos: persistencia compartida + duplicados
+**Motivo:** durante la prueba funcional el usuario detectó dos problemas reales del diseño actual. Primero, un cambio realizado en Servidores / Nodos en un navegador/perfil no aparece en otro navegador/cuenta. Segundo, al intentar agregar una IP duplicada la interfaz solamente parpadea y no muestra el error de manera clara.
+
+**Causa identificada:** el módulo actual utiliza `localStorage` como persistencia principal. `localStorage` pertenece al navegador/perfil y no es una fuente de datos compartida entre usuarios o navegadores. Además, la validación de IP duplicada devuelve `false` desde `Nodes.jsx`, pero el formulario no queda con un estado de error suficientemente visible y persistente.
+
+**Respaldo:** `backup/pre-correccion-nodos-persistencia` creado antes de la corrección.
+
+**Corrección prevista:**
+- Incorporar una capa API/backend compartida para Nodos, manteniendo `nodesApi.js` separado de la UI.
+- Evitar que los componentes de tabla y formulario conozcan detalles de persistencia.
+- Mantener compatibilidad local temporal mientras la API no esté disponible.
+- Mostrar el error de IP duplicada dentro del formulario, sin cerrar ni parpadear.
+- Impedir el cierre del formulario cuando el guardado es rechazado por validación.
+- Preparar la prueba con dos navegadores/perfiles sobre la misma instalación.
+
+**Archivos afectados esperados:** módulo de Nodos, servicio API, backend/API inicial y configuración de instalación/proxy si es necesaria.
+
+**Resultado esperado:** los nodos pasan a tener una fuente compartida y el intento de IP duplicada muestra un mensaje visible y mantiene el formulario abierto para corregirlo.
+
+**Regla:** esta entrada queda registrada antes de modificar el código.
+
 ---
 
 ## Protocolo permanente
