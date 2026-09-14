@@ -82,7 +82,17 @@
 
 **Respaldo:** se creó la rama `backup/pre-etapa-1-13-configuracion` apuntando al estado de `main` antes de esta etapa.
 
-**Regla:** esta entrada queda registrada antes de modificar el código.
+**Implementación:**
+- `src/main.jsx` ahora contiene una pantalla de Configuración con pestañas: General, Panel, Red/API, Seguridad, Almacenamiento, Logs y Actualizaciones.
+- Se añadieron controles editables para identidad, idioma, zona horaria, formato de fecha, preferencias del panel, sesión, red y almacenamiento.
+- Los cambios de configuración visual se guardan localmente en `localStorage` para conservarlos entre recargas.
+- Se añadieron indicadores y textos de preparación para las futuras conexiones con backend, RBAC, API, logs y updater real.
+- `index.html` incorpora los estilos específicos de Configuración sin depender de una hoja externa no procesada por Vite.
+- Se eliminó la hoja `src/settings.css` redundante después de integrar esos estilos correctamente.
+
+**Verificación:** se revisaron los archivos publicados en `main` después de la implementación. La estructura React mantiene la navegación existente y la nueva pantalla de Configuración queda preparada para ser reemplazada por persistencia real cuando exista el backend.
+
+**Nota:** todavía no se conectan estos valores al servidor ni a PostgreSQL; eso corresponde a las siguientes etapas de integración.
 
 ---
 
