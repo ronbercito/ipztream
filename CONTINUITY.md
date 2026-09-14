@@ -1,4 +1,4 @@
-# IPZTream — Continuidad del proyecto
+# IPZStream — Continuidad del proyecto
 
 ## Propósito
 IPZStream es una plataforma propia de gestión y distribución de streaming, inspirada en capacidades de paneles IPTV existentes, pero desarrollada con arquitectura, código e interfaz propios.
@@ -82,13 +82,11 @@ src/
 13. Pruebas en Proxmox
 14. Preparación para producción
 
-Estas etapas son la hoja de ruta general del producto. El trabajo actual puede dividirse en subetapas numeradas para completar progresivamente los módulos del panel.
-
 ## Plan actual de 7 subetapas del panel
 1. **Configuración** — estructura modular, secciones de configuración y persistencia inicial. **COMPLETADA.**
 2. **Usuarios** — consolidar el módulo de usuarios, CRUD de demostración, filtros, validaciones, persistencia local temporal y preparación limpia para API/RBAC. **COMPLETADA Y VALIDADA.**
-3. **Servidores / Nodos** — módulo independiente para alta, estado y gestión de nodos. **IMPLEMENTADA, CON CORRECCIÓN DE PERSISTENCIA/VALIDACIÓN EN CURSO.**
-4. **Canales / Fuentes** — módulo independiente para canales y fuentes de streaming.
+3. **Servidores / Nodos** — módulo independiente para alta, estado y gestión de nodos. **COMPLETADA Y VALIDADA.**
+4. **Canales / Fuentes** — módulo independiente para administrar canales, fuentes de streaming, estado y parámetros de reproducción. **EN CURSO.**
 5. **VOD / Series / EPG / M3U** — separar y consolidar gestión de contenido y listas.
 6. **Paquetes / Conexiones / Dispositivos** — gestión comercial y control de sesiones/dispositivos.
 7. **Logs / Auditoría / Estadísticas** — observabilidad, métricas y cierre de integración visual del panel.
@@ -107,17 +105,12 @@ Estas etapas son la hoja de ruta general del producto. El trabajo actual puede d
 - Build de producción validado antes de iniciar esta etapa.
 - Instalador validado desde `/opt/ipztream` sin intentar copiar el proyecto sobre sí mismo.
 - Dashboard y navegación principal funcionales.
-- Usuarios funciona con módulo independiente en `src/modules/users/`.
-- Usuarios validado: alta, recarga con persistencia, edición, búsqueda, detección de duplicados, validación de conexiones, eliminación y recarga final.
-- Límite de conexiones validado por el usuario: máximo 99.
-- Configuración está separada en `src/modules/settings/`.
-- Configuración contiene General, Panel, Red/API, Seguridad, Almacenamiento, Logs y Actualizaciones.
-- La configuración visual usa persistencia inicial en `localStorage`.
-- El módulo de Nodos está creado en `src/modules/nodes/` y separado en componentes, servicio y estilos.
-- **Incidencia detectada por el usuario:** Nodos actualmente guarda en `localStorage`, por lo que un cambio realizado en un navegador/perfil no aparece en otro navegador/cuenta.
-- **Incidencia detectada por el usuario:** al intentar registrar una IP duplicada, el formulario no presenta claramente el error y la interfaz solamente parpadea/cierra el estado de forma poco visible.
-- La persistencia compartida entre navegadores/cuentas requiere API/backend; `localStorage` solo sirve como persistencia temporal por navegador/perfil.
-- La configuración real del servidor/backend, autenticación/RBAC, PostgreSQL, API, auditoría y updater real todavía no están conectados.
+- Usuarios funciona con módulo independiente en `src/modules/users/` y fue validado por el usuario.
+- Configuración está separada en `src/modules/settings/` y fue validada visualmente.
+- Nodos está separado en `src/modules/nodes/` con API compartida mínima, persistencia en `data/nodes.json`, proxy Nginx y servicio systemd `ipztream-api`.
+- Nodos fue validado por el usuario: alta, persistencia compartida entre navegadores, rechazo de IP duplicada, mensaje visible, formulario abierto y corrección posterior de IP.
+- `localStorage` de Nodos queda como compatibilidad/fallback temporal, no como fuente compartida principal.
+- El backend real completo con PostgreSQL, autenticación/RBAC y API integral todavía no está conectado.
 - El botón `Actualizar` del panel todavía es una interfaz de actualización; el updater real se implementará posteriormente mediante releases controlados y firmados.
 
 ## Respaldos importantes
@@ -138,26 +131,33 @@ No generar nuevos mockups salvo solicitud explícita; utilizar la referencia vis
 ### Validado
 - Instalación en Debian 13.
 - `npm install` sin vulnerabilidades reportadas.
-- `npm run build` exitoso antes de la Etapa 3/7.
+- `npm run build` exitoso antes de iniciar esta etapa.
 - Publicación mediante Nginx exitosa.
 - Navegación general del panel.
 - Usuarios: alta, edición, eliminación, búsqueda, persistencia después de recarga y validaciones probadas por el usuario.
-- Límite máximo de 99 conexiones validado.
-- Módulos del menú del 1 al 7: funcionamiento confirmado por el usuario.
-- Configuración: el menú de opciones ya aparece correctamente tras la corrección y fue visualmente comprobado por el usuario.
+- Configuración: menú de opciones completo visible y validado por el usuario.
+- Nodos: alta, aparición del nodo, sincronización entre navegadores/perfiles, rechazo de duplicados, mensaje visible, formulario sin parpadeo/cierre y modificación posterior de IP; todo validado por el usuario.
 
 ### Etapa actual
-**Etapa 3/7 — Servidores / Nodos: IMPLEMENTADA, CON CORRECCIÓN DE PERSISTENCIA Y UX DE VALIDACIÓN PENDIENTE.**
+**Etapa 4/7 — Canales / Fuentes: EN CURSO.**
 
-Se creó `src/modules/nodes/` con interfaz principal, filtros, formulario, tabla, servicio de persistencia local y estilos propios. La navegación existente integra el módulo sin convertirlo en parte del código de negocio de `main.jsx`; la carga se realiza de forma independiente.
+Objetivo de esta etapa: reemplazar la pantalla genérica de Canales por un módulo independiente `src/modules/channels/`, manteniendo la referencia visual aprobada y siguiendo la arquitectura modular. El módulo deberá separar UI, componentes, servicio/API y estilos.
 
-### Corrección actual de Etapa 3/7
-1. Sustituir la dependencia de `localStorage` como fuente principal de Nodos por una capa de API/backend compartida.
-2. Mantener el servicio de Nodos separado para que el cambio a API real no afecte los componentes visuales.
-3. Mostrar errores de validación dentro del formulario de forma persistente y visible, especialmente IP duplicada.
-4. Evitar cierres/parpadeos del formulario cuando el guardado es rechazado.
-5. Mantener una estrategia temporal de compatibilidad local únicamente mientras el backend compartido aún no esté disponible.
-6. Validar dos navegadores/perfiles contra la misma instalación para confirmar que los cambios son compartidos.
+Alcance inicial:
+- Listado de canales.
+- Alta y edición de canales.
+- Activar/desactivar canal.
+- Búsqueda y filtros.
+- Identidad del canal: nombre, número, logo y grupo/categoría.
+- Gestión de una o varias fuentes por canal.
+- URL de fuente y tipo/protocolo.
+- Estado de fuente y canal.
+- Prioridad de fuentes para definir cuál se intenta primero.
+- Validaciones de datos y mensajes visibles.
+- Persistencia compartida mediante API para que la arquitectura no repita el problema de `localStorage` de Nodos.
+- Preparación para conectar posteriormente fuentes reales, health checks, failover y agentes/nodos.
+
+No se implementará todavía un reproductor completo, transcodificación, health check real contra cada stream ni PostgreSQL/RBAC. Esas capacidades se conectarán en etapas posteriores sobre el servicio/API ya separado.
 
 ## Protocolo obligatorio por etapa
 1. **Actualizar primero `CONTINUITY.md`.**
@@ -171,4 +171,4 @@ Se creó `src/modules/nodes/` con interfaz principal, filtros, formulario, tabla
 9. Informar al usuario qué se cambió y cómo probarlo.
 
 ## Próximo paso
-Corregir la persistencia compartida y la validación visible de duplicados en **Etapa 3/7 — Servidores / Nodos**, y no avanzar a Etapa 4 hasta validar ambos comportamientos.
+Implementar y validar **Etapa 4/7 — Canales / Fuentes** con estructura modular independiente y persistencia compartida por API.
