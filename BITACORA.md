@@ -66,6 +66,26 @@
 
 ---
 
+## 2026-09-14 — Etapa 1/13 — Configuración del sistema
+
+**Motivo:** comenzar el orden de trabajo acordado por el usuario, desarrollando primero el módulo `Configuración` antes de continuar con Usuarios, Paquetes/Perfiles y el resto de módulos.
+
+**Objetivo:** convertir Configuración en el centro de parámetros de IPZStream, dejando una base clara para conectar posteriormente estos valores con el backend y la base de datos.
+
+**Alcance:**
+- Identidad de la plataforma.
+- Zona horaria.
+- Preferencias generales del panel.
+- Parámetros de interfaz y comportamiento.
+- Preparación de secciones para seguridad, red, almacenamiento, logs y actualizaciones.
+- Mantener separación entre configuración visual actual y configuración real del servidor, que se conectará posteriormente al backend.
+
+**Respaldo:** se creó la rama `backup/pre-etapa-1-13-configuracion` apuntando al estado de `main` antes de esta etapa.
+
+**Regla:** esta entrada queda registrada antes de modificar el código.
+
+---
+
 ## Protocolo permanente
 Toda mejora o corrección futura debe seguir este orden:
 1. Registrar la intención/cambio en esta bitácora.
