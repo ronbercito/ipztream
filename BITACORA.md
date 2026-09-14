@@ -74,16 +74,43 @@ Se incorporaron controles para identidad, idioma, zona horaria, formato de fecha
 
 `src/main.jsx` mantiene la navegación existente e integra `SettingsPage` sin modificar el módulo de Usuarios ni las demás pantallas validadas.
 
-**Estado:** código publicado en `main`. Pendiente ejecutar `npm run build` e instalar en el contenedor para validación final.
+**Resultado de validación:** el usuario confirmó que el menú de opciones de Configuración ya aparece correctamente.
+
+## 2026-09-14 — Etapa 2/7 — Usuarios — Inicio de consolidación
+**Motivo:** comenzar la segunda de las siete subetapas actuales del panel, tomando el módulo de Usuarios existente y consolidándolo sin afectar Dashboard, Configuración ni las demás pantallas ya validadas.
+
+**Estado actual:** el módulo ya dispone de búsqueda, filtros, alta, edición, eliminación, estado, paquete, conexiones y vencimiento, pero utiliza datos de demostración en memoria y todavía no tiene persistencia temporal entre recargas.
+
+**Objetivo de esta etapa:**
+- Mantener `src/modules/users/` completamente independiente.
+- Añadir persistencia local temporal mientras no exista backend.
+- Reforzar validaciones y normalización del formulario.
+- Mantener `usersApi.js` separado y preparado para API real.
+- No introducir todavía PostgreSQL, autenticación real ni RBAC; esas capacidades se conectarán cuando exista backend.
+
+**Archivos previstos:**
+- `src/modules/users/Users.jsx`
+- `src/modules/users/components/UserForm.jsx`
+- `src/modules/users/components/UserTable.jsx` si fuera necesario para la mejora
+- `src/modules/users/services/usersApi.js` solo si fuera necesario
+- `src/modules/users/styles/users.css` solo si fuera necesario
+
+**Respaldo requerido:** `backup/pre-etapa-2-7-usuarios` antes de modificar código estructural.
+
+**Resultado esperado:** Usuarios conserva las funciones ya validadas y los datos creados/editados permanecen disponibles después de recargar el panel, sin acoplar el módulo a `src/main.jsx`.
+
+**Regla:** esta entrada se registra antes de modificar el código.
 
 ---
 
 ## Protocolo permanente
 Toda mejora o corrección futura debe seguir este orden:
-1. Registrar la intención/cambio en `BITACORA.md`.
-2. Crear respaldo cuando el cambio sea estructural.
-3. Implementar el código.
-4. Ejecutar build/verificación.
-5. Registrar el resultado.
-6. Publicar la actualización.
-7. Informar al usuario qué cambió y cómo probarlo.
+1. Actualizar primero `CONTINUITY.md` con el estado y objetivo de la etapa.
+2. Registrar la intención/cambio en `BITACORA.md`.
+3. Crear respaldo cuando el cambio sea estructural.
+4. Implementar el código.
+5. Ejecutar build/verificación.
+6. Probar en el contenedor cuando corresponda.
+7. Registrar el resultado.
+8. Publicar la actualización.
+9. Informar al usuario qué cambió y cómo probarlo.
