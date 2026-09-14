@@ -104,7 +104,24 @@ Se incorporaron controles para identidad, idioma, zona horaria, formato de fecha
 - Mensaje visual de validación dentro del formulario.
 - Eliminación actualizada para indicar que afecta la persistencia local de demostración.
 
-**Estado:** implementación completada en `main`. Pendiente ejecutar `npm run build` y validar en el contenedor antes de cerrar la etapa.
+**Estado:** implementación completada en `main`.
+
+## 2026-09-14 — Resultado Etapa 2/7 — Usuarios — VALIDADA
+El usuario completó satisfactoriamente la prueba funcional completa del módulo:
+1. Crear usuario: OK.
+2. Recargar página: OK.
+3. Usuario permanece después de recargar: OK.
+4. Editar usuario: OK.
+5. Recargar después de editar: OK.
+6. Buscar usuario: OK.
+7. Usuario duplicado: validación OK.
+8. Cantidad de conexiones inválida: validación OK; se confirmó máximo de 99 conexiones.
+9. Eliminar usuario: OK.
+10. Recargar y confirmar eliminación: OK.
+
+**Resultado:** Etapa 2/7 cerrada y validada por el usuario. No se detectaron regresiones en las funciones probadas.
+
+**Siguiente etapa:** Etapa 3/7 — Servidores / Nodos.
 
 ---
 
@@ -115,7 +132,7 @@ Toda mejora o corrección futura debe seguir este orden:
 3. Crear respaldo cuando el cambio sea estructural.
 4. Implementar el código.
 5. Ejecutar build/verificación.
-6. Probar en el contenedor cuando corresponda.
+6. Probar en el contenedor.
 7. Registrar el resultado.
 8. Publicar la actualización.
 9. Informar al usuario qué cambió y cómo probarlo.
