@@ -54,7 +54,15 @@
 
 **Resultado esperado:** panel completo navegable, con todas las secciones visibles y operativas a nivel de interfaz, listo para comenzar la conexión con backend/API.
 
-**Regla:** esta entrada queda registrada antes de modificar el código.
+---
+
+## 2026-09-14 — Corrección 2 — Formulario rápido de creación
+
+**Motivo:** durante la revisión estática de la primera implementación de la Etapa 2 se detectó que el formulario modal de creación abría correctamente, pero el guardado todavía dependía de un `prompt()` adicional.
+
+**Corrección prevista:** hacer que el botón `Guardar` utilice directamente el valor introducido en el modal y agregue el registro a la tabla sin solicitar un segundo dato.
+
+**Regla:** esta corrección queda registrada antes de modificar el código.
 
 ---
 
