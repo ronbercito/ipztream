@@ -271,6 +271,55 @@ La API valida número de canal, duplicados de número, nombre/categoría, existe
 
 **Estado:** corrección registrada antes de modificar el despliegue; Etapa 4/7 continúa EN CURSO y no está validada todavía.
 
+## 2026-09-14 — Resultado Etapa 4/7 — Canales / Fuentes — VALIDADA
+Después de sincronizar el checkout con `origin/main` y reconstruir/publicar el frontend, el usuario realizó la validación funcional completa del módulo.
+
+Pruebas confirmadas:
+1. Nuevo canal: OK.
+2. Editar ESPN/HBO/TUDN: OK.
+3. Activar/desactivar: OK.
+4. Eliminar: OK.
+5. Buscar: OK.
+6. Filtrar: OK.
+7. Administrar fuentes: OK.
+
+**Resultado:** Etapa 4/7 cerrada y validada por el usuario.
+
+**Observación para mejora posterior:** el estado `Activo/Activa` utilizado por los canales y fuentes iniciales es actualmente administrativo/demo y no representa una comprobación real de conectividad. La separación entre estado administrativo y disponibilidad real/health check queda pendiente para una mejora posterior y no bloquea el cierre de esta etapa.
+
+## 2026-09-14 — Etapa 5/7 — VOD / Series / EPG / M3U — INICIO
+**Motivo:** comenzar la quinta de las siete subetapas actuales del panel, consolidando la gestión de contenido bajo demanda, series, programación EPG y listas M3U como módulos independientes.
+
+**Objetivo:**
+- Separar VOD, Series, EPG y M3U en módulos independientes.
+- Separar componentes, servicios/API y estilos de cada módulo cuando corresponda.
+- Revisar las pantallas genéricas existentes antes de implementar para evitar duplicaciones y regresiones.
+- Mantener persistencia compartida mediante la API existente cuando se requiera guardar datos funcionales.
+- Preparar modelos que puedan migrarse posteriormente a PostgreSQL sin rehacer la UI.
+- Mantener `src/main.jsx` únicamente como punto de integración.
+
+**Alcance inicial:**
+- VOD: catálogo de películas, título, descripción, categoría, año, duración, poster, URL/fuente y estado administrativo.
+- Series: series, temporadas y episodios, con estructura separada.
+- EPG: programación por canal, inicio, fin, título, descripción y estado.
+- M3U: listas, importación de contenido, identificación de canales/streams y preparación para exportación.
+
+**No se implementa todavía:** transcodificación, reproductor completo, ingestión EPG externa, sincronización automática de M3U externos, health checks reales, PostgreSQL completo, autenticación/RBAC o balanceo de nodos.
+
+**Archivos/módulos a revisar y crear:**
+- `src/modules/vod/`
+- `src/modules/series/` si la separación mejora la mantenibilidad; de lo contrario, `src/modules/vod/series/` con límites claros.
+- `src/modules/epg/`
+- `src/modules/m3u/`
+- `src/main.jsx` solamente para integración.
+- `server/index.js` y `data/` únicamente si se requiere persistencia API.
+
+**Respaldo:** pendiente de crear inmediatamente antes de modificar la estructura de esta etapa.
+
+**Resultado esperado:** VOD, Series, EPG y M3U dejan de depender de pantallas genéricas y quedan preparados para crecer hacia contenido real y backend persistente.
+
+**Regla:** esta entrada queda registrada antes de modificar el código.
+
 ---
 
 ## Protocolo permanente
