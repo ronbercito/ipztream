@@ -25,6 +25,20 @@
 
 ---
 
+## 2026-09-14 — Corrección 1 — Instalador ejecutado desde `/opt/ipztream`
+
+**Motivo:** durante la primera prueba real en el contenedor Debian 13, `install.sh` intentó copiar `/opt/ipztream` sobre sí mismo y se detuvo con `cp: '/opt/ipztream/.' and '/opt/ipztream/.' are the same file`.
+
+**Causa:** el instalador asumía que el código fuente estaría en una ubicación diferente a `APP_DIR` (`/opt/ipztream`). Al ejecutarlo desde el clon del repositorio en esa misma ruta, la operación de copia era innecesaria y fallaba.
+
+**Corrección prevista:** hacer que el instalador detecte cuando `SOURCE_DIR` y `APP_DIR` son la misma ubicación. En ese caso, no debe borrar ni copiar el proyecto; debe trabajar directamente sobre el directorio existente. Cuando la fuente sea externa, debe conservar el comportamiento de copiar el proyecto a `APP_DIR`.
+
+**Objetivo de seguridad:** evitar que una instalación válida destruya accidentalmente su propia fuente de instalación y permitir tanto pruebas desde un clon como futuras instalaciones desde un paquete/directorio externo.
+
+**Regla:** esta corrección queda registrada antes de modificar `install.sh`.
+
+---
+
 ## Protocolo permanente
 Toda mejora o corrección futura debe seguir este orden:
 1. Registrar la intención/cambio en esta bitácora.
