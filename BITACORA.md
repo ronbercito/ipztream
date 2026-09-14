@@ -96,6 +96,71 @@
 
 ---
 
+## 2026-09-14 — Arquitectura permanente — Módulos independientes por menú y opción
+
+**Motivo:** evitar que futuras modificaciones de una sección afecten accidentalmente a otras partes de IPZStream.
+
+**Regla arquitectónica:** cuando sea necesario, cada menú principal tendrá su propia carpeta y las opciones importantes se separarán en subcarpetas y archivos correspondientes.
+
+**Criterios:**
+- Cada menú funciona como módulo independiente.
+- Componentes de una sección se mantienen dentro de su módulo cuando no son reutilizables.
+- Servicios/API de cada módulo se separan de la interfaz.
+- Estilos específicos pueden permanecer dentro del módulo.
+- Los componentes realmente compartidos se mantienen en `src/components/`.
+- La lógica global de aplicación permanece fuera de los módulos.
+- Se evita concentrar nuevas funcionalidades en `src/main.jsx`.
+
+**Estructura objetivo:**
+```text
+src/
+├── app/
+├── modules/
+│   ├── dashboard/
+│   ├── users/
+│   ├── nodes/
+│   ├── channels/
+│   ├── vod/
+│   ├── epg/
+│   ├── m3u/
+│   ├── packages/
+│   ├── connections/
+│   ├── devices/
+│   ├── logs/
+│   ├── statistics/
+│   └── settings/
+├── components/
+├── services/
+└── styles/
+```
+
+**Regla:** esta arquitectura se aplicará progresivamente sin romper las funcionalidades ya existentes.
+
+---
+
+## 2026-09-14 — Etapa 2/13 — Usuarios
+
+**Motivo:** iniciar el módulo de Usuarios después de Configuración, aplicando la arquitectura modular independiente acordada.
+
+**Objetivo:** construir la gestión de usuarios como módulo separado, preparado para crecer y posteriormente conectarse con API, PostgreSQL, autenticación y RBAC.
+
+**Alcance inicial:**
+- Listado de usuarios.
+- Búsqueda y filtros.
+- Estado del usuario.
+- Paquete/perfil.
+- Conexiones permitidas y activas.
+- Vencimiento.
+- Alta y edición desde formularios del módulo.
+- Acciones por usuario.
+- Base para futuras funciones de permisos, suspensión y auditoría.
+
+**Respaldo:** se creó la rama `backup/pre-etapa-2-13-usuarios` antes de iniciar los cambios estructurales.
+
+**Regla:** esta entrada queda registrada antes de modificar el código.
+
+---
+
 ## Protocolo permanente
 Toda mejora o corrección futura debe seguir este orden:
 1. Registrar la intención/cambio en esta bitácora.
