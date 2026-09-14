@@ -250,6 +250,27 @@ La API valida número de canal, duplicados de número, nombre/categoría, existe
 
 **Validación pendiente:** ejecutar `npm run build`, actualizar/reiniciar la API en el contenedor y probar alta, edición, activación/desactivación, fuentes múltiples, filtros, duplicado de número y persistencia desde otro navegador.
 
+## 2026-09-14 — Corrección Etapa 4/7 — Canales: interfaz instalada desactualizada
+**Motivo:** el usuario confirmó que los canales ESPN, HBO Max y TUDN aparecen en el panel, pero no se pueden editar ni realizar las acciones de gestión.
+
+**Diagnóstico:** la implementación actual del repositorio sí contiene las acciones de `Nuevo canal`, edición, activar/desactivar y eliminar en `Channels.jsx` y `ChannelTable.jsx`. La API `GET /api/channels` también responde correctamente. La causa más probable es que el `dist` publicado en Nginx fue construido antes de sincronizar el checkout local con el commit que terminó de integrar Canales (`7c2069b`), por lo que el navegador está recibiendo una versión anterior del frontend aunque la API ya esté actualizada.
+
+**Corrección prevista:**
+- No modificar todavía la lógica del módulo.
+- Sincronizar `/opt/ipztream` con `origin/main`.
+- Ejecutar nuevamente `npm install` y `npm run build`.
+- Publicar el `dist` actualizado en `/var/www/ipztream`.
+- Mantener intactos `data/`, `data/channels.json`, `data/nodes.json` y la API existente.
+- Verificar nuevamente la interfaz y sus acciones.
+
+**Archivos involucrados:** `dist/` como artefacto de despliegue; no se modifica la lógica fuente en esta corrección salvo que la nueva prueba demuestre un fallo real del módulo.
+
+**Respaldo:** no se requiere un nuevo respaldo estructural porque la corrección es de despliegue del build y existe `backup/pre-etapa-4-7-channels`.
+
+**Resultado esperado:** la interfaz publicada debe mostrar y permitir Nuevo canal, Editar, Activar/Desactivar y Eliminar, además de los formularios y filtros implementados.
+
+**Estado:** corrección registrada antes de modificar el despliegue; Etapa 4/7 continúa EN CURSO y no está validada todavía.
+
 ---
 
 ## Protocolo permanente
