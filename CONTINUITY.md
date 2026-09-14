@@ -87,7 +87,7 @@ Estas etapas son la hoja de ruta general del producto. El trabajo actual puede d
 ## Plan actual de 7 subetapas del panel
 1. **Configuración** — estructura modular, secciones de configuración y persistencia inicial. **COMPLETADA.**
 2. **Usuarios** — consolidar el módulo de usuarios, CRUD de demostración, filtros, validaciones, persistencia local temporal y preparación limpia para API/RBAC. **COMPLETADA Y VALIDADA.**
-3. **Servidores / Nodos** — módulo independiente para alta, estado y gestión de nodos. **EN IMPLEMENTACIÓN / PENDIENTE DE VALIDACIÓN.**
+3. **Servidores / Nodos** — módulo independiente para alta, estado y gestión de nodos. **IMPLEMENTADA, CON CORRECCIÓN DE PERSISTENCIA/VALIDACIÓN EN CURSO.**
 4. **Canales / Fuentes** — módulo independiente para canales y fuentes de streaming.
 5. **VOD / Series / EPG / M3U** — separar y consolidar gestión de contenido y listas.
 6. **Paquetes / Conexiones / Dispositivos** — gestión comercial y control de sesiones/dispositivos.
@@ -113,9 +113,10 @@ Estas etapas son la hoja de ruta general del producto. El trabajo actual puede d
 - Configuración está separada en `src/modules/settings/`.
 - Configuración contiene General, Panel, Red/API, Seguridad, Almacenamiento, Logs y Actualizaciones.
 - La configuración visual usa persistencia inicial en `localStorage`.
-- El módulo de Nodos ya fue creado en `src/modules/nodes/` y separado en componentes, servicio y estilos.
-- Nodos usa persistencia local temporal, alta, eliminación, búsqueda, filtros por estado/región, copia de IP y validación básica de IPv4.
-- El módulo de Nodos todavía no ha sido compilado ni validado en el contenedor después de estos cambios.
+- El módulo de Nodos está creado en `src/modules/nodes/` y separado en componentes, servicio y estilos.
+- **Incidencia detectada por el usuario:** Nodos actualmente guarda en `localStorage`, por lo que un cambio realizado en un navegador/perfil no aparece en otro navegador/cuenta.
+- **Incidencia detectada por el usuario:** al intentar registrar una IP duplicada, el formulario no presenta claramente el error y la interfaz solamente parpadea/cierra el estado de forma poco visible.
+- La persistencia compartida entre navegadores/cuentas requiere API/backend; `localStorage` solo sirve como persistencia temporal por navegador/perfil.
 - La configuración real del servidor/backend, autenticación/RBAC, PostgreSQL, API, auditoría y updater real todavía no están conectados.
 - El botón `Actualizar` del panel todavía es una interfaz de actualización; el updater real se implementará posteriormente mediante releases controlados y firmados.
 
@@ -125,6 +126,7 @@ Estas etapas son la hoja de ruta general del producto. El trabajo actual puede d
 - `backup/pre-correccion-configuracion-completa`
 - `backup/pre-etapa-2-7-usuarios`
 - `backup/pre-etapa-3-7-nodes`
+- `backup/pre-correccion-nodos-persistencia`
 - Se han utilizado copias previas de `src/main.jsx` antes de modificaciones estructurales.
 
 ## Referencia visual aprobada
@@ -145,20 +147,17 @@ No generar nuevos mockups salvo solicitud explícita; utilizar la referencia vis
 - Configuración: el menú de opciones ya aparece correctamente tras la corrección y fue visualmente comprobado por el usuario.
 
 ### Etapa actual
-**Etapa 3/7 — Servidores / Nodos: IMPLEMENTADA, PENDIENTE DE BUILD Y VALIDACIÓN.**
+**Etapa 3/7 — Servidores / Nodos: IMPLEMENTADA, CON CORRECCIÓN DE PERSISTENCIA Y UX DE VALIDACIÓN PENDIENTE.**
 
 Se creó `src/modules/nodes/` con interfaz principal, filtros, formulario, tabla, servicio de persistencia local y estilos propios. La navegación existente integra el módulo sin convertirlo en parte del código de negocio de `main.jsx`; la carga se realiza de forma independiente.
 
-### Pendiente de la etapa 3/7
-1. Ejecutar `git pull` en el contenedor.
-2. Ejecutar `npm run build`.
-3. Corregir cualquier error de compilación si aparece.
-4. Ejecutar `bash install.sh` si el build es exitoso.
-5. Probar Servidores / Nodos en el panel.
-6. Validar alta, persistencia, búsqueda, filtros, copia de IP y eliminación.
-7. Confirmar que Usuarios y Configuración siguen funcionando.
-8. Registrar el resultado final en `BITACORA.md`.
-9. Cerrar la etapa y preparar la Etapa 4/7.
+### Corrección actual de Etapa 3/7
+1. Sustituir la dependencia de `localStorage` como fuente principal de Nodos por una capa de API/backend compartida.
+2. Mantener el servicio de Nodos separado para que el cambio a API real no afecte los componentes visuales.
+3. Mostrar errores de validación dentro del formulario de forma persistente y visible, especialmente IP duplicada.
+4. Evitar cierres/parpadeos del formulario cuando el guardado es rechazado.
+5. Mantener una estrategia temporal de compatibilidad local únicamente mientras el backend compartido aún no esté disponible.
+6. Validar dos navegadores/perfiles contra la misma instalación para confirmar que los cambios son compartidos.
 
 ## Protocolo obligatorio por etapa
 1. **Actualizar primero `CONTINUITY.md`.**
@@ -167,9 +166,9 @@ Se creó `src/modules/nodes/` con interfaz principal, filtros, formulario, tabla
 4. Implementar el cambio.
 5. Ejecutar build/verificación.
 6. Probar en el contenedor cuando corresponda.
-7. Registrar el resultado en la bitácora.
+7. Registrar el resultado final en la bitácora.
 8. Publicar la actualización.
 9. Informar al usuario qué se cambió y cómo probarlo.
 
 ## Próximo paso
-Validar la **Etapa 3/7 — Servidores / Nodos** en el contenedor antes de avanzar a la Etapa 4/7.
+Corregir la persistencia compartida y la validación visible de duplicados en **Etapa 3/7 — Servidores / Nodos**, y no avanzar a Etapa 4 hasta validar ambos comportamientos.
