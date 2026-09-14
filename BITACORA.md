@@ -161,6 +161,16 @@ src/
 
 ---
 
+## 2026-09-14 — Corrección 3 — Conflicto de nombre `Settings` en Etapa 2/13
+
+**Motivo:** la primera compilación en Debian 13 detectó que `src/main.jsx` importaba el icono `Settings` de `lucide-react` y simultáneamente declaraba una función/componente llamado `Settings`, provocando un error de identificador duplicado.
+
+**Corrección:** se restauró el contenido completo del panel y se renombró el alias del icono importado a `SettingsIcon`. También se mantuvo la integración del módulo `UsersPage` independiente para que Usuarios utilice su nueva estructura modular.
+
+**Resultado:** corrección publicada en `main`. Queda pendiente que el usuario vuelva a ejecutar `npm run build` en el contenedor para confirmar la compilación real después de la reparación.
+
+---
+
 ## Protocolo permanente
 Toda mejora o corrección futura debe seguir este orden:
 1. Registrar la intención/cambio en esta bitácora.
