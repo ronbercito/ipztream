@@ -66,7 +66,7 @@ src/
     └── global.css
 ```
 
-## Etapas generales do produto
+## Etapas generales del producto
 1. Arquitectura y convenciones
 2. Backend/API
 3. Panel administrativo
@@ -87,7 +87,7 @@ Estas etapas son la hoja de ruta general del producto. El trabajo actual puede d
 ## Plan actual de 7 subetapas del panel
 1. **Configuración** — estructura modular, secciones de configuración y persistencia inicial. **COMPLETADA.**
 2. **Usuarios** — consolidar el módulo de usuarios, CRUD de demostración, filtros, validaciones, persistencia local temporal y preparación limpia para API/RBAC. **COMPLETADA Y VALIDADA.**
-3. **Servidores / Nodos** — módulo independiente para alta, estado y gestión de nodos. **SIGUIENTE ETAPA.**
+3. **Servidores / Nodos** — módulo independiente para alta, estado y gestión de nodos. **EN IMPLEMENTACIÓN / PENDIENTE DE VALIDACIÓN.**
 4. **Canales / Fuentes** — módulo independiente para canales y fuentes de streaming.
 5. **VOD / Series / EPG / M3U** — separar y consolidar gestión de contenido y listas.
 6. **Paquetes / Conexiones / Dispositivos** — gestión comercial y control de sesiones/dispositivos.
@@ -104,16 +104,18 @@ Estas etapas son la hoja de ruta general del producto. El trabajo actual puede d
 - URL de prueba: `http://192.168.10.220`.
 - Nginx publica el panel desde `/var/www/ipztream`.
 - Código fuente del proyecto: `/opt/ipztream`.
-- Build de producción validado con Vite.
+- Build de producción validado antes de iniciar esta etapa.
 - Instalador validado desde `/opt/ipztream` sin intentar copiar el proyecto sobre sí mismo.
 - Dashboard y navegación principal funcionales.
-- Las pantallas del menú probadas por el usuario del 1 al 7 funcionan correctamente.
 - Usuarios funciona con módulo independiente en `src/modules/users/`.
 - Usuarios validado: alta, recarga con persistencia, edición, búsqueda, detección de duplicados, validación de conexiones, eliminación y recarga final.
 - Límite de conexiones validado por el usuario: máximo 99.
 - Configuración está separada en `src/modules/settings/`.
 - Configuración contiene General, Panel, Red/API, Seguridad, Almacenamiento, Logs y Actualizaciones.
 - La configuración visual usa persistencia inicial en `localStorage`.
+- El módulo de Nodos ya fue creado en `src/modules/nodes/` y separado en componentes, servicio y estilos.
+- Nodos usa persistencia local temporal, alta, eliminación, búsqueda, filtros por estado/región, copia de IP y validación básica de IPv4.
+- El módulo de Nodos todavía no ha sido compilado ni validado en el contenedor después de estos cambios.
 - La configuración real del servidor/backend, autenticación/RBAC, PostgreSQL, API, auditoría y updater real todavía no están conectados.
 - El botón `Actualizar` del panel todavía es una interfaz de actualización; el updater real se implementará posteriormente mediante releases controlados y firmados.
 
@@ -122,6 +124,7 @@ Estas etapas son la hoja de ruta general del producto. El trabajo actual puede d
 - `backup/pre-etapa-2-13-usuarios`
 - `backup/pre-correccion-configuracion-completa`
 - `backup/pre-etapa-2-7-usuarios`
+- `backup/pre-etapa-3-7-nodes`
 - Se han utilizado copias previas de `src/main.jsx` antes de modificaciones estructurales.
 
 ## Referencia visual aprobada
@@ -133,7 +136,7 @@ No generar nuevos mockups salvo solicitud explícita; utilizar la referencia vis
 ### Validado
 - Instalación en Debian 13.
 - `npm install` sin vulnerabilidades reportadas.
-- `npm run build` exitoso.
+- `npm run build` exitoso antes de la Etapa 3/7.
 - Publicación mediante Nginx exitosa.
 - Navegación general del panel.
 - Usuarios: alta, edición, eliminación, búsqueda, persistencia después de recarga y validaciones probadas por el usuario.
@@ -142,22 +145,20 @@ No generar nuevos mockups salvo solicitud explícita; utilizar la referencia vis
 - Configuración: el menú de opciones ya aparece correctamente tras la corrección y fue visualmente comprobado por el usuario.
 
 ### Etapa actual
-**Etapa 2/7 — Usuarios: COMPLETADA Y VALIDADA.**
+**Etapa 3/7 — Servidores / Nodos: IMPLEMENTADA, PENDIENTE DE BUILD Y VALIDACIÓN.**
 
-La implementación conserva el módulo `src/modules/users/` separado entre interfaz, componentes, servicio y estilos. La persistencia local es temporal y será sustituida o complementada por API/PostgreSQL cuando exista backend.
+Se creó `src/modules/nodes/` con interfaz principal, filtros, formulario, tabla, servicio de persistencia local y estilos propios. La navegación existente integra el módulo sin convertirlo en parte del código de negocio de `main.jsx`; la carga se realiza de forma independiente.
 
-### Siguiente etapa
-**Etapa 3/7 — Servidores / Nodos.**
-
-Objetivo: crear/consolidar `src/modules/nodes/` como módulo independiente para administrar nodos de streaming, manteniendo separadas interfaz, componentes, servicio/API y estilos. Inicialmente se trabajará con datos de demostración/persistencia temporal, sin conectar todavía un backend real.
-
-Antes de modificar código en la Etapa 3/7 se debe:
-1. Actualizar nuevamente `CONTINUITY.md` con el alcance concreto de la etapa.
-2. Registrar la intención en `BITACORA.md`.
-3. Crear respaldo de etapa.
-4. Implementar.
-5. Ejecutar build.
-6. Probar en el contenedor.
+### Pendiente de la etapa 3/7
+1. Ejecutar `git pull` en el contenedor.
+2. Ejecutar `npm run build`.
+3. Corregir cualquier error de compilación si aparece.
+4. Ejecutar `bash install.sh` si el build es exitoso.
+5. Probar Servidores / Nodos en el panel.
+6. Validar alta, persistencia, búsqueda, filtros, copia de IP y eliminación.
+7. Confirmar que Usuarios y Configuración siguen funcionando.
+8. Registrar el resultado final en `BITACORA.md`.
+9. Cerrar la etapa y preparar la Etapa 4/7.
 
 ## Protocolo obligatorio por etapa
 1. **Actualizar primero `CONTINUITY.md`.**
@@ -171,4 +172,4 @@ Antes de modificar código en la Etapa 3/7 se debe:
 9. Informar al usuario qué se cambió y cómo probarlo.
 
 ## Próximo paso
-Preparar la **Etapa 3/7 — Servidores / Nodos**, comenzando siempre por la actualización de `CONTINUITY.md` y luego `BITACORA.md` antes de tocar el código.
+Validar la **Etapa 3/7 — Servidores / Nodos** en el contenedor antes de avanzar a la Etapa 4/7.
