@@ -7,10 +7,11 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Este repositorio es independiente de Z-Hub.
 - GitHub se utilizará para desarrollo, pruebas, control de versiones y releases.
 - Las instalaciones de clientes deberán recibir builds/releases controlados mediante un sistema propio de actualización; los clientes no deberán depender del repositorio fuente.
+- **ANTES DE CADA ETAPA:** actualizar primero este documento `CONTINUITY.md` con el estado y objetivo de la siguiente etapa.
 - Antes de cambios estructurales importantes se debe crear un respaldo o punto de restauración.
 - Los cambios se implementan por etapas, probando cada etapa antes de continuar.
 - No generar nuevos mockups salvo que el usuario los solicite explícitamente.
-- **BITÁCORA PRIMERO:** toda mejora, corrección o cambio debe registrarse primero en `BITACORA.md`; después se modifica el código y se publica la actualización.
+- **BITÁCORA PRIMERO:** después de actualizar Continuidad, toda mejora, corrección o cambio debe registrarse en `BITACORA.md`; después se modifica el código y se publica la actualización.
 - Cada entrada de bitácora debe indicar etapa, motivo, archivos afectados y resultado esperado.
 - La arquitectura debe mantenerse modular: cada menú principal tendrá su módulo y las opciones importantes se separarán en componentes, servicios/API y estilos cuando corresponda.
 - Evitar concentrar nuevas funcionalidades en `src/main.jsx`.
@@ -95,7 +96,16 @@ src/modules/users/
 13. Pruebas en Proxmox
 14. Preparación para producción
 
-Estas etapas son la hoja de ruta general del producto. El trabajo actual puede dividirse en subetapas numeradas, como la planificación 1/13 utilizada para completar progresivamente los módulos del panel.
+Estas etapas son la hoja de ruta general del producto. El trabajo actual puede dividirse en subetapas numeradas para completar progresivamente los módulos del panel.
+
+## Plan actual de 7 subetapas del panel
+1. **Configuración** — estructura modular, secciones de configuración y persistencia inicial.
+2. **Usuarios** — consolidar el módulo de usuarios, CRUD de demostración, filtros, validaciones, persistencia local temporal y preparación limpia para API/RBAC.
+3. **Servidores / Nodos** — módulo independiente para alta, estado y gestión de nodos.
+4. **Canales / Fuentes** — módulo independiente para canales y fuentes de streaming.
+5. **VOD / Series / EPG / M3U** — separar y consolidar gestión de contenido y listas.
+6. **Paquetes / Conexiones / Dispositivos** — gestión comercial y control de sesiones/dispositivos.
+7. **Logs / Auditoría / Estadísticas** — observabilidad, métricas y cierre de integración visual del panel.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -111,10 +121,11 @@ Estas etapas son la hoja de ruta general del producto. El trabajo actual puede d
 - Build de producción validado con Vite.
 - Instalador validado desde `/opt/ipztream` sin intentar copiar el proyecto sobre sí mismo.
 - Dashboard y navegación principal funcionales.
-- Las pantallas probadas por el usuario del 1 al 7 funcionan correctamente.
+- Las pantallas del menú probadas por el usuario del 1 al 7 funcionan correctamente.
 - Usuarios funciona con módulo independiente en `src/modules/users/`.
-- Configuración fue separada en `src/modules/settings/` para evitar volver a concentrarla en `src/main.jsx`.
-- Configuración incluye General, Panel, Red/API, Seguridad, Almacenamiento, Logs y Actualizaciones, con persistencia inicial en `localStorage`.
+- Configuración está separada en `src/modules/settings/`.
+- Configuración contiene General, Panel, Red/API, Seguridad, Almacenamiento, Logs y Actualizaciones.
+- La configuración visual usa persistencia inicial en `localStorage`.
 - La configuración real del servidor/backend, autenticación/RBAC, PostgreSQL, API, auditoría y updater real todavía no están conectados.
 - El botón `Actualizar` del panel todavía es una interfaz de actualización; el updater real se implementará posteriormente mediante releases controlados y firmados.
 
@@ -138,24 +149,33 @@ No generar nuevos mockups salvo solicitud explícita; utilizar la referencia vis
 - Navegación general del panel.
 - Usuarios: funciones principales probadas por el usuario.
 - Módulos del menú del 1 al 7: funcionamiento confirmado por el usuario.
+- Configuración: el menú de opciones ya aparece correctamente tras la corrección y fue visualmente comprobado por el usuario.
 
-### Pendiente inmediato
-- Ejecutar `git pull` en el contenedor para obtener la restauración completa de Configuración.
-- Ejecutar `npm run build`.
-- Ejecutar `bash install.sh`.
-- Validar visual y funcionalmente las siete secciones de Configuración.
-- Registrar el resultado final en `BITACORA.md`.
-- Solo después de cerrar esta validación continuar con la siguiente subetapa.
+### Etapa actual
+**Etapa 2/7 — Usuarios.**
 
-## Protocolo de cambios
-1. Registrar primero la mejora/corrección en `BITACORA.md`.
-2. Crear respaldo cuando el cambio sea estructural.
-3. Implementar el cambio.
-4. Ejecutar build/verificación.
-5. Probar en el contenedor cuando corresponda.
-6. Registrar el resultado en la bitácora.
-7. Publicar la actualización.
-8. Informar al usuario qué se cambió y cómo probarlo.
+Objetivo de esta etapa: consolidar el módulo `src/modules/users/` sin tocar las funcionalidades ya validadas, manteniendo separación entre interfaz, componentes, servicio y futuros puntos de integración con API/RBAC.
+
+### Pendiente de la etapa 2/7
+- Registrar el cambio en `BITACORA.md` antes de modificar código.
+- Crear respaldo de la etapa antes de cambios estructurales.
+- Mejorar persistencia temporal local del módulo mientras no exista backend.
+- Reforzar validaciones básicas del formulario y normalización de datos.
+- Mantener servicio `usersApi.js` preparado para futura API real.
+- Ejecutar build.
+- Validar en el contenedor.
+- Registrar resultado final y publicar.
+
+## Protocolo obligatorio por etapa
+1. **Actualizar primero `CONTINUITY.md`.**
+2. Registrar la intención/corrección en `BITACORA.md`.
+3. Crear respaldo cuando el cambio sea estructural.
+4. Implementar el cambio.
+5. Ejecutar build/verificación.
+6. Probar en el contenedor cuando corresponda.
+7. Registrar el resultado en la bitácora.
+8. Publicar la actualización.
+9. Informar al usuario qué se cambió y cómo probarlo.
 
 ## Próximo paso
-Cerrar la validación de la Corrección 4 de Configuración en el contenedor. Después de confirmar que las siete secciones funcionan, continuar con la siguiente subetapa del plan 1/13, manteniendo la arquitectura modular y sin alterar las funcionalidades ya validadas.
+Ejecutar la **Etapa 2/7 — Usuarios**, comenzando por el registro correspondiente en `BITACORA.md` y el respaldo antes de tocar el código.
