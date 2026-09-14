@@ -30,10 +30,14 @@ fi
 node --version
 npm --version
 
-echo "==> Copiando IPZStream a ${APP_DIR}..."
-rm -rf "${APP_DIR}"
-mkdir -p "${APP_DIR}"
-cp -a "${SOURCE_DIR}/." "${APP_DIR}/"
+if [[ "${SOURCE_DIR}" == "${APP_DIR}" ]]; then
+  echo "==> El instalador ya se está ejecutando desde ${APP_DIR}; se omite la copia del proyecto."
+else
+  echo "==> Copiando IPZStream a ${APP_DIR}..."
+  rm -rf "${APP_DIR}"
+  mkdir -p "${APP_DIR}"
+  cp -a "${SOURCE_DIR}/." "${APP_DIR}/"
+fi
 
 cd "${APP_DIR}"
 echo "==> Instalando dependencias y generando build..."
@@ -78,7 +82,7 @@ systemctl enable nginx
 systemctl restart nginx
 
 echo
- echo "=============================================="
+echo "=============================================="
 echo " IPZStream instalado correctamente"
 echo " URL: http://<IP_DEL_CONTENEDOR>/"
 echo " Archivos: ${APP_DIR}"
