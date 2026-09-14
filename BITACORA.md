@@ -314,11 +314,45 @@ Pruebas confirmadas:
 - `src/main.jsx` solamente para integración.
 - `server/index.js` y `data/` únicamente si se requiere persistencia API.
 
-**Respaldo:** pendiente de crear inmediatamente antes de modificar la estructura de esta etapa.
+**Respaldo:** `backup/pre-etapa-5-7-vod-series-epg-m3u` creado antes de modificar la estructura de esta etapa.
 
 **Resultado esperado:** VOD, Series, EPG y M3U dejan de depender de pantallas genéricas y quedan preparados para crecer hacia contenido real y backend persistente.
 
 **Regla:** esta entrada queda registrada antes de modificar el código.
+
+## 2026-09-14 — Implementación Etapa 5/7 — VOD / Series / EPG / M3U — IMPLEMENTADA, PENDIENTE DE VALIDACIÓN
+Se implementó la primera versión funcional de los cuatro bloques de contenido.
+
+**VOD / Series:**
+- `src/modules/vod/Vod.jsx` y `vod.css`.
+- Catálogo de películas y series en una estructura visual separada dentro del módulo.
+- Alta, edición, eliminación y búsqueda.
+- Campos para título, categoría, año, descripción, poster, estado y fuente; series además incluye temporadas y episodios.
+
+**EPG:**
+- `src/modules/epg/Epg.jsx` y `epg.css`.
+- Alta, edición, eliminación y búsqueda de programación.
+- Canal, título, inicio, fin, descripción y estado.
+- Validación básica de horario mediante API.
+
+**M3U:**
+- `src/modules/m3u/M3u.jsx` y `m3u.css`.
+- Alta, edición, eliminación y búsqueda de listas.
+- Perfil, estado, cantidad de elementos, descripción y URL de fuente.
+- Interfaz inicial de importación y preparación de exportación.
+
+**API/backend:**
+- `server/index.js` amplió la persistencia compartida con `data/vod.json`, `data/series.json`, `data/epg.json` y `data/m3u.json`.
+- Endpoints CRUD: `/api/vod`, `/api/series`, `/api/epg` y `/api/m3u`.
+- Validaciones básicas y persistencia mediante el mismo backend utilizado por Nodos y Canales.
+
+**Integración:**
+- `src/main.jsx` integra `VodPage`, `EpgPage` y `M3uPage` como módulos independientes.
+- Las pantallas genéricas de esos tres menús dejan de utilizarse.
+
+**Respaldo:** `backup/pre-etapa-5-7-vod-series-epg-m3u`.
+
+**Validación pendiente:** ejecutar `npm install`, `npm run build`, reiniciar `ipztream-api`, publicar el nuevo `dist` y probar funcionalmente VOD, Series, EPG y M3U. La etapa no se considera cerrada hasta que el usuario confirme las pruebas.
 
 ---
 
