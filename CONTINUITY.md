@@ -1,15 +1,17 @@
 # IPZTream — Continuidad del proyecto
 
 ## Propósito
-IPZTream es una plataforma propia de gestión y distribución de streaming, inspirada en las capacidades de paneles IPTV existentes, pero desarrollada con arquitectura, código e interfaz propios.
+IPZTream es una plataforma propia de gestión y distribución de streaming, inspirada en capacidades de paneles IPTV existentes, pero desarrollada con arquitectura, código e interfaz propios.
 
-## Regla de trabajo
+## Reglas de trabajo obligatorias
 - Este repositorio es independiente de Z-Hub.
-- GitHub se utilizará principalmente para desarrollo, pruebas, control de versiones y releases.
+- GitHub se utilizará para desarrollo, pruebas, control de versiones y releases.
 - Las instalaciones de clientes deberán recibir builds/releases controlados mediante un sistema propio de actualización.
 - Antes de cambios estructurales importantes se debe crear un respaldo o punto de restauración.
 - Los cambios se implementan por etapas, probando cada etapa antes de continuar.
 - No generar nuevos mockups salvo que el usuario los solicite explícitamente.
+- **BITÁCORA PRIMERO:** toda mejora, corrección o cambio debe registrarse primero en `BITACORA.md`; después se modifica el código y se publica la actualización.
+- Cada entrada de bitácora debe indicar etapa, motivo, archivos afectados y resultado esperado.
 
 ## Dirección del producto
 Objetivo: construir una plataforma moderna, segura, modular y escalable para administración de streaming, usuarios, contenido, nodos, monitoreo, licencias y actualizaciones.
@@ -42,11 +44,22 @@ Objetivo: construir una plataforma moderna, segura, modular y escalable para adm
 13. Pruebas en Proxmox
 14. Preparación para producción
 
-## Estado inicial
-Repositorio localizado y confirmado como `ronbercito/ipztream`, rama principal `main`.
+## Estado actual
+- Repositorio: `ronbercito/ipztream`
+- Rama principal: `main`
+- Base visual aprobada: dashboard IPZStream mostrado por el usuario.
+- Base inicial a construir: shell del panel + dashboard visual + instalador para un contenedor Linux.
 
-## Referencia visual
-La interfaz debe seguir un estilo moderno de panel profesional: navegación lateral, dashboard limpio, tarjetas de métricas, tablas compactas, estados visuales claros, acciones rápidas y modo oscuro como opción. El diseño debe priorizar legibilidad y operación rápida.
+## Referencia visual aprobada
+La interfaz debe seguir el concepto mostrado por el usuario: sidebar azul oscuro, barra superior, búsqueda global, dashboard claro, tarjetas KPI, gráficos, panel de estado de nodos, tabla de conexiones recientes, tablas administrativas, filtros, estados mediante badges y acciones rápidas. La prioridad es que se sienta como un producto profesional y no como una plantilla genérica.
+
+## Protocolo de cambios
+1. Registrar primero la mejora/corrección en `BITACORA.md`.
+2. Implementar el cambio.
+3. Verificar que la estructura/código sea consistente.
+4. Registrar el resultado en la bitácora.
+5. Enviar la actualización al repositorio.
+6. Informar al usuario qué se cambió y cómo probarlo.
 
 ## Próximo paso
-Definir la estructura inicial del proyecto y el design system antes de implementar funcionalidades grandes.
+Etapa 1: crear la base visual de IPZStream y un instalador inicial para desplegarla en un único contenedor Linux.
