@@ -123,12 +123,40 @@ El usuario completó satisfactoriamente la prueba funcional completa del módulo
 
 **Siguiente etapa:** Etapa 3/7 — Servidores / Nodos.
 
+## 2026-09-14 — Etapa 3/7 — Servidores / Nodos — INICIO
+**Motivo:** comenzar la tercera de las siete subetapas actuales del panel, consolidando el menú Servidores / Nodos como módulo independiente sin afectar Usuarios, Configuración ni las demás pantallas ya validadas.
+
+**Objetivo:**
+- Crear `src/modules/nodes/` independiente.
+- Separar interfaz, componentes, servicio y estilos.
+- Permitir alta y eliminación de nodos en persistencia local temporal.
+- Mostrar estado, IP, región, CPU, RAM y capacidad.
+- Incorporar búsqueda y filtros básicos.
+- Preparar `nodesApi.js` para futura API real.
+- Mantener datos de demostración mientras no exista backend.
+- No introducir todavía PostgreSQL, autenticación real, RBAC ni comunicación real con agentes.
+
+**Respaldo:** `backup/pre-etapa-3-7-nodes` creado antes de modificar código.
+
+**Archivos previstos:**
+- `src/modules/nodes/Nodes.jsx`
+- `src/modules/nodes/components/NodeFilters.jsx`
+- `src/modules/nodes/components/NodeForm.jsx`
+- `src/modules/nodes/components/NodeTable.jsx`
+- `src/modules/nodes/services/nodesApi.js`
+- `src/modules/nodes/styles/nodes.css`
+- `src/main.jsx` únicamente para integrar la ruta/módulo.
+
+**Resultado esperado:** el menú Servidores / Nodos deja de depender de `ModulePage` genérico y dispone de una estructura preparada para administrar nodos reales posteriormente.
+
+**Regla:** esta entrada queda registrada antes de modificar el código.
+
 ---
 
 ## Protocolo permanente
 Toda mejora o corrección futura debe seguir este orden:
 1. Actualizar primero `CONTINUITY.md` con el estado y objetivo de la etapa.
-2. Registrar la intención/cambio en `BITACORA.md`.
+2. Registrar la intención/corrección en `BITACORA.md`.
 3. Crear respaldo cuando el cambio sea estructural.
 4. Implementar el código.
 5. Ejecutar build/verificación.
