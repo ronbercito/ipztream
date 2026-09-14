@@ -5,6 +5,7 @@ APP_NAME="ipztream"
 APP_DIR="/opt/${APP_NAME}"
 WEB_DIR="/var/www/${APP_NAME}"
 NGINX_SITE="/etc/nginx/sites-available/${APP_NAME}"
+API_SERVICE="/etc/systemd/system/${APP_NAME}-api.service"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [[ "${EUID}" -ne 0 ]]; then
@@ -49,6 +50,42 @@ if [[ ! -d dist ]]; then
   exit 1
 fi
 
+echo "==> Preparando almacenamiento de la API..."
+mkdir -p "${APP_DIR}/data"
+touch "${APP_DIR}/data/nodes.json"
+chown -R www-data:www-data "${APP_DIR}/data"
+
+if [[ ! -f "${APP_DIR}/data/nodes.json" || ! -s "${APP_DIR}/data/nodes.json" ]]; then
+  cat > "${APP_DIR}/data/nodes.json" <<'JSON'
+[
+  {"id":"node-01","name":"Nodo 01 - Lima","status":"En línea","ip":"192.168.10.21","region":"Lima","cpu":22,"ram":41,"capacity":"10 Gbps"},
+  {"id":"node-02","name":"Nodo 02 - Arequipa","status":"En línea","ip":"192.168.10.22","region":"Arequipa","cpu":18,"ram":36,"capacity":"10 Gbps"},
+  {"id":"node-03","name":"Nodo 03 - Trujillo","status":"En línea","ip":"192.168.10.23","region":"Trujillo","cpu":27,"ram":48,"capacity":"5 Gbps"},
+  {"id":"node-05","name":"Nodo 05 - Piura","status":"Fuera de línea","ip":"192.168.10.25","region":"Piura","cpu":null,"ram":null,"capacity":"5 Gbps"}
+]
+JSON
+  chown www-data:www-data "${APP_DIR}/data/nodes.json"
+fi
+
+echo "==> Instalando servicio de API..."
+cp "${APP_DIR}/deploy/ipztream-api.service" "${API_SERVICE}"
+systemctl daemon-reload
+systemctl enable "${APP_NAME}-api"
+systemctl restart "${APP_NAME}-api"
+
+for attempt in {1..10}; do
+  if curl -fsS "http://127.0.0.1:3100/api/health" >/dev/null; then
+    break
+  fi
+  sleep 1
+done
+
+if ! curl -fsS "http://127.0.0.1:3100/api/health" >/dev/null; then
+  echo "La API de IPZStream no inició correctamente."
+  systemctl status "${APP_NAME}-api" --no-pager || true
+  exit 1
+fi
+
 echo "==> Publicando panel web..."
 rm -rf "${WEB_DIR}"
 mkdir -p "${WEB_DIR}"
@@ -62,6 +99,14 @@ server {
     server_name _;
     root /var/www/ipztream;
     index index.html;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3100;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
 
     location / {
         try_files $uri $uri/ /index.html;
@@ -85,6 +130,7 @@ echo
 echo "=============================================="
 echo " IPZStream instalado correctamente"
 echo " URL: http://<IP_DEL_CONTENEDOR>/"
+echo " API: http://127.0.0.1:3100 (solo local)"
 echo " Archivos: ${APP_DIR}"
 echo " Web: ${WEB_DIR}"
 echo "=============================================="
