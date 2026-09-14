@@ -172,6 +172,60 @@ El usuario completó satisfactoriamente la prueba funcional completa del módulo
 
 **Regla:** esta entrada queda registrada antes de modificar el código.
 
+## 2026-09-14 — Resultado Etapa 3/7 — Nodos — VALIDADA
+La corrección de persistencia y validación fue implementada y probada por el usuario. Nodos ahora utiliza una API compartida como fuente principal, con persistencia en `data/nodes.json`, servicio `ipztream-api` y proxy `/api/` de Nginx. `localStorage` queda solamente como compatibilidad/fallback temporal.
+
+Pruebas confirmadas por el usuario:
+- Entrar a Servidores / Nodos: OK.
+- Agregar un nodo: OK.
+- Confirmar que aparece: OK.
+- El nodo creado aparece en otro navegador/cuenta: OK.
+- Intentar registrar nuevamente la misma IP: OK.
+- Mensaje visible de IP duplicada: OK.
+- El formulario permanece abierto sin parpadear ni cerrarse: OK.
+- Cambiar la IP y guardar correctamente: OK.
+
+**Resultado:** Etapa 3/7 cerrada y validada. No avanzar a la siguiente etapa hasta dejar documentado este resultado.
+
+## 2026-09-14 — Etapa 4/7 — Canales / Fuentes — INICIO
+**Motivo:** comenzar la cuarta de las siete subetapas actuales del panel, reemplazando la pantalla genérica de Canales por un módulo independiente para administrar canales y sus fuentes de streaming.
+
+**Objetivo:**
+- Crear `src/modules/channels/` como módulo independiente.
+- Separar `Channels.jsx`, componentes, servicio/API y estilos.
+- Implementar listado, alta y edición de canales.
+- Permitir activar/desactivar canales.
+- Incorporar búsqueda y filtros por estado/grupo.
+- Administrar identidad del canal: nombre, número, logo y grupo/categoría.
+- Permitir una o varias fuentes por canal.
+- Registrar URL, protocolo/tipo, estado y prioridad de cada fuente.
+- Utilizar persistencia compartida mediante API desde el inicio para no repetir la limitación de `localStorage` de Nodos.
+- Mantener el diseño preparado para health checks, failover, nodos y fuentes reales posteriores.
+- Mantener `src/main.jsx` solamente como punto de integración, sin trasladar lógica de negocio al archivo principal.
+
+**Alcance que NO se implementa todavía:** reproductor completo, transcodificación, health check real de cada stream, PostgreSQL, autenticación/RBAC y balanceo real. Se dejarán preparados mediante interfaces de servicio para etapas posteriores.
+
+**Estructura prevista:**
+```text
+src/modules/channels/
+├── Channels.jsx
+├── components/
+│   ├── ChannelFilters.jsx
+│   ├── ChannelForm.jsx
+│   ├── ChannelTable.jsx
+│   └── SourceEditor.jsx
+├── services/
+│   └── channelsApi.js
+└── styles/
+    └── channels.css
+```
+
+**Respaldo:** se debe crear un punto de restauración `backup/pre-etapa-4-7-channels` antes de modificar código estructural.
+
+**Resultado esperado:** Canales queda aislado del resto del panel, con CRUD visual funcional, fuentes administrables, validaciones visibles y persistencia compartida por API.
+
+**Regla:** esta entrada queda registrada antes de modificar el código.
+
 ---
 
 ## Protocolo permanente
