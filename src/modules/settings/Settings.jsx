@@ -1,5 +1,6 @@
 import React from 'react';
 import { Save, RotateCcw, Settings as SettingsIcon, Shield, Network, HardDrive, FileText, RefreshCw, Monitor, Globe2 } from 'lucide-react';
+import './settings.css';
 
 const STORAGE_KEY = 'ipztream-config';
 
