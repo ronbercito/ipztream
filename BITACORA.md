@@ -31,11 +31,27 @@
 
 **Causa:** el instalador asumía que el código fuente estaría en una ubicación diferente a `APP_DIR` (`/opt/ipztream`). Al ejecutarlo desde el clon del repositorio en esa misma ruta, la operación de copia era innecesaria y fallaba.
 
-**Corrección prevista:** hacer que el instalador detecte cuando `SOURCE_DIR` y `APP_DIR` son la misma ubicación. En ese caso, no debe borrar ni copiar el proyecto; debe trabajar directamente sobre el directorio existente. Cuando la fuente sea externa, debe conservar el comportamiento de copiar el proyecto a `APP_DIR`.
+**Corrección:** hacer que el instalador detecte cuando `SOURCE_DIR` y `APP_DIR` son la misma ubicación. En ese caso, no debe borrar ni copiar el proyecto; debe trabajar directamente sobre el directorio existente. Cuando la fuente sea externa, conserva el comportamiento de copiar el proyecto a `APP_DIR`.
 
-**Objetivo de seguridad:** evitar que una instalación válida destruya accidentalmente su propia fuente de instalación y permitir tanto pruebas desde un clon como futuras instalaciones desde un paquete/directorio externo.
+**Resultado:** la corrección fue publicada y posteriormente el contenedor recuperó el repositorio desde GitHub para continuar la prueba.
 
-**Regla:** esta corrección queda registrada antes de modificar `install.sh`.
+---
+
+## 2026-09-14 — Mejora 1 — Botón de actualización del panel
+
+**Motivo:** agregar al panel IPZStream un botón de actualización visible, siguiendo la referencia funcional del proyecto Z-Hub del usuario.
+
+**Objetivo:**
+- Incorporar un botón `Actualizar` en la barra superior.
+- Mantener el lenguaje visual actual del dashboard.
+- Preparar la interfaz para que posteriormente el botón pueda conectarse al sistema real de actualización/release de IPZStream.
+- En esta etapa, el botón actualizará la vista/panel; el mecanismo de actualización de la aplicación se implementará posteriormente mediante el updater controlado y releases firmados.
+
+**Archivos a modificar:**
+- `src/main.jsx`
+- `src/styles.css`
+
+**Regla:** la intención de esta mejora queda registrada antes de modificar el código.
 
 ---
 
