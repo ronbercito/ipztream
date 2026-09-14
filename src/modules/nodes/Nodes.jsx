@@ -1,9 +1,9 @@
 import React from 'react';
-import { Plus, Search, SlidersHorizontal, Server, MoreVertical, X, Save, Trash2, Copy, RefreshCw } from 'lucide-react';
+import { Plus, Search, Server, X } from 'lucide-react';
 import NodeFilters from './components/NodeFilters.jsx';
 import NodeForm from './components/NodeForm.jsx';
 import NodeTable from './components/NodeTable.jsx';
-import { loadNodes, saveNodes, createNode, removeNode } from './services/nodesApi.js';
+import { loadNodes, createNode, removeNode, loadLocalNodes, saveLocalNodes } from './services/nodesApi.js';
 import './styles/nodes.css';
 
 const initialNodes = [
@@ -14,13 +14,22 @@ const initialNodes = [
 ];
 
 export default function Nodes(){
-  const [nodes,setNodes]=React.useState(()=>loadNodes(initialNodes));
+  const [nodes,setNodes]=React.useState([]);
   const [query,setQuery]=React.useState('');
   const [filters,setFilters]=React.useState({status:'Todos',region:'Todas'});
   const [formOpen,setFormOpen]=React.useState(false);
   const [notice,setNotice]=React.useState('');
+  const [loading,setLoading]=React.useState(true);
 
-  React.useEffect(()=>{ saveNodes(nodes); },[nodes]);
+  const refresh=React.useCallback(async()=>{
+    setLoading(true);
+    const localFallback=loadLocalNodes(initialNodes);
+    const result=await loadNodes(localFallback);
+    setNodes(result);
+    setLoading(false);
+  },[]);
+
+  React.useEffect(()=>{refresh();},[refresh]);
 
   const regions=[...new Set(nodes.map(n=>n.region))].sort();
   const filtered=nodes.filter(n=>{
@@ -28,17 +37,32 @@ export default function Nodes(){
     return text.includes(query.toLowerCase()) && (filters.status==='Todos'||n.status===filters.status) && (filters.region==='Todas'||n.region===filters.region);
   });
 
-  const addNode=(data)=>{
-    if(nodes.some(n=>n.ip===data.ip)){ setNotice('Ya existe un nodo con esa dirección IP.'); return false; }
-    setNodes(prev=>[createNode(data),...prev]);
-    setFormOpen(false);
-    setNotice('Nodo agregado correctamente.');
-    return true;
+  const addNode=async(data)=>{
+    try{
+      const created=await createNode(data);
+      setNodes(prev=>[created,...prev]);
+      saveLocalNodes([created,...nodes]);
+      setFormOpen(false);
+      setNotice('Nodo agregado correctamente. El cambio ya está disponible para los demás navegadores.');
+      return true;
+    }catch(error){
+      if(error.status===409) return {error:error.message||'Ya existe un nodo con esa dirección IP.'};
+      return {error:error.message||'No se pudo guardar el nodo. Verifica que la API esté disponible.'};
+    }
   };
-  const deleteNode=(id)=>{
-    setNodes(prev=>prev.filter(n=>n.id!==id));
-    setNotice('Nodo eliminado de la persistencia local.');
+
+  const deleteNode=async(id)=>{
+    try{
+      await removeNode(id);
+      const next=nodes.filter(n=>n.id!==id);
+      setNodes(next);
+      saveLocalNodes(next);
+      setNotice('Nodo eliminado correctamente.');
+    }catch(error){
+      setNotice(error.message||'No se pudo eliminar el nodo.');
+    }
   };
+
   const copyIp=(ip)=>navigator.clipboard?.writeText(ip).then(()=>setNotice(`IP ${ip} copiada.`)).catch(()=>setNotice('No se pudo copiar la IP.'));
 
   return <div className="module-page nodes-page">
@@ -54,7 +78,7 @@ export default function Nodes(){
       <div><span>Capacidad total</span><strong>{nodes.reduce((a,n)=>a+(parseFloat(n.capacity)||0),0)} Gbps</strong></div>
     </div>
     <div className="toolbar"><div className="module-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar nodo, IP o región..."/></div><NodeFilters filters={filters} setFilters={setFilters} regions={regions}/></div>
-    <div className="card module-table"><div className="table-info"><span>{filtered.length} registros</span><span>Persistencia local temporal</span></div><NodeTable nodes={filtered} onDelete={deleteNode} onCopyIp={copyIp}/></div>
+    <div className="card module-table"><div className="table-info"><span>{loading?'Cargando...':`${filtered.length} registros`}</span><span>Fuente compartida por API</span></div><NodeTable nodes={filtered} onDelete={deleteNode} onCopyIp={copyIp}/></div>
     {formOpen&&<NodeForm onCancel={()=>setFormOpen(false)} onSave={addNode}/>} 
   </div>;
 }
