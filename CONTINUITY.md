@@ -120,6 +120,7 @@ src/
 - `backup/pre-etapa-2-7-usuarios`
 - `backup/pre-etapa-3-7-nodes`
 - `backup/pre-correccion-nodos-persistencia`
+- `backup/pre-etapa-4-7-channels`
 - Se han utilizado copias previas de `src/main.jsx` antes de modificaciones estructurales.
 
 ## Referencia visual aprobada
@@ -137,13 +138,24 @@ No generar nuevos mockups salvo solicitud explícita; utilizar la referencia vis
 - Usuarios: alta, edición, eliminación, búsqueda, persistencia después de recarga y validaciones probadas por el usuario.
 - Configuración: menú de opciones completo visible y validado por el usuario.
 - Nodos: alta, aparición del nodo, sincronización entre navegadores/perfiles, rechazo de duplicados, mensaje visible, formulario sin parpadeo/cierre y modificación posterior de IP; todo validado por el usuario.
+- API de Canales: `GET /api/channels` responde correctamente y devuelve los canales iniciales ESPN, HBO Max y TUDN.
 
 ### Etapa actual
-**Etapa 4/7 — Canales / Fuentes: EN CURSO.**
+**Etapa 4/7 — Canales / Fuentes: EN CURSO — CORRECCIÓN DE DESPLIEGUE.**
 
-Objetivo de esta etapa: reemplazar la pantalla genérica de Canales por un módulo independiente `src/modules/channels/`, manteniendo la referencia visual aprobada y siguiendo la arquitectura modular. El módulo deberá separar UI, componentes, servicio/API y estilos.
+Durante la validación el usuario confirmó que los canales iniciales aparecen, pero las acciones de edición/gestión no funcionan en la interfaz. La revisión del código del repositorio muestra que `Channels.jsx` y `ChannelTable.jsx` sí contienen las acciones de nuevo, editar, activar/desactivar y eliminar. La API también responde correctamente. Por tanto, antes de modificar la lógica del módulo se debe sincronizar el build del frontend instalado en Nginx con el código de `main`, ya que el build que se ejecutó ocurrió antes de completar la sincronización del repositorio con la implementación de Canales.
 
-Alcance inicial:
+Objetivo de la corrección:
+- Actualizar el checkout local al `main` que contiene la implementación completa de Canales.
+- Ejecutar un nuevo `npm install`/`npm run build` cuando corresponda.
+- Publicar el nuevo `dist` en `/var/www/ipztream`.
+- Mantener `data/` y la persistencia de canales intactas.
+- Reiniciar/verificar `ipztream-api` solamente si es necesario.
+- Verificar que la interfaz muestre y permita las acciones CRUD y de estado implementadas.
+
+No se debe marcar Etapa 4/7 como validada hasta que el usuario confirme las pruebas funcionales del panel.
+
+## Etapa 4/7 — alcance funcional pendiente de validación
 - Listado de canales.
 - Alta y edición de canales.
 - Activar/desactivar canal.
@@ -154,7 +166,7 @@ Alcance inicial:
 - Estado de fuente y canal.
 - Prioridad de fuentes para definir cuál se intenta primero.
 - Validaciones de datos y mensajes visibles.
-- Persistencia compartida mediante API para que la arquitectura no repita el problema de `localStorage` de Nodos.
+- Persistencia compartida mediante API.
 - Preparación para conectar posteriormente fuentes reales, health checks, failover y agentes/nodos.
 
 No se implementará todavía un reproductor completo, transcodificación, health check real contra cada stream ni PostgreSQL/RBAC. Esas capacidades se conectarán en etapas posteriores sobre el servicio/API ya separado.
@@ -171,4 +183,4 @@ No se implementará todavía un reproductor completo, transcodificación, health
 9. Informar al usuario qué se cambió y cómo probarlo.
 
 ## Próximo paso
-Implementar y validar **Etapa 4/7 — Canales / Fuentes** con estructura modular independiente y persistencia compartida por API.
+Sin modificar todavía la lógica de Canales, sincronizar el build publicado con el `main` actual y repetir la validación funcional. Si después de publicar el build actualizado las acciones siguen sin responder, se hará una corrección específica del módulo siguiendo nuevamente este protocolo.
