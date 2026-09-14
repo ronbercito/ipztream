@@ -79,7 +79,7 @@ Se incorporaron controles para identidad, idioma, zona horaria, formato de fecha
 ## 2026-09-14 — Etapa 2/7 — Usuarios — Inicio de consolidación
 **Motivo:** comenzar la segunda de las siete subetapas actuales del panel, tomando el módulo de Usuarios existente y consolidándolo sin afectar Dashboard, Configuración ni las demás pantallas ya validadas.
 
-**Estado actual:** el módulo ya dispone de búsqueda, filtros, alta, edición, eliminación, estado, paquete, conexiones y vencimiento, pero utiliza datos de demostración en memoria y todavía no tiene persistencia temporal entre recargas.
+**Estado inicial:** el módulo disponía de búsqueda, filtros, alta, edición, eliminación, estado, paquete, conexiones y vencimiento, pero utilizaba datos de demostración en memoria y no tenía persistencia temporal entre recargas.
 
 **Objetivo de esta etapa:**
 - Mantener `src/modules/users/` completamente independiente.
@@ -88,18 +88,23 @@ Se incorporaron controles para identidad, idioma, zona horaria, formato de fecha
 - Mantener `usersApi.js` separado y preparado para API real.
 - No introducir todavía PostgreSQL, autenticación real ni RBAC; esas capacidades se conectarán cuando exista backend.
 
-**Archivos previstos:**
+**Archivos modificados:**
 - `src/modules/users/Users.jsx`
 - `src/modules/users/components/UserForm.jsx`
-- `src/modules/users/components/UserTable.jsx` si fuera necesario para la mejora
-- `src/modules/users/services/usersApi.js` solo si fuera necesario
-- `src/modules/users/styles/users.css` solo si fuera necesario
+- `src/modules/users/styles/users.css`
 
-**Respaldo requerido:** `backup/pre-etapa-2-7-usuarios` antes de modificar código estructural.
+**Respaldo:** `backup/pre-etapa-2-7-usuarios` creado antes de modificar el código.
 
-**Resultado esperado:** Usuarios conserva las funciones ya validadas y los datos creados/editados permanecen disponibles después de recargar el panel, sin acoplar el módulo a `src/main.jsx`.
+**Implementación realizada:**
+- Persistencia temporal mediante `localStorage` con clave versionada.
+- Recuperación segura de datos al cargar el módulo.
+- Normalización de usuario, conexiones máximas y fecha de vencimiento.
+- Validación de usuario, nombre y rango de conexiones.
+- Detección de nombres de usuario duplicados.
+- Mensaje visual de validación dentro del formulario.
+- Eliminación actualizada para indicar que afecta la persistencia local de demostración.
 
-**Regla:** esta entrada se registra antes de modificar el código.
+**Estado:** implementación completada en `main`. Pendiente ejecutar `npm run build` y validar en el contenedor antes de cerrar la etapa.
 
 ---
 
