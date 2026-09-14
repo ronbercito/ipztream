@@ -66,21 +66,7 @@ src/
     └── global.css
 ```
 
-Ejemplo de estructura de un módulo:
-```text
-src/modules/users/
-├── Users.jsx
-├── components/
-│   ├── UserTable.jsx
-│   ├── UserForm.jsx
-│   └── UserFilters.jsx
-├── services/
-│   └── usersApi.js
-└── styles/
-    └── users.css
-```
-
-## Etapas generales del producto
+## Etapas generales do produto
 1. Arquitectura y convenciones
 2. Backend/API
 3. Panel administrativo
@@ -99,9 +85,9 @@ src/modules/users/
 Estas etapas son la hoja de ruta general del producto. El trabajo actual puede dividirse en subetapas numeradas para completar progresivamente los módulos del panel.
 
 ## Plan actual de 7 subetapas del panel
-1. **Configuración** — estructura modular, secciones de configuración y persistencia inicial.
-2. **Usuarios** — consolidar el módulo de usuarios, CRUD de demostración, filtros, validaciones, persistencia local temporal y preparación limpia para API/RBAC.
-3. **Servidores / Nodos** — módulo independiente para alta, estado y gestión de nodos.
+1. **Configuración** — estructura modular, secciones de configuración y persistencia inicial. **COMPLETADA.**
+2. **Usuarios** — consolidar el módulo de usuarios, CRUD de demostración, filtros, validaciones, persistencia local temporal y preparación limpia para API/RBAC. **COMPLETADA Y VALIDADA.**
+3. **Servidores / Nodos** — módulo independiente para alta, estado y gestión de nodos. **SIGUIENTE ETAPA.**
 4. **Canales / Fuentes** — módulo independiente para canales y fuentes de streaming.
 5. **VOD / Series / EPG / M3U** — separar y consolidar gestión de contenido y listas.
 6. **Paquetes / Conexiones / Dispositivos** — gestión comercial y control de sesiones/dispositivos.
@@ -123,6 +109,8 @@ Estas etapas son la hoja de ruta general del producto. El trabajo actual puede d
 - Dashboard y navegación principal funcionales.
 - Las pantallas del menú probadas por el usuario del 1 al 7 funcionan correctamente.
 - Usuarios funciona con módulo independiente en `src/modules/users/`.
+- Usuarios validado: alta, recarga con persistencia, edición, búsqueda, detección de duplicados, validación de conexiones, eliminación y recarga final.
+- Límite de conexiones validado por el usuario: máximo 99.
 - Configuración está separada en `src/modules/settings/`.
 - Configuración contiene General, Panel, Red/API, Seguridad, Almacenamiento, Logs y Actualizaciones.
 - La configuración visual usa persistencia inicial en `localStorage`.
@@ -133,6 +121,7 @@ Estas etapas son la hoja de ruta general del producto. El trabajo actual puede d
 - `backup/pre-etapa-1-13-configuracion`
 - `backup/pre-etapa-2-13-usuarios`
 - `backup/pre-correccion-configuracion-completa`
+- `backup/pre-etapa-2-7-usuarios`
 - Se han utilizado copias previas de `src/main.jsx` antes de modificaciones estructurales.
 
 ## Referencia visual aprobada
@@ -147,24 +136,28 @@ No generar nuevos mockups salvo solicitud explícita; utilizar la referencia vis
 - `npm run build` exitoso.
 - Publicación mediante Nginx exitosa.
 - Navegación general del panel.
-- Usuarios: funciones principales probadas por el usuario.
+- Usuarios: alta, edición, eliminación, búsqueda, persistencia después de recarga y validaciones probadas por el usuario.
+- Límite máximo de 99 conexiones validado.
 - Módulos del menú del 1 al 7: funcionamiento confirmado por el usuario.
 - Configuración: el menú de opciones ya aparece correctamente tras la corrección y fue visualmente comprobado por el usuario.
 
 ### Etapa actual
-**Etapa 2/7 — Usuarios.**
+**Etapa 2/7 — Usuarios: COMPLETADA Y VALIDADA.**
 
-Objetivo de esta etapa: consolidar el módulo `src/modules/users/` sin tocar las funcionalidades ya validadas, manteniendo separación entre interfaz, componentes, servicio y futuros puntos de integración con API/RBAC.
+La implementación conserva el módulo `src/modules/users/` separado entre interfaz, componentes, servicio y estilos. La persistencia local es temporal y será sustituida o complementada por API/PostgreSQL cuando exista backend.
 
-### Pendiente de la etapa 2/7
-- Registrar el cambio en `BITACORA.md` antes de modificar código.
-- Crear respaldo de la etapa antes de cambios estructurales.
-- Mejorar persistencia temporal local del módulo mientras no exista backend.
-- Reforzar validaciones básicas del formulario y normalización de datos.
-- Mantener servicio `usersApi.js` preparado para futura API real.
-- Ejecutar build.
-- Validar en el contenedor.
-- Registrar resultado final y publicar.
+### Siguiente etapa
+**Etapa 3/7 — Servidores / Nodos.**
+
+Objetivo: crear/consolidar `src/modules/nodes/` como módulo independiente para administrar nodos de streaming, manteniendo separadas interfaz, componentes, servicio/API y estilos. Inicialmente se trabajará con datos de demostración/persistencia temporal, sin conectar todavía un backend real.
+
+Antes de modificar código en la Etapa 3/7 se debe:
+1. Actualizar nuevamente `CONTINUITY.md` con el alcance concreto de la etapa.
+2. Registrar la intención en `BITACORA.md`.
+3. Crear respaldo de etapa.
+4. Implementar.
+5. Ejecutar build.
+6. Probar en el contenedor.
 
 ## Protocolo obligatorio por etapa
 1. **Actualizar primero `CONTINUITY.md`.**
@@ -178,4 +171,4 @@ Objetivo de esta etapa: consolidar el módulo `src/modules/users/` sin tocar las
 9. Informar al usuario qué se cambió y cómo probarlo.
 
 ## Próximo paso
-Ejecutar la **Etapa 2/7 — Usuarios**, comenzando por el registro correspondiente en `BITACORA.md` y el respaldo antes de tocar el código.
+Preparar la **Etapa 3/7 — Servidores / Nodos**, comenzando siempre por la actualización de `CONTINUITY.md` y luego `BITACORA.md` antes de tocar el código.
