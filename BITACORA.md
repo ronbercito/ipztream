@@ -67,6 +67,15 @@ Durante la validación funcional el usuario confirmó que las secciones del 1 al
 
 **Regla:** esta entrada queda registrada antes de modificar el código.
 
+## 2026-09-14 — Resultado Corrección 4 — Configuración restaurada
+Se creó `src/modules/settings/Settings.jsx` y su hoja `src/modules/settings/settings.css`. Configuración ahora está separada del panel principal y contiene las secciones General, Panel, Red/API, Seguridad, Almacenamiento, Logs y Actualizaciones.
+
+Se incorporaron controles para identidad, idioma, zona horaria, formato de fecha, sesión, preferencias del panel, red/API, HTTPS, rutas de almacenamiento, retención de logs y canal de actualización. Los parámetros visuales se guardan inicialmente en `localStorage`.
+
+`src/main.jsx` mantiene la navegación existente e integra `SettingsPage` sin modificar el módulo de Usuarios ni las demás pantallas validadas.
+
+**Estado:** código publicado en `main`. Pendiente ejecutar `npm run build` e instalar en el contenedor para validación final.
+
 ---
 
 ## Protocolo permanente
