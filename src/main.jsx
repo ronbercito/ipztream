@@ -1,11 +1,9 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import {
-  Activity, BarChart3, Bell, CalendarDays, ChevronDown, CircleHelp,
-  Clapperboard, Copy, Cpu, Database, FileText, Gauge, HardDrive,
-  Home, ListVideo, LogOut, Menu, Monitor, MoreVertical, Network,
-  Package, PlaySquare, Radio, Search, Server, Settings, Shield,
-  Smartphone, Users, Video, Wifi, X
+  Activity, BarChart3, Bell, CalendarDays, ChevronDown, Clapperboard, Copy, Cpu, Database, FileText, Gauge, HardDrive,
+  Home, ListVideo, LogOut, Menu, Monitor, MoreVertical, Network, Package, PlaySquare, Radio, RefreshCw, Search,
+  Server, Settings, Shield, Smartphone, Users, Video, Wifi, X
 } from 'lucide-react';
 import './styles.css';
 
@@ -74,11 +72,13 @@ function Distribution() {
 
 function App() {
   const [sidebar, setSidebar] = React.useState(false);
+  const handleUpdate = () => window.location.reload();
+
   return <div className="app">
     <Sidebar open={sidebar} onClose={() => setSidebar(false)}/>
     {sidebar && <div className="backdrop" onClick={() => setSidebar(false)}/>} 
     <main className="main">
-      <header className="topbar"><button className="menu-button" onClick={() => setSidebar(true)}><Menu size={21}/></button><div className="global-search"><Search size={18}/><span>Buscar usuarios, canales, dispositivos...</span><kbd>Ctrl + K</kbd></div><div className="top-actions"><Bell size={19}/><span className="bell-dot">3</span><div className="avatar">RA</div><span className="admin">Administrador</span><ChevronDown size={15}/></div></header>
+      <header className="topbar"><button className="menu-button" onClick={() => setSidebar(true)}><Menu size={21}/></button><div className="global-search"><Search size={18}/><span>Buscar usuarios, canales, dispositivos...</span><kbd>Ctrl + K</kbd></div><div className="top-actions"><button className="update-button" type="button" onClick={handleUpdate} title="Actualizar panel"><RefreshCw size={15}/><span>Actualizar</span></button><Bell size={19}/><span className="bell-dot">3</span><div className="avatar">RA</div><span className="admin">Administrador</span><ChevronDown size={15}/></div></header>
       <section className="content">
         <div className="page-heading"><div><h1>Dashboard</h1><p>Bienvenido al panel de administración de IPZStream</p></div><div className="date"><CalendarDays size={17}/><div><strong>13 de septiembre de 2026</strong><span>14:32 (GMT-05:00)</span></div></div></div>
         <div className="kpis"><Kpi icon={Users} title="Usuarios Activos" value="1,248" trend="12%" tone="blue"/><Kpi icon={PlaySquare} title="Conexiones Activas" value="2,486" trend="8%" tone="green"/><Kpi icon={Server} title="Nodos en Línea" value="4 / 5" trend="0%" tone="purple"/><Kpi icon={Database} title="Ingresos (Este mes)" value="$ 3,482.50" trend="15%" tone="orange"/></div>
