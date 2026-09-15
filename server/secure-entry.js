@@ -142,9 +142,9 @@ async function handle(req, res) {
 }
 
 await ensureAuthSchema();
+await ensureUserSchema();
 process.env.IPZTREAM_API_PORT = String(INTERNAL_PORT);
 await import('./index.js');
-await ensureUserSchema();
 
 const server = http.createServer((req, res) => {
   handle(req, res).catch((error) => {
