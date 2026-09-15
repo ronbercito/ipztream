@@ -24,6 +24,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 5. VOD / Series / EPG / M3U — **COMPLETADA Y VALIDADA**.
 6. Paquetes / Conexiones / Dispositivos — **COMPLETADA Y VALIDADA**.
 7. Logs / Auditoría / Estadísticas — **COMPLETADA Y VALIDADA**.
+8. Backend real + PostgreSQL — **IMPLEMENTADA, PENDIENTE DE VALIDACIÓN EN CONTENEDOR**.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -37,8 +38,9 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Nginx publica el panel desde `/var/www/ipztream`.
 - Código fuente: `/opt/ipztream`.
 - Servicio API: `ipztream-api`.
-- El backend completo con PostgreSQL, autenticación/RBAC y API integral todavía no está conectado.
-- El updater real se implementará posteriormente mediante releases controlados y firmados.
+- Las etapas 1–7 del panel fueron implementadas y validadas por el usuario.
+- Etapa 8 ya tiene PostgreSQL como persistencia de la API y migración inicial automática desde JSON, pendiente de prueba real en el contenedor.
+- El updater real, autenticación/RBAC completo, motor de streaming y telemetría avanzada todavía serán fases posteriores.
 
 ## Respaldos importantes
 - `backup/pre-etapa-1-13-configuracion`
@@ -51,19 +53,44 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - `backup/pre-etapa-5-7-vod-series-epg-m3u`
 - `backup/pre-etapa-6-7-packages-connections-devices`
 - `backup/pre-etapa-7-7-logs-auditoria-estadisticas`
+- `backup/pre-etapa-8-backend-postgres`
 
 ## Referencia visual aprobada
 Sidebar azul oscuro, barra superior, búsqueda global, dashboard claro, tarjetas KPI, gráficos, estado de nodos, tablas administrativas, filtros, badges y acciones rápidas. No generar nuevos mockups salvo solicitud explícita.
 
-## Pendientes de fases posteriores
-- Backend integral con PostgreSQL.
-- Autenticación robusta y RBAC completo.
-- Auditoría centralizada real desde backend.
-- Telemetría y health checks reales de streams/nodos.
-- Motor real de sesiones y métricas de streaming.
-- Licenciamiento.
-- Releases/updater firmado para instalaciones de clientes.
-- Endurecimiento de seguridad y protección del código en instalaciones de clientes.
+## Etapa 8 — Backend real + PostgreSQL
+**Objetivo:** iniciar la transición de la capa demo/local a una arquitectura operativa real, manteniendo los módulos actuales como frontend administrativo.
+
+### Implementado
+- Dependencia `pg` para PostgreSQL.
+- Capa `server/db.js` con pool, health check, tablas, lectura/escritura y auditoría.
+- `server/index.js` migrado para utilizar PostgreSQL como persistencia principal.
+- Migración automática inicial desde `data/*.json` solamente cuando cada tabla está vacía.
+- Tablas para nodos, canales, VOD, series, EPG, M3U, paquetes, conexiones, dispositivos, usuarios y auditoría.
+- Auditoría central básica para operaciones de creación, actualización y eliminación realizadas por la API.
+- Instalador preparado para instalar PostgreSQL, crear usuario/base, generar credencial local y configurar `EnvironmentFile`.
+- Servicio systemd preparado para arrancar después de PostgreSQL.
+- Documentación de instalación y esquema SQL actualizada.
+
+### Pendiente de validación
+- Ejecutar `bash install.sh` en el contenedor Debian 13.
+- Confirmar instalación/arranque de PostgreSQL.
+- Confirmar `ipztream-api` activo.
+- Confirmar `/api/health` indicando PostgreSQL.
+- Confirmar que los datos JSON existentes fueron migrados.
+- Confirmar CRUD desde el panel y persistencia después de reinicio.
+- Confirmar que una modificación nueva ya no altera los JSON y sí permanece en PostgreSQL.
+- Confirmar que los registros de auditoría se generan desde la API.
+
+## Próximas fases después de validar Etapa 8
+1. Autenticación real y RBAC.
+2. Usuarios migrados completamente al backend.
+3. Auditoría asociada a usuario/rol/IP/sesión.
+4. Health checks y telemetría real de nodos/streams.
+5. Motor real de sesiones y reproducción.
+6. Licenciamiento.
+7. Releases/updater firmado para clientes.
+8. Endurecimiento y protección del código en instalaciones finales.
 
 ## Protocolo obligatorio por etapa
 1. **Actualizar primero `CONTINUITY.md`.**
@@ -75,18 +102,3 @@ Sidebar azul oscuro, barra superior, búsqueda global, dashboard claro, tarjetas
 7. Registrar el resultado final en la bitácora.
 8. Publicar la actualización.
 9. Informar al usuario qué se cambió y cómo probarlo.
-
-## Próxima etapa en curso: Etapa 8 — Backend real + PostgreSQL
-**Objetivo:** iniciar la transición de la capa demo/local a una arquitectura operativa real, manteniendo los módulos actuales como frontend administrativo.
-
-### Alcance de Etapa 8
-- Incorporar PostgreSQL como persistencia principal.
-- Preparar esquema inicial para usuarios, paquetes, nodos, canales, fuentes, contenido, conexiones, dispositivos y auditoría.
-- Crear una capa backend modular sin depender de JSON como persistencia principal.
-- Mantener compatibilidad controlada con los datos actuales para facilitar la migración.
-- Exponer API REST preparada para autenticación y RBAC posteriores.
-- Centralizar errores y validaciones básicas.
-- Preparar migración segura de los datos actuales hacia PostgreSQL.
-- No introducir todavía motor real de streaming ni licenciamiento.
-
-**Resultado esperado:** IPZStream ejecutándose en el contenedor con PostgreSQL como base real y el panel operando progresivamente sobre una API persistente.
