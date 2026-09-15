@@ -134,6 +134,32 @@ Se implementaron los tres módulos independientes y se integraron en `src/main.j
 
 **Resultado esperado:** disponer de Logs, Auditoría y Estadísticas funcionales y persistentes a nivel administrativo, listas para una posterior migración a PostgreSQL y métricas reales.
 
+## 2026-09-14 — Implementación Etapa 7/7 — Logs / Auditoría / Estadísticas — IMPLEMENTADA, PENDIENTE DE VALIDACIÓN
+Se implementaron los módulos independientes de observabilidad y se integraron al panel.
+
+**Logs / Auditoría:**
+- `src/modules/logs/Logs.jsx`
+- `src/modules/logs/styles/logs.css`
+- listado de eventos administrativos
+- búsqueda por evento, usuario y detalle
+- filtros por nivel y módulo
+- contadores de registros, errores y auditorías
+- persistencia inicial de los registros administrativos mediante `localStorage`, como solución temporal hasta el backend integral
+
+**Estadísticas:**
+- `src/modules/statistics/Statistics.jsx`
+- `src/modules/statistics/styles/statistics.css`
+- consulta de usuarios, conexiones, dispositivos, nodos, canales, VOD y Series mediante API
+- indicadores administrativos derivados de los datos actuales
+
+**Integración:** `src/main.jsx` carga `LogsPage` y `StatisticsPage` como módulos independientes. La lógica nueva no se concentra en el archivo principal.
+
+**Respaldo:** `backup/pre-etapa-7-7-logs-auditoria-estadisticas` creado antes de los cambios estructurales.
+
+**Verificación pendiente:** ejecutar en el contenedor Debian 13 `git pull`, `npm install`, `npm run build`, reiniciar `ipztream-api`, publicar `dist` y validar funcionalmente Logs/Auditoría/Estadísticas.
+
+**Límites:** la auditoría todavía no recibe automáticamente todos los eventos del backend; las estadísticas no representan todavía bitrate, tráfico real, horas de reproducción ni disponibilidad real de streaming. PostgreSQL, RBAC completo, telemetría real y updater firmado quedan para fases posteriores.
+
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
 2. Registrar la intención/corrección en `BITACORA.md`.
