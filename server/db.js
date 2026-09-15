@@ -1,21 +1,42 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import pg from 'pg';
+import mariadb from 'mariadb';
 
-const { Pool } = pg;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, '..');
 const DATA_DIR = path.join(ROOT_DIR, 'data');
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://ipztream:ipztream@127.0.0.1:5432/ipztream';
-export const pool = new Pool({
-  connectionString: DATABASE_URL,
-  max: Number(process.env.IPZTREAM_DB_POOL_SIZE || 10),
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-  application_name: 'ipztream-api'
+const DATABASE_HOST = process.env.IPZTREAM_DB_HOST || '127.0.0.1';
+const DATABASE_PORT = Number(process.env.IPZTREAM_DB_PORT || 3306);
+const DATABASE_NAME = process.env.IPZTREAM_DB_NAME || 'ipztream';
+const DATABASE_USER = process.env.IPZTREAM_DB_USER || 'ipztream';
+const DATABASE_PASSWORD = process.env.IPZTREAM_DB_PASSWORD || '';
+
+const mariaPool = mariadb.createPool({
+  host: DATABASE_HOST,
+  port: DATABASE_PORT,
+  user: DATABASE_USER,
+  password: DATABASE_PASSWORD,
+  database: DATABASE_NAME,
+  connectionLimit: Number(process.env.IPZTREAM_DB_POOL_SIZE || 10),
+  connectTimeout: 5000,
+  idleTimeout: 30000,
+  bigIntAsNumber: true
 });
+
+// Mantiene el contrato { rows, rowCount } usado por la API actual para consultas directas.
+export const pool = {
+  async query(sql, params = []) {
+    const result = await mariaPool.query(sql, params);
+    const rows = Array.isArray(result) ? result : [];
+    const affectedRows = Number(result?.affectedRows || 0);
+    return { rows, rowCount: affectedRows };
+  },
+  async end() {
+    return mariaPool.end();
+  }
+};
 
 export const TABLES = {
   nodes: 'nodes',
@@ -80,64 +101,75 @@ async function readJsonSeed(name) {
   }
 }
 
-export async function initDatabase() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS nodes (id TEXT PRIMARY KEY, payload JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
-    CREATE TABLE IF NOT EXISTS channels (id TEXT PRIMARY KEY, payload JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
-    CREATE TABLE IF NOT EXISTS vod (id TEXT PRIMARY KEY, payload JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
-    CREATE TABLE IF NOT EXISTS series (id TEXT PRIMARY KEY, payload JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
-    CREATE TABLE IF NOT EXISTS epg (id TEXT PRIMARY KEY, payload JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
-    CREATE TABLE IF NOT EXISTS m3u (id TEXT PRIMARY KEY, payload JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
-    CREATE TABLE IF NOT EXISTS packages (id TEXT PRIMARY KEY, payload JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
-    CREATE TABLE IF NOT EXISTS connections (id TEXT PRIMARY KEY, payload JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
-    CREATE TABLE IF NOT EXISTS devices (id TEXT PRIMARY KEY, payload JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
-    CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, payload JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
-    CREATE TABLE IF NOT EXISTS audit_logs (id BIGSERIAL PRIMARY KEY, action TEXT NOT NULL, module TEXT NOT NULL, actor TEXT, detail TEXT, metadata JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
-    CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
-  `);
+function decodePayload(payload) {
+  if (payload && typeof payload === 'object') return payload;
+  try { return JSON.parse(payload); } catch { return payload; }
+}
 
-  for (const name of Object.keys(TABLES).filter((key) => key !== 'users' && key !== 'audit')) {
-    const count = await pool.query(`SELECT COUNT(*)::int AS count FROM ${TABLES[name]}`);
-    if (count.rows[0].count === 0) {
-      const seed = await readJsonSeed(name);
-      for (const item of seed) {
-        if (!item?.id) continue;
-        await pool.query(`INSERT INTO ${TABLES[name]} (id, payload) VALUES ($1, $2::jsonb) ON CONFLICT (id) DO NOTHING`, [String(item.id), JSON.stringify(item)]);
-      }
-    }
+async function createSchema() {
+  await mariaPool.query(`
+    CREATE TABLE IF NOT EXISTS nodes (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS channels (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS vod (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS series (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS epg (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS m3u (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS packages (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS connections (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS devices (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS users (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS audit_logs (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, action VARCHAR(64) NOT NULL, module VARCHAR(128) NOT NULL, actor VARCHAR(191), detail TEXT, metadata JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_audit_logs_created_at (created_at));
+  `);
+}
+
+async function migrateSeed(name) {
+  const table = TABLES[name];
+  const countResult = await mariaPool.query(`SELECT COUNT(*) AS count FROM ${table}`);
+  const count = Number(countResult[0]?.count || 0);
+  if (count > 0) return;
+
+  const seed = await readJsonSeed(name);
+  for (const item of seed) {
+    if (!item?.id) continue;
+    await mariaPool.query(`INSERT IGNORE INTO ${table} (id, payload) VALUES (?, ?)`, [String(item.id), JSON.stringify(item)]);
   }
 }
 
+export async function initDatabase() {
+  await createSchema();
+  for (const name of Object.keys(TABLES).filter((key) => key !== 'audit')) await migrateSeed(name);
+}
+
 export async function dbHealth() {
-  const result = await pool.query('SELECT NOW() AS now');
-  return { ok: true, database: 'postgresql', now: result.rows[0].now };
+  const result = await mariaPool.query('SELECT CURRENT_TIMESTAMP AS now');
+  return { ok: true, database: 'mariadb', now: result[0]?.now };
 }
 
 export async function listItems(table) {
-  const result = await pool.query(`SELECT payload FROM ${table} ORDER BY created_at ASC`);
-  return result.rows.map((row) => row.payload);
+  const result = await mariaPool.query(`SELECT payload FROM ${table} ORDER BY created_at ASC`);
+  return result.map((row) => decodePayload(row.payload));
 }
 
 export async function getItem(table, id) {
-  const result = await pool.query(`SELECT payload FROM ${table} WHERE id = $1`, [id]);
-  return result.rows[0]?.payload || null;
+  const result = await mariaPool.query(`SELECT payload FROM ${table} WHERE id = ?`, [id]);
+  return result[0] ? decodePayload(result[0].payload) : null;
 }
 
 export async function insertItem(table, item) {
-  await pool.query(`INSERT INTO ${table} (id, payload) VALUES ($1, $2::jsonb)`, [String(item.id), JSON.stringify(item)]);
+  await mariaPool.query(`INSERT INTO ${table} (id, payload) VALUES (?, ?)`, [String(item.id), JSON.stringify(item)]);
   return item;
 }
 
 export async function updateItem(table, id, item) {
-  const result = await pool.query(`UPDATE ${table} SET payload = $2::jsonb, updated_at = NOW() WHERE id = $1`, [id, JSON.stringify(item)]);
-  return result.rowCount ? item : null;
+  const result = await mariaPool.query(`UPDATE ${table} SET payload = ? WHERE id = ?`, [JSON.stringify(item), id]);
+  return result.affectedRows ? item : null;
 }
 
 export async function deleteItem(table, id) {
-  const result = await pool.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
-  return result.rowCount > 0;
+  const result = await mariaPool.query(`DELETE FROM ${table} WHERE id = ?`, [id]);
+  return result.affectedRows > 0;
 }
 
 export async function addAudit({ action, module, actor = 'system', detail = '', metadata = {} }) {
-  await pool.query('INSERT INTO audit_logs (action, module, actor, detail, metadata) VALUES ($1,$2,$3,$4,$5::jsonb)', [action, module, actor, detail, JSON.stringify(metadata)]);
+  await mariaPool.query('INSERT INTO audit_logs (action, module, actor, detail, metadata) VALUES (?, ?, ?, ?, ?)', [action, module, actor, detail, JSON.stringify(metadata)]);
 }
