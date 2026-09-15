@@ -1,4 +1,4 @@
--- IPZStream MariaDB schema v3
+-- IPZStream MariaDB schema v4
 -- La API crea estas estructuras automáticamente al iniciar.
 
 CREATE TABLE IF NOT EXISTS nodes (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
@@ -26,5 +26,17 @@ CREATE TABLE IF NOT EXISTS user_credentials (
   password_hash VARCHAR(255) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Sesiones independientes para aplicaciones IPTV.
+CREATE TABLE IF NOT EXISTS client_sessions (
+  id VARCHAR(64) PRIMARY KEY,
+  user_id VARCHAR(191) NOT NULL,
+  token_hash CHAR(64) NOT NULL UNIQUE,
+  expires_at DATETIME NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_client_sessions_user (user_id),
+  INDEX idx_client_sessions_expiry (expires_at),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
