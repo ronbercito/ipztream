@@ -27,7 +27,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 8. Backend real + MariaDB — **COMPLETADA Y VALIDADA**.
 9. Autenticación real + RBAC — **COMPLETADA Y VALIDADA**.
 10. Usuarios IPTV / Panel Cliente — **COMPLETADA Y VALIDADA**.
-11. API de clientes + sesiones de aplicación — **SIGUIENTE ETAPA / PREPARADA**.
+11. API de clientes + sesiones de aplicación — **EN IMPLEMENTACIÓN**.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -41,53 +41,65 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - MariaDB es la base principal y permanente.
 - Etapas 1–10 están validadas por el usuario.
 
-## Etapa 10 — Usuarios IPTV / Panel Cliente
-**Estado:** COMPLETADA Y VALIDADA por el usuario.
-
-Se validó el CRUD real de clientes IPTV, asociación a paquetes, vencimiento/estado, límite de conexiones, edición completa de la cuenta, contraseña IPTV desde 1 carácter, mostrar/ocultar contraseña y persistencia. Se mantiene separación entre credenciales administrativas y credenciales IPTV: administradores con política mínima de 12 caracteres y clientes IPTV con mínimo de 1 carácter, ambos almacenados mediante hash.
-
-### Correcciones 10.1–10.5
-- Se corrigió la integración de Usuarios/Paquetes con MariaDB y las rutas `/api/users`.
-- Se corrigió la validación mínima de contraseña IPTV.
-- Se añadió mostrar/ocultar contraseña.
-- Se corrigió la normalización de vencimiento y estado.
-- Se separó `hashPassword()` administrativo de `hashIptvPassword()` y se habilitó la edición completa de la cuenta IPTV.
-
-**Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
-
 ## Etapa 11 — API de clientes + sesiones de aplicación
-**Objetivo:** construir la primera capa real para que una aplicación IPTV pueda autenticarse como cliente, consultar su cuenta y trabajar con una sesión propia, separada de la autenticación administrativa del panel.
+**Estado técnico:** EN IMPLEMENTACIÓN.
 
-### Alcance inicial
-- Login de cliente IPTV mediante usuario/contraseña.
-- Sesiones de cliente persistidas y revocables en MariaDB.
-- Token de sesión seguro, almacenado de forma no reversible en la base.
-- Expiración de sesión y cierre de sesión.
-- Endpoint de identidad `/api/client/me`.
-- Validación de estado y vencimiento del cliente antes de crear/usar una sesión.
-- Separación estricta entre sesiones administrativas y sesiones IPTV.
-- Base para autorizar posteriormente dispositivos, conexiones y reproducción.
-- Respuestas API preparadas para futuras aplicaciones web/móvil/TV.
-- Auditoría de login/logout y eventos relevantes.
+### Objetivo
+Construir la identidad y sesión específica de los clientes IPTV, separada de la autenticación administrativa existente. Esta capa será utilizada posteriormente por la aplicación IPTV y por las APIs de catálogo/reproducción.
 
-### Restricciones de seguridad
-- La aplicación cliente no utilizará credenciales administrativas.
-- No se almacenarán contraseñas IPTV en texto plano.
-- No se usará `localStorage` como fuente de autoridad para autenticación.
-- El backend será la autoridad para sesión, estado, vencimiento y permisos del cliente.
-- No se expondrá directamente la contraseña ni el hash en ninguna respuesta API.
+### Alcance
+- Login de cliente IPTV mediante usuario y contraseña.
+- Sesiones de cliente almacenadas de forma segura en MariaDB.
+- Token de sesión no reutilizable como contraseña y almacenado únicamente como hash en base de datos.
+- Identidad del cliente mediante `/api/client/me`.
+- Logout mediante `/api/client/logout`.
+- Middleware de sesión para proteger futuras rutas de aplicación.
+- Rechazo de clientes inexistentes, credenciales inválidas, vencidos o suspendidos.
+- Registro de login/logout en `audit_logs`.
+- Expiración de sesiones.
+- Mantener separadas las sesiones administrativas y las sesiones IPTV.
 
-### Fuera de esta etapa
-- Reproducción real de streams.
-- Generación/entrega HLS.
+### No incluido todavía
+- Reproducción de video.
+- HLS real.
+- Generación de URLs de stream.
+- Control real de conexiones simultáneas.
+- Aplicación móvil/TV.
 - Motor de streaming.
-- Límite real de conexiones simultáneas por dispositivo.
-- Tokens de reproducción protegidos.
-- Aplicación final para Android/TV/web.
 
-Estos puntos se implementarán en las etapas posteriores.
+### Archivos previstos
+- `server/client-auth.js`
+- `server/secure-entry.js` y/o `server/index.js`
+- `server/db.js`
+- `database/schema.sql`
+- `src/...` únicamente si se necesita una prueba visual mínima de sesión; la app cliente completa queda para etapas posteriores.
 
-## Respaldo de Etapa 11
+### Resultado esperado
+Un cliente IPTV creado en Etapa 10 podrá autenticarse mediante API, obtener su identidad y estado, mantener una sesión temporal y cerrarla. Las credenciales continuarán almacenándose mediante hash seguro y nunca se devolverán en las respuestas.
+
+### Respaldo
+`backup/pre-etapa-11-api-clientes-sesiones`.
+
+## Próxima fase
+Después de cerrar Etapa 11, Etapa 12 será el motor de streaming real e integración de fuentes de reproducción.
+
+## Respaldos
+- `backup/pre-etapa-1-13-configuracion`
+- `backup/pre-etapa-2-13-usuarios`
+- `backup/pre-correccion-configuracion-completa`
+- `backup/pre-etapa-2-7-usuarios`
+- `backup/pre-etapa-3-7-nodes`
+- `backup/pre-correccion-nodos-persistencia`
+- `backup/pre-etapa-4-7-channels`
+- `backup/pre-etapa-5-7-vod-series-epg-m3u`
+- `backup/pre-etapa-6-7-packages-connections-devices`
+- `backup/pre-etapa-7-7-logs-auditoria-estadisticas`
+- `backup/pre-etapa-8-backend-postgres`
+- `backup/pre-correccion-etapa-8-mariadb`
+- `backup/pre-correccion-schema-mariadb-multistatements`
+- `backup/pre-etapa-9-auth-rbac`
+- `backup/pre-correccion-etapa-9-session-token-hash`
+- `backup/pre-etapa-10-usuarios-iptv`
 - `backup/pre-etapa-11-api-clientes-sesiones`
 
 ## Protocolo obligatorio
