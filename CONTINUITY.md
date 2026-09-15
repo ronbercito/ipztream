@@ -24,7 +24,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 5. VOD / Series / EPG / M3U — **COMPLETADA Y VALIDADA**.
 6. Paquetes / Conexiones / Dispositivos — **COMPLETADA Y VALIDADA**.
 7. Logs / Auditoría / Estadísticas — **COMPLETADA Y VALIDADA**.
-8. Backend real + PostgreSQL — **EN CORRECCIÓN: migración de PostgreSQL a MariaDB**.
+8. Backend real + MariaDB — **IMPLEMENTACIÓN CORREGIDA, PENDIENTE DE VALIDACIÓN EN CONTENEDOR**.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -39,8 +39,9 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Código fuente: `/opt/ipztream`.
 - Servicio API: `ipztream-api`.
 - Las etapas 1–7 del panel fueron implementadas y validadas por el usuario.
-- La Etapa 8 introdujo PostgreSQL de forma provisional; esa decisión queda corregida. **La base de datos objetivo y permanente de IPZStream será MariaDB.**
-- La validación de la Etapa 8 queda bloqueada hasta completar la sustitución de PostgreSQL por MariaDB y verificar instalación, API, migración y persistencia.
+- **MariaDB es la base de datos principal y permanente definida para IPZStream.**
+- La implementación PostgreSQL de la Etapa 8 fue reemplazada. No debe utilizarse PostgreSQL como requisito de la aplicación.
+- La Etapa 8 queda pendiente de validación real en Debian 13: instalación, servicio MariaDB, API, migración, CRUD, persistencia y reinicio.
 - El updater real, autenticación/RBAC completo, motor de streaming y telemetría avanzada todavía serán fases posteriores.
 
 ## Respaldos importantes
@@ -55,28 +56,31 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - `backup/pre-etapa-6-7-packages-connections-devices`
 - `backup/pre-etapa-7-7-logs-auditoria-estadisticas`
 - `backup/pre-etapa-8-backend-postgres`
-- Se creará un nuevo respaldo antes de modificar la implementación de persistencia de la Etapa 8.
+- `backup/pre-correccion-etapa-8-mariadb`
 
 ## Referencia visual aprobada
 Sidebar azul oscuro, barra superior, búsqueda global, dashboard claro, tarjetas KPI, gráficos, estado de nodos, tablas administrativas, filtros, badges y acciones rápidas. No generar nuevos mockups salvo solicitud explícita.
 
 ## Etapa 8 — Corrección — Backend real + MariaDB
-**Motivo:** la implementación de Etapa 8 utilizó PostgreSQL, pero la arquitectura definida para IPZStream debe utilizar MariaDB como base de datos principal. Además, el instalador informó éxito aunque la API no llegó a escuchar en el puerto 3100, por lo que la validación de instalación también debe endurecerse.
+**Motivo:** la implementación inicial de Etapa 8 utilizó PostgreSQL, pero la arquitectura definida para IPZStream debe utilizar MariaDB como base de datos principal. Además, el instalador debía impedir cualquier mensaje de éxito si la API no estaba operativa.
 
-### Objetivo inmediato
-- Sustituir PostgreSQL por MariaDB en la capa de persistencia del backend.
-- Mantener las respuestas y endpoints actuales compatibles con el frontend.
-- Crear el esquema inicial de MariaDB para las entidades existentes.
-- Migrar automáticamente los datos JSON iniciales cuando las tablas estén vacías, sin sobrescribir datos existentes.
-- Preparar conexión mediante variables de entorno y servicio systemd.
-- Eliminar la dependencia operativa de `pg`/PostgreSQL.
-- Corregir el instalador para que falle claramente si la API no inicia o `/api/health` no responde correctamente.
+### Implementado
+- `server/db.js` reemplazado por el conector oficial `mariadb`.
+- Pool MariaDB y configuración mediante variables `IPZTREAM_DB_*`.
+- Esquema MariaDB para nodos, canales, VOD, series, EPG, M3U, paquetes, conexiones, dispositivos, usuarios y auditoría.
+- Migración inicial desde `data/*.json` cuando cada tabla está vacía.
+- Conversión de consultas y placeholders a sintaxis compatible con MariaDB.
+- Compatibilidad del contrato de consultas directas usado por la API (`rows`/`rowCount`).
+- `/api/health` ahora reporta `database: mariadb`.
+- Servicio systemd depende de `mariadb.service`.
+- Instalador instala MariaDB, crea base/usuario, genera credencial y configura `/etc/ipztream/ipztream-api.env`.
+- Instalador verifica explícitamente API + MariaDB antes de informar instalación exitosa y muestra diagnóstico si falla.
+- Documentación `INSTALL.md` actualizada.
 
-### Alcance de esta corrección
-Archivos esperados: `server/db.js`, `server/index.js`, `database/schema.sql`, `package.json`, `deploy/ipztream-api.service`, `install.sh`, `INSTALL.md` y cualquier archivo adicional estrictamente necesario para MariaDB.
+**Respaldo:** `backup/pre-correccion-etapa-8-mariadb`.
 
-### Criterio de éxito
-La Etapa 8 no se cerrará hasta que el usuario pueda instalar/actualizar en Debian 13, comprobar MariaDB activa, comprobar `ipztream-api` activo, obtener `/api/health` correctamente, verificar migración de datos y confirmar persistencia CRUD después de reinicios.
+### Pendiente de validación
+El asistente no ejecutó el build dentro del contenedor Debian 13. El usuario debe actualizar `main` y probar la instalación. La Etapa 8 no se cierra hasta recibir esa validación.
 
 ## Próximas fases después de validar Etapa 8
 1. Autenticación real y RBAC.
