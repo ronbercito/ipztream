@@ -26,7 +26,7 @@ Objetivo: construir una plataforma moderna, segura, modular y escalable para adm
 4. **Canales / Fuentes** — **COMPLETADA Y VALIDADA.**
 5. **VOD / Series / EPG / M3U** — **COMPLETADA Y VALIDADA.**
 6. **Paquetes / Conexiones / Dispositivos** — **COMPLETADA Y VALIDADA.**
-7. **Logs / Auditoría / Estadísticas** — **IMPLEMENTADA, PENDIENTE DE VALIDACIÓN.**
+7. **Logs / Auditoría / Estadísticas** — **COMPLETADA Y VALIDADA.**
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -41,8 +41,7 @@ Objetivo: construir una plataforma moderna, segura, modular y escalable para adm
 - Código fuente: `/opt/ipztream`.
 - Servicio API: `ipztream-api`.
 - Dashboard y navegación principal funcionales.
-- Usuarios, Configuración, Nodos, Canales, VOD, Series, EPG, M3U, Paquetes, Conexiones y Dispositivos ya fueron validados por el usuario.
-- Logs y Estadísticas ya están integrados en el panel; falta validación funcional en el contenedor.
+- Las siete subetapas del panel actual fueron implementadas y validadas por el usuario.
 - El backend completo con PostgreSQL, autenticación/RBAC y API integral todavía no está conectado.
 - El updater real todavía será implementado posteriormente mediante releases controlados y firmados.
 
@@ -61,30 +60,27 @@ Objetivo: construir una plataforma moderna, segura, modular y escalable para adm
 ## Referencia visual aprobada
 La interfaz debe seguir el concepto aprobado por el usuario: sidebar azul oscuro, barra superior, búsqueda global, dashboard claro, tarjetas KPI, gráficos, panel de estado de nodos, tablas administrativas, filtros, badges y acciones rápidas. No generar nuevos mockups salvo solicitud explícita.
 
-## Etapa actual — 7/7
-**Logs / Auditoría / Estadísticas: IMPLEMENTADA, PENDIENTE DE VALIDACIÓN FUNCIONAL.**
+## Estado posterior a las 7 subetapas
+El bloque inicial de construcción del panel administrativo quedó cerrado. Las siete etapas fueron implementadas y validadas en el contenedor Debian 13.
 
-### Implementación realizada
-**Logs / Auditoría:**
-- `src/modules/logs/Logs.jsx`
-- `src/modules/logs/styles/logs.css`
-- Consulta de eventos, búsqueda, filtros por nivel y módulo, detalle, contadores de registros/errores/auditorías.
-- Persistencia administrativa inicial mediante `localStorage` hasta disponer del backend integral.
+### Capacidades cerradas
+- Configuración.
+- Usuarios.
+- Servidores / Nodos.
+- Canales / Fuentes.
+- VOD / Series / EPG / M3U.
+- Paquetes / Conexiones / Dispositivos.
+- Logs / Auditoría / Estadísticas.
 
-**Estadísticas:**
-- `src/modules/statistics/Statistics.jsx`
-- `src/modules/statistics/styles/statistics.css`
-- Consulta de datos disponibles mediante API para usuarios, conexiones, dispositivos, nodos, canales, VOD y Series.
-- Indicadores administrativos derivados de los datos actuales.
-
-**Integración:**
-- `src/main.jsx` integra `LogsPage` y `StatisticsPage` como módulos independientes.
-- No se concentra lógica de negocio nueva en `main.jsx`.
-
-### Límites
-- Logs/Auditoría todavía no reciben automáticamente todos los eventos del backend; su persistencia inicial es administrativa y local al navegador.
-- Estadísticas no representan todavía bitrate, tráfico real, horas de reproducción ni disponibilidad real de streaming.
-- PostgreSQL, RBAC completo, telemetría real y updater firmado quedan para fases posteriores.
+### Pendientes de fases posteriores
+- Backend integral con PostgreSQL.
+- Autenticación robusta y RBAC completo.
+- Auditoría centralizada real desde backend.
+- Telemetría y health checks reales de streams/nodos.
+- Motor real de sesiones y métricas de streaming.
+- Licenciamiento.
+- Sistema de releases/updater firmado para instalaciones de clientes.
+- Endurecimiento de seguridad y protección del código en instalaciones de clientes.
 
 ## Protocolo obligatorio por etapa
 1. **Actualizar primero `CONTINUITY.md`.**
@@ -97,5 +93,5 @@ La interfaz debe seguir el concepto aprobado por el usuario: sidebar azul oscuro
 8. Publicar la actualización.
 9. Informar al usuario qué se cambió y cómo probarlo.
 
-## Próximo paso
-Ejecutar `npm install` y `npm run build` en el contenedor Debian 13, reiniciar `ipztream-api`, publicar `dist` y validar Logs / Auditoría / Estadísticas antes de cerrar la etapa 7/7.
+## Próximo paso recomendado
+Antes de agregar más funciones visuales al panel, definir la siguiente fase arquitectónica: **Backend real + PostgreSQL + autenticación/RBAC + auditoría centralizada**, preservando los módulos actuales como capa de presentación y administración.
