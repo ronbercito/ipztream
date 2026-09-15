@@ -56,12 +56,24 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 
 **Respaldo existente:** `backup/pre-etapa-10-usuarios-iptv`.
 
+### Corrección 10.2 — Contraseña de cliente IPTV
+**Motivo:** al crear o editar un usuario IPTV, la validación actual exige una contraseña de 10–12 caracteres. El usuario solicita que la contraseña tenga únicamente un mínimo de 1 carácter.
+
+**Objetivo:** cambiar la validación de credenciales del cliente IPTV para aceptar contraseñas desde 1 carácter, tanto en la interfaz como en el backend, sin alterar el almacenamiento seguro mediante hash.
+
+**Archivos previstos:** `server/user-service.js`, `src/modules/users/components/UserForm.jsx` y cualquier servicio/API de usuarios que contenga la validación equivalente.
+
+**Resultado esperado:** una contraseña de 1 carácter sea aceptada al crear/editar un cliente IPTV y continúe almacenándose como hash, sin contraseña en texto plano.
+
+**Respaldo existente:** `backup/pre-etapa-10-usuarios-iptv`.
+
 ### Pendiente de validación
 - Build.
 - Reinicio del servicio.
 - Creación de paquete.
 - Carga de Usuarios.
 - Creación de cliente asociado a paquete.
+- Creación/edición de cliente con contraseña de 1 carácter.
 - Persistencia y edición.
 
 **No se marca la Etapa 10 como completada hasta la validación del usuario.**
