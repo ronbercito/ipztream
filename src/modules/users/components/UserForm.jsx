@@ -1,11 +1,12 @@
 import React from 'react';
-import { Save, X } from 'lucide-react';
+import { Eye, EyeOff, Save, X } from 'lucide-react';
 
 const empty = { username:'', name:'', status:'Activo', packageId:'', maxConnections:'1', expiresAt:'', password:'' };
 
 export default function UserForm({ user, packages = [], onSave, onClose }) {
   const [form, setForm] = React.useState(user ? { ...user, password:'' } : empty);
   const [error, setError] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
   const set = (key, value) => setForm(current => ({ ...current, [key]: value }));
 
   const selectedPackage = packages.find((item) => item.id === form.packageId);
@@ -68,7 +69,7 @@ export default function UserForm({ user, packages = [], onSave, onClose }) {
       <label>Paquete<select value={form.packageId} onChange={e=>set('packageId',e.target.value)} required><option value="">Seleccionar…</option>{packages.map(item => <option key={item.id} value={item.id}>{item.name} · {item.maxConnections} conexión(es)</option>)}</select></label>
       <label>Máximo de conexiones<input type="number" min="1" max={packageMax} value={form.maxConnections} onChange={e=>set('maxConnections',e.target.value)}/></label>
       <label>Vencimiento<input type="date" value={form.expiresAt || ''} onChange={e=>set('expiresAt',e.target.value)} required/></label>
-      <label className="full-width">{user ? 'Nueva contraseña (opcional)' : 'Contraseña'}<input type="password" minLength="1" autoComplete="new-password" value={form.password} onChange={e=>set('password',e.target.value)} placeholder={user ? 'Dejar vacío para conservar la actual' : 'Mínimo 1 carácter'} required={!user}/></label>
+      <label className="full-width">{user ? 'Nueva contraseña (opcional)' : 'Contraseña'}<div className="password-field"><input type={showPassword ? 'text' : 'password'} minLength="1" autoComplete="new-password" value={form.password} onChange={e=>set('password',e.target.value)} placeholder={user ? 'Dejar vacío para conservar la actual' : 'Mínimo 1 carácter'} required={!user}/><button type="button" className="password-toggle" onClick={()=>setShowPassword(current=>!current)} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{showPassword ? <EyeOff size={17}/> : <Eye size={17}/>}</button></div></label>
     </div>
 
     <div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button type="submit" className="primary-button"><Save size={15}/>Guardar cliente</button></div>
