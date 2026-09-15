@@ -49,34 +49,51 @@ Se implementó login IPTV, sesiones en MariaDB, `/api/client/me`, logout, expira
 ### Objetivo
 Iniciar el primer motor de streaming real de IPZStream. No se utilizarán simulaciones: una fuente real configurada en un canal deberá poder ser procesada por FFmpeg y convertirse en una salida HLS reproducible.
 
-### Alcance previsto
-- Integrar FFmpeg como dependencia del servidor.
-- Crear un servicio independiente para administrar procesos FFmpeg.
-- Iniciar, detener y reiniciar streams por canal.
-- Generar HLS (`index.m3u8` + segmentos) por canal.
-- Consultar estado real del proceso.
-- Detectar errores y terminación del proceso.
-- Evitar procesos duplicados por canal.
-- Registrar acciones en `audit_logs`.
-- Proteger el API de control mediante autenticación/RBAC.
-- Validar las fuentes y construir argumentos de FFmpeg sin shell injection.
-- Mantener el diseño preparado para futuros nodos de streaming.
+### Implementación realizada
+**Archivos principales:**
+- `server/stream-manager.js`
+- `server/secure-entry.js`
+- `install.sh`
+- `docs/ETAPA-12.md`
 
-### Archivos/componentes previstos
-- Servicio nuevo de streaming en `server/`.
-- Rutas API de control integradas de forma modular.
-- Configuración de salida HLS.
-- Ajustes del instalador para disponer de FFmpeg.
-- Ajustes de Nginx para servir exclusivamente la salida HLS de IPZStream.
-- Documentación de Etapa 12 y pruebas.
-
-### Resultado esperado
-Un canal real podrá iniciar un proceso FFmpeg, generar una salida HLS verificable y reportar estado/error real. El objetivo de esta etapa es establecer la primera cadena de streaming real del proyecto, sin crear un reproductor simulado.
-
-### Seguridad
-FFmpeg será ejecutado como proceso hijo con argumentos controlados por IPZStream. No se ejecutarán comandos arbitrarios enviados por el cliente. Los identificadores de canal y rutas de salida se tratarán como datos controlados.
+**Cambios:**
+- Se creó un gestor modular de procesos FFmpeg.
+- Se incorporó inicio, detención y reinicio por canal.
+- Se incorporó estado real: `starting`, `running`, `stopping`, `stopped`, `error`.
+- Se registran PID, tiempos, código de salida y últimas líneas de error/log.
+- Se selecciona la fuente activa de menor prioridad numérica del canal.
+- Se validan protocolos HTTP, HTTPS, RTMP, RTMPS y RTSP.
+- Los argumentos de FFmpeg se pasan directamente a `spawn()` sin shell.
+- Se genera HLS por canal con `index.m3u8` y segmentos `.ts`.
+- Se evita iniciar dos procesos simultáneos para el mismo canal.
+- El apagado del servicio intenta detener los procesos FFmpeg activos.
+- Se añadieron endpoints administrativos:
+  - `GET /api/streams`
+  - `GET /api/streams/:channelId`
+  - `POST /api/streams/:channelId/start`
+  - `POST /api/streams/:channelId/stop`
+  - `POST /api/streams/:channelId/restart`
+- Las consultas usan `channels.view` y las acciones usan `channels.update`.
+- Se registran las acciones de control en `audit_logs`.
+- El instalador instala FFmpeg y configura el directorio `/var/lib/ipztream/streams`.
+- Nginx queda preparado para publicar `/streams/`.
 
 ### Respaldo
-Se creará `backup/pre-etapa-12-streaming-real` antes de los cambios estructurales de código.
+`backup/pre-etapa-12-streaming-real`.
 
-**Estado:** intención registrada; implementación pendiente.
+### Estado de validación
+**IMPLEMENTACIÓN PUBLICADA — VALIDACIÓN EN EL CONTENEDOR PENDIENTE.**
+
+La validación debe comprobar:
+1. FFmpeg instalado y ejecutable.
+2. API `/api/streams` devuelve versión de FFmpeg.
+3. Un canal con fuente real inicia FFmpeg.
+4. El estado cambia a `running`.
+5. Aparece `index.m3u8` y segmentos HLS.
+6. La playlist responde por HTTP.
+7. El proceso puede detenerse y queda en `stopped`.
+8. Una fuente inválida produce estado/error controlado.
+9. No se pueden iniciar dos procesos simultáneos para el mismo canal.
+
+### Referencia técnica
+El muxer HLS de FFmpeg genera una playlist y segmentos, y permite controlar el tamaño de la ventana, duración de segmentos y eliminación de segmentos antiguos mediante sus opciones HLS. 
