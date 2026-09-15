@@ -41,12 +41,12 @@ Se corrigió el hash de sesión para usar SHA-256 hexadecimal de 64 caracteres.
 ## Etapa 10 — Usuarios IPTV / Panel Cliente — COMPLETADA Y VALIDADA
 Se implementó el modelo real de clientes IPTV con credenciales separadas, paquetes, vencimiento, estado, conexiones y edición completa. El usuario confirmó que funciona correctamente.
 
-## Etapa 11 — API de clientes + sesiones de aplicación — EN IMPLEMENTACIÓN
+## Etapa 11 — API de clientes + sesiones de aplicación — COMPLETADA Y VALIDADA
 
 ### Objetivo
 Crear la capa de autenticación y sesión específica para clientes IPTV, independiente de la autenticación administrativa, para que posteriormente una aplicación IPTV pueda iniciar sesión y consumir catálogo y reproducción de forma segura.
 
-### Alcance
+### Alcance implementado
 - Login IPTV mediante usuario y contraseña.
 - Sesiones temporales en MariaDB.
 - Token aleatorio almacenado únicamente como SHA-256.
@@ -63,7 +63,7 @@ Crear la capa de autenticación y sesión específica para clientes IPTV, indepe
 **Archivos afectados:** `server/client-auth.js`, `server/secure-entry.js`, `database/schema.sql`.
 
 **Cambios realizados:**
-- La autenticación IPTV ahora consulta `users.payload` mediante `JSON_EXTRACT`.
+- La autenticación IPTV consulta `users.payload` mediante extracción JSON.
 - Se añadió `ensureClientSessionSchema()` para crear y limpiar sesiones expiradas.
 - Se añadió `client_sessions` al esquema MariaDB con relación a `users`.
 - `secure-entry.js` integra login, identidad y logout IPTV antes de la autenticación administrativa.
@@ -71,8 +71,18 @@ Crear la capa de autenticación y sesión específica para clientes IPTV, indepe
 - También se acepta `Authorization: Bearer ...` para aplicaciones IPTV.
 - Los clientes vencidos o suspendidos no pueden iniciar ni mantener sesión.
 
-**Resultado esperado:** un cliente real creado desde el panel podrá autenticarse mediante `/api/client/login`, consultar `/api/client/me`, cerrar sesión y quedar rechazado posteriormente con el mismo token. La respuesta nunca expone `password_hash`.
+### Validación final en servidor
+El usuario ejecutó las pruebas reales en el contenedor:
 
-**Estado:** implementación publicada. Build/reinicio y validación funcional en el servidor del usuario siguen pendientes.
+1. `POST /api/client/login` → **200 OK** y creación de sesión.
+2. `GET /api/client/me` con la cookie válida → **200 OK** y datos del cliente.
+3. `POST /api/client/logout` → **200 OK** y eliminación de la cookie.
+4. `GET /api/client/me` después del logout → **401 Unauthorized** con mensaje de sesión no válida o expirada.
+
+**Resultado:** la sesión IPTV queda correctamente creada, consultable, cerrable e invalidada. La autenticación de clientes de Etapa 11 queda **COMPLETADA Y VALIDADA**.
 
 **Respaldo:** `backup/pre-etapa-11-api-clientes-sesiones`.
+
+## Próxima etapa pendiente
+### Etapa 12 — Motor de streaming real + integración de fuentes
+Objetivo futuro: comenzar la cadena real de reproducción, desde una fuente real hasta una salida de streaming reproducible, sin simulaciones. La etapa deberá prepararse siguiendo el protocolo de `CONTINUITY.md` y creando respaldo antes de cambios estructurales.
