@@ -24,7 +24,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 5. VOD / Series / EPG / M3U — **COMPLETADA Y VALIDADA**.
 6. Paquetes / Conexiones / Dispositivos — **COMPLETADA Y VALIDADA**.
 7. Logs / Auditoría / Estadísticas — **COMPLETADA Y VALIDADA**.
-8. Backend real + MariaDB — **EN CORRECCIÓN, PENDIENTE DE VALIDACIÓN**.
+8. Backend real + MariaDB — **COMPLETADA Y VALIDADA**.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -40,9 +40,12 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Servicio API: `ipztream-api`.
 - Las etapas 1–7 del panel fueron implementadas y validadas por el usuario.
 - **MariaDB es la base de datos principal y permanente definida para IPZStream.**
-- La implementación PostgreSQL de la Etapa 8 fue reemplazada. No debe utilizarse PostgreSQL como requisito de la aplicación.
-- La instalación real confirmó que MariaDB está operativo y que las credenciales del servicio están configuradas, pero la API no inicia porque `server/db.js` intenta enviar varias sentencias `CREATE TABLE` en una sola consulta; MariaDB responde `ER_PARSE_ERROR` al comenzar la segunda sentencia.
-- La API no está escuchando actualmente en `127.0.0.1:3100` mientras persista esta corrección.
+- La implementación PostgreSQL de la Etapa 8 fue reemplazada y no forma parte de la arquitectura operativa.
+- La corrección 8.2 eliminó el fallo de inicialización provocado por múltiples sentencias DDL enviadas en una sola consulta.
+- En la validación real, MariaDB creó correctamente las 11 tablas: `audit_logs`, `channels`, `connections`, `devices`, `epg`, `m3u`, `nodes`, `packages`, `series`, `users` y `vod`.
+- La API responde correctamente en `127.0.0.1:3100` y `/api/health` confirma `database: mariadb`.
+- El servicio `ipztream-api` permanece activo después de reinicio y la API continúa respondiendo correctamente.
+- La base de datos de la instalación de prueba está inicialmente vacía en las tablas verificadas (`nodes`, `channels`, `users`, `audit_logs`); esto es válido para una instalación nueva.
 
 ## Respaldos importantes
 - `backup/pre-etapa-1-13-configuracion`
@@ -57,48 +60,54 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - `backup/pre-etapa-7-7-logs-auditoria-estadisticas`
 - `backup/pre-etapa-8-backend-postgres`
 - `backup/pre-correccion-etapa-8-mariadb`
+- `backup/pre-correccion-schema-mariadb-multistatements`
 
 ## Referencia visual aprobada
 Sidebar azul oscuro, barra superior, búsqueda global, dashboard claro, tarjetas KPI, gráficos, estado de nodos, tablas administrativas, filtros, badges y acciones rápidas. No generar nuevos mockups salvo solicitud explícita.
 
-## Etapa 8 — Corrección — Backend real + MariaDB
-**Motivo:** la implementación inicial de Etapa 8 utilizó PostgreSQL, pero la arquitectura definida para IPZStream debe utilizar MariaDB como base de datos principal. Además, el instalador debía impedir cualquier mensaje de éxito si la API no estaba operativa.
-
+## Etapa 8 — Backend real + MariaDB
 ### Implementado
-- `server/db.js` reemplazado por el conector oficial `mariadb`.
-- Pool MariaDB y configuración mediante variables `IPZTREAM_DB_*`.
+- `server/db.js` utiliza el paquete `mariadb` y pool de conexiones.
 - Esquema MariaDB para nodos, canales, VOD, series, EPG, M3U, paquetes, conexiones, dispositivos, usuarios y auditoría.
 - Migración inicial desde `data/*.json` cuando cada tabla está vacía.
-- Conversión de consultas y placeholders a sintaxis compatible con MariaDB.
-- Compatibilidad del contrato de consultas directas usado por la API (`rows`/`rowCount`).
-- `/api/health` ahora reporta `database: mariadb`.
+- `/api/health` reporta `database: mariadb`.
 - Servicio systemd depende de `mariadb.service`.
-- Instalador instala MariaDB, crea base/usuario, genera credencial y configura `/etc/ipztream/ipztream-api.env`.
-- Instalador verifica explícitamente API + MariaDB antes de informar instalación exitosa y muestra diagnóstico si falla.
-- Documentación `INSTALL.md` actualizada.
+- Instalador instala/configura MariaDB y verifica realmente la disponibilidad de la API antes de informar éxito.
+- `INSTALL.md` documenta MariaDB como base principal.
 
-**Respaldo:** `backup/pre-correccion-etapa-8-mariadb`.
+### Corrección 8.2 — inicialización del esquema MariaDB
+Se corrigió `server/db.js` para ejecutar cada sentencia DDL de creación de tabla por separado, evitando el `ER_PARSE_ERROR` producido por el lote de múltiples `CREATE TABLE`.
 
-### Corrección actual — inicialización del esquema MariaDB
-**Motivo:** la prueba real en Debian 13 mostró `ER_PARSE_ERROR` porque `createSchema()` envía múltiples `CREATE TABLE ...;` dentro de una sola llamada `mariaPool.query()`. El driver/servidor usado no está ejecutando ese lote como múltiples sentencias.
+**Respaldo:** `backup/pre-correccion-schema-mariadb-multistatements`.
 
-**Objetivo:** hacer que la creación del esquema sea compatible y determinista en MariaDB ejecutando cada sentencia DDL por separado, sin alterar el contrato de los endpoints ni la estructura JSON de los datos. Mantener la migración inicial y la auditoría.
+### Validación final 8.2 — COMPLETADA Y VALIDADA
+- Build de producción ejecutado correctamente en Debian 13.
+- `bash install.sh` completó correctamente.
+- MariaDB está activo y operativo.
+- Las 11 tablas fueron creadas correctamente.
+- `ipztream-api` quedó `active (running)`.
+- `/api/health` respondió correctamente con `database: mariadb`.
+- El puerto `127.0.0.1:3100` quedó escuchando.
+- Después de reiniciar `ipztream-api`, el servicio y la API continuaron respondiendo correctamente.
+- El usuario confirmó explícitamente que **todo responde correctamente**.
 
-**Archivos previstos:** `server/db.js`; `CONTINUITY.md` y `BITACORA.md` para trazabilidad.
+**Estado:** Etapa 8 y corrección 8.2 cerradas y validadas.
 
-**Resultado esperado:** `initDatabase()` debe completar todas las tablas sin `ER_PARSE_ERROR`, permitir que `ipztream-api` escuche en `3100` y dejar disponible `/api/health` reportando MariaDB. Después se validará CRUD y persistencia.
+## Próxima fase — Etapa 9 — Autenticación real y RBAC
+**Objetivo general:** construir la base de seguridad de IPZStream sobre el backend/MariaDB ya validado.
 
-**Respaldo requerido antes del código:** crear un nuevo punto de restauración `backup/pre-correccion-schema-mariadb-multistatements`.
+**Alcance previsto:** usuarios administrativos reales en backend, autenticación segura, sesiones/tokens, roles y permisos RBAC, protección de endpoints y preparación de auditoría asociada a identidad.
 
-## Próximas fases después de validar Etapa 8
-1. Autenticación real y RBAC.
-2. Usuarios migrados completamente al backend.
-3. Auditoría asociada a usuario/rol/IP/sesión.
-4. Health checks y telemetría real de nodos/streams.
-5. Motor real de sesiones y reproducción.
-6. Licenciamiento.
-7. Releases/updater firmado para clientes.
-8. Endurecimiento y protección del código en instalaciones finales.
+**Regla:** antes de iniciar Etapa 9 se deberá actualizar nuevamente este documento con el objetivo concreto de la etapa y después registrar la intención en `BITACORA.md`, crear respaldo y comenzar la implementación.
+
+## Fases posteriores
+1. Usuarios migrados completamente al backend y administración avanzada.
+2. Auditoría asociada a usuario/rol/IP/sesión.
+3. Health checks y telemetría real de nodos/streams.
+4. Motor real de sesiones y reproducción.
+5. Licenciamiento.
+6. Releases/updater firmado para clientes.
+7. Endurecimiento y protección del código en instalaciones finales.
 
 ## Protocolo obligatorio por etapa
 1. **Actualizar primero `CONTINUITY.md`.**
