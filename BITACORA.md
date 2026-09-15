@@ -33,50 +33,37 @@ MariaDB quedó como base principal y permanente.
 Se corrigió `server/db.js` para ejecutar cada sentencia DDL por separado.
 
 ## Etapa 9 — Autenticación real + RBAC — COMPLETADA Y VALIDADA
-Se implementaron autenticación administrativa, sesiones, roles, permisos y protección de API.
+Se implementaron autenticación administrativa, sesiones, roles y permisos.
 
 ### Corrección 9.1.2 — `admin_sessions.token_hash`
 Se corrigió el hash de sesión para usar SHA-256 hexadecimal de 64 caracteres.
 
 ## Etapa 10 — Usuarios IPTV / Panel Cliente — COMPLETADA Y VALIDADA
-Se implementó el modelo real de clientes IPTV con credenciales separadas, paquetes, vencimiento, estado, conexiones y edición completa. Se corrigieron las validaciones de contraseña IPTV y el formulario de edición. El usuario confirmó que funciona correctamente.
+Se implementó el modelo real de clientes IPTV con credenciales separadas, paquetes, vencimiento, estado, conexiones y edición completa. El usuario confirmó que funciona correctamente.
 
 ## Etapa 11 — API de clientes + sesiones de aplicación — EN IMPLEMENTACIÓN
 
 ### Objetivo
 Crear la capa de autenticación y sesión específica para clientes IPTV, independiente de la autenticación administrativa, para que posteriormente una aplicación IPTV pueda iniciar sesión y consumir catálogo y reproducción de forma segura.
 
-### Motivo
-El sistema ya dispone de clientes IPTV persistidos en MariaDB y autenticación administrativa. El siguiente paso necesario antes del streaming real es que esos clientes puedan autenticarse por una API propia y mantener una sesión segura.
-
-### Alcance registrado antes de implementar
+### Alcance
 - Login IPTV mediante usuario y contraseña.
-- Sesiones persistentes temporalmente en MariaDB.
-- Token aleatorio entregado al cliente y almacenado únicamente como hash.
-- Endpoint `/api/client/me`.
-- Endpoint `/api/client/logout`.
+- Sesiones temporales en MariaDB.
+- Token aleatorio almacenado únicamente como SHA-256.
+- `/api/client/me`.
+- `/api/client/logout`.
 - Expiración de sesiones.
-- Rechazo de credenciales inválidas, usuarios vencidos y suspendidos.
+- Rechazo de clientes inválidos, vencidos o suspendidos.
 - Auditoría de login/logout.
-- Separación completa respecto a `admin_sessions`.
-- Base para futuras APIs de catálogo, dispositivos y reproducción.
+- Separación respecto a `admin_sessions`.
 
-### No se implementará todavía
-- Motor de streaming.
-- HLS.
-- URLs de reproducción.
-- Aplicación móvil/TV.
-- Control definitivo de conexiones simultáneas.
+### Corrección 11.1 — Integración y modelo real de datos del cliente
+**Motivo:** la primera implementación del servicio de clientes asumía columnas físicas (`username`, `status`, `package_id`, etc.) que no existen en la tabla `users`; IPZStream guarda esos datos dentro del campo JSON `payload`. Además, las rutas `/api/client/*` todavía no estaban integradas en `secure-entry.js` y faltaba crear automáticamente `client_sessions`.
 
-### Archivos previstos
-- `server/client-auth.js`
-- `server/secure-entry.js` y/o `server/index.js`
-- `server/db.js`
-- `database/schema.sql`
-- Documentación de etapa.
+**Archivos afectados:** `server/client-auth.js`, `server/secure-entry.js`, `database/schema.sql`.
 
-### Resultado esperado
-Un cliente IPTV existente podrá hacer login, recibir una sesión segura, consultar su propia identidad/estado, cerrar sesión y ser rechazado automáticamente cuando esté vencido o suspendido. Ninguna respuesta de autenticación deberá devolver el hash o la contraseña.
+**Objetivo:** adaptar la autenticación al modelo JSON real de MariaDB, crear la tabla de sesiones automáticamente, integrar login/me/logout en el gateway público y mantener la separación de la autenticación administrativa.
 
-### Respaldo
-`backup/pre-etapa-11-api-clientes-sesiones`.
+**Resultado esperado:** un cliente real creado desde el panel podrá autenticarse mediante `/api/client/login`, consultar `/api/client/me`, cerrar sesión y quedar rechazado posteriormente con el mismo token. La respuesta nunca expondrá `password_hash`.
+
+**Respaldo:** `backup/pre-etapa-11-api-clientes-sesiones`.
