@@ -1,4 +1,4 @@
-import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { pool } from './db.js';
 
@@ -116,6 +116,10 @@ export async function bootstrapAdmin(username, password) {
   return { created: true, username: normalized };
 }
 
+function hashSessionToken(token) {
+  return createHash('sha256').update(String(token || ''), 'utf8').digest('hex');
+}
+
 export async function authenticate(username, password, metadata = {}) {
   const normalized = normalizeUsername(username);
   const result = await pool.query('SELECT id, username, password_hash AS passwordHash, role_id AS roleId, status FROM admin_users WHERE username = ? LIMIT 1', [normalized]);
@@ -123,14 +127,10 @@ export async function authenticate(username, password, metadata = {}) {
   if (!user || user.status !== 'active' || !(await verifyPassword(password, user.passwordHash))) return null;
 
   const token = randomBytes(32).toString('hex');
-  const tokenHash = Buffer.from(await scrypt(token, process.env.IPZTREAM_SESSION_PEPPER || 'ipztream-session', 64, { N: 16384, r: 8, p: 1 })).toString('hex');
+  const tokenHash = hashSessionToken(token);
   await pool.query('INSERT INTO admin_sessions (token_hash, admin_user_id, expires_at, ip_address, user_agent) VALUES (?, ?, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ? SECOND), ?, ?)', [tokenHash, user.id, SESSION_TTL_SECONDS, metadata.ip || '', metadata.userAgent || '']);
   await pool.query('UPDATE admin_users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?', [user.id]);
   return { token, user: await getUserById(user.id) };
-}
-
-async function hashSessionToken(token) {
-  return Buffer.from(await scrypt(token, process.env.IPZTREAM_SESSION_PEPPER || 'ipztream-session', 64, { N: 16384, r: 8, p: 1 })).toString('hex');
 }
 
 export async function getUserById(id) {
@@ -143,7 +143,7 @@ export async function getUserById(id) {
 
 export async function getSessionUser(token) {
   if (!token) return null;
-  const tokenHash = await hashSessionToken(token);
+  const tokenHash = hashSessionToken(token);
   const result = await pool.query('SELECT admin_user_id AS userId FROM admin_sessions WHERE token_hash = ? AND expires_at > CURRENT_TIMESTAMP LIMIT 1', [tokenHash]);
   if (!result.rows[0]) return null;
   await pool.query('UPDATE admin_sessions SET last_seen_at = CURRENT_TIMESTAMP WHERE token_hash = ?', [tokenHash]);
@@ -152,7 +152,7 @@ export async function getSessionUser(token) {
 
 export async function destroySession(token) {
   if (!token) return;
-  await pool.query('DELETE FROM admin_sessions WHERE token_hash = ?', [await hashSessionToken(token)]);
+  await pool.query('DELETE FROM admin_sessions WHERE token_hash = ?', [hashSessionToken(token)]);
 }
 
 export function serializeSessionCookie(token) {
