@@ -54,6 +54,21 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - `src/auth-guard.js` impide cargar el panel hasta validar una sesión y ofrece cierre de sesión.
 - `index.html` carga `src/auth-guard.js` como punto de entrada.
 
+## Corrección activa de Etapa 9 — Hash de sesión demasiado largo
+**Estado:** CORRECCIÓN EN PROCESO / PENDIENTE DE VALIDACIÓN.
+
+Durante el primer intento de login, MariaDB rechazó la creación de la sesión con `ER_DATA_TOO_LONG` en `admin_sessions.token_hash`. El código derivaba 64 bytes con `scrypt` y los convertía a hexadecimal, generando 128 caracteres, mientras la columna `token_hash` está definida como `CHAR(64)`.
+
+**Objetivo:** mantener `token_hash` en `CHAR(64)` y almacenar un digest hexadecimal de 64 caracteres, adecuado para el token aleatorio de sesión, evitando ampliar innecesariamente la columna.
+
+**Cambio previsto:** usar un hash SHA-256 del token de sesión para `token_hash`, centralizando la operación en la función de hashing de sesión para login, recuperación de sesión y logout.
+
+**Archivo afectado:** `server/auth.js`.
+
+**Respaldo:** `backup/pre-correccion-etapa-9-session-token-hash`.
+
+**Criterio de cierre:** build correcto, login crea la sesión sin error, `/api/auth/me` reconoce la sesión y logout la invalida.
+
 ## Validación pendiente de Etapa 9
 En el contenedor se debe comprobar, como mínimo:
 1. `git pull origin main`.
@@ -85,6 +100,7 @@ En el contenedor se debe comprobar, como mínimo:
 - `backup/pre-correccion-etapa-8-mariadb`
 - `backup/pre-correccion-schema-mariadb-multistatements`
 - `backup/pre-etapa-9-auth-rbac`
+- `backup/pre-correccion-etapa-9-session-token-hash`
 
 ## Próxima fase
 La siguiente etapa no se inicia hasta cerrar y validar la Etapa 9. Después se podrá avanzar a administración avanzada de usuarios/permisos, auditoría asociada a identidad, telemetría real, sesiones de streaming, licenciamiento y updater firmado.
