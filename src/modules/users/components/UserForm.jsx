@@ -3,6 +3,10 @@ import { Eye, EyeOff, Save, X } from 'lucide-react';
 
 const empty = { username:'', name:'', status:'Activo', packageId:'', maxConnections:'1', expiresAt:'', password:'' };
 
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function UserForm({ user, packages = [], onSave, onClose }) {
   const [form, setForm] = React.useState(user ? { ...user, password:'' } : empty);
   const [error, setError] = React.useState('');
@@ -19,6 +23,15 @@ export default function UserForm({ user, packages = [], onSave, onClose }) {
   React.useEffect(() => {
     if (selectedPackage && (!form.maxConnections || Number(form.maxConnections) > packageMax)) set('maxConnections', String(packageMax));
   }, [selectedPackage, packageMax, form.maxConnections]);
+
+  const handleExpirationChange = (value) => {
+    setForm(current => {
+      const nextStatus = current.status === 'Suspendido'
+        ? 'Suspendido'
+        : (value && value >= todayIso() ? 'Activo' : 'Vencido');
+      return { ...current, expiresAt: value, status: nextStatus };
+    });
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -51,7 +64,7 @@ export default function UserForm({ user, packages = [], onSave, onClose }) {
     setError('');
     const payload = { ...form, username, name, maxConnections, password };
     const saved = await onSave(payload);
-    if (saved === false) setError('No se pudo guardar el cliente. Revisa los datos.');
+    if (saved !== true) setError(saved?.error || 'No se pudo guardar el cliente. Revisa los datos.');
   };
 
   return <div className="modal-backdrop"><form className="modal user-modal" onSubmit={submit}>
@@ -68,7 +81,7 @@ export default function UserForm({ user, packages = [], onSave, onClose }) {
       <label>Estado<select value={form.status} onChange={e=>set('status',e.target.value)}><option>Activo</option><option>Suspendido</option><option>Vencido</option></select></label>
       <label>Paquete<select value={form.packageId} onChange={e=>set('packageId',e.target.value)} required><option value="">Seleccionar…</option>{packages.map(item => <option key={item.id} value={item.id}>{item.name} · {item.maxConnections} conexión(es)</option>)}</select></label>
       <label>Máximo de conexiones<input type="number" min="1" max={packageMax} value={form.maxConnections} onChange={e=>set('maxConnections',e.target.value)}/></label>
-      <label>Vencimiento<input type="date" value={form.expiresAt || ''} onChange={e=>set('expiresAt',e.target.value)} required/></label>
+      <label>Vencimiento<input type="date" value={form.expiresAt || ''} onChange={e=>handleExpirationChange(e.target.value)} required/></label>
       <label className="full-width">{user ? 'Nueva contraseña (opcional)' : 'Contraseña'}<div className="password-field"><input type={showPassword ? 'text' : 'password'} minLength="1" autoComplete="new-password" value={form.password} onChange={e=>set('password',e.target.value)} placeholder={user ? 'Dejar vacío para conservar la actual' : 'Mínimo 1 carácter'} required={!user}/><button type="button" className="password-toggle" onClick={()=>setShowPassword(current=>!current)} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{showPassword ? <EyeOff size={17}/> : <Eye size={17}/>}</button></div></label>
     </div>
 
