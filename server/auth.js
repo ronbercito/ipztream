@@ -59,11 +59,24 @@ function passwordPolicy(password) {
   return typeof password === 'string' && password.length >= 12;
 }
 
-export async function hashPassword(password) {
-  if (!passwordPolicy(password)) throw new Error('La contraseña debe tener al menos 12 caracteres.');
+function iptvPasswordPolicy(password) {
+  return typeof password === 'string' && password.length >= 1;
+}
+
+async function derivePassword(password) {
   const salt = randomBytes(16).toString('hex');
   const derived = await scrypt(password, salt, 64, { N: SCRYPT_COST, r: SCRYPT_BLOCK_SIZE, p: SCRYPT_PARALLELIZATION });
   return `scrypt$${SCRYPT_COST}$${SCRYPT_BLOCK_SIZE}$${SCRYPT_PARALLELIZATION}$${salt}$${Buffer.from(derived).toString('hex')}`;
+}
+
+export async function hashPassword(password) {
+  if (!passwordPolicy(password)) throw new Error('La contraseña debe tener al menos 12 caracteres.');
+  return derivePassword(password);
+}
+
+export async function hashIptvPassword(password) {
+  if (!iptvPasswordPolicy(password)) throw new Error('La contraseña IPTV debe tener al menos 1 carácter.');
+  return derivePassword(password);
 }
 
 export async function verifyPassword(password, encoded) {
