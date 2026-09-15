@@ -4,6 +4,7 @@ set -euo pipefail
 APP_NAME="ipztream"
 APP_DIR="/opt/${APP_NAME}"
 WEB_DIR="/var/www/${APP_NAME}"
+STREAM_DIR="/var/lib/${APP_NAME}/streams"
 NGINX_SITE="/etc/nginx/sites-available/${APP_NAME}"
 API_SERVICE="/etc/systemd/system/${APP_NAME}-api.service"
 ENV_DIR="/etc/${APP_NAME}"
@@ -36,7 +37,7 @@ fi
 
 echo "==> Instalando dependencias del sistema..."
 apt-get update
-apt-get install -y ca-certificates curl nginx mariadb-server mariadb-client
+apt-get install -y ca-certificates curl nginx mariadb-server mariadb-client ffmpeg
 
 if ! command -v node >/dev/null 2>&1 || ! node -e 'process.exit(Number(process.versions.node.split(".")[0]) < 20)' ; then
   echo "==> Instalando Node.js 22..."
@@ -46,6 +47,7 @@ fi
 
 node --version
 npm --version
+ffmpeg -version | head -n 1
 
 if [[ "${SOURCE_DIR}" == "${APP_DIR}" ]]; then
   echo "==> El instalador ya se está ejecutando desde ${APP_DIR}; se omite la copia del proyecto."
@@ -91,12 +93,15 @@ IPZTREAM_DB_PASSWORD=${DB_PASSWORD}
 IPZTREAM_DB_POOL_SIZE=10
 IPZTREAM_SESSION_TTL=28800
 IPZTREAM_COOKIE_SECURE=false
+IPZTREAM_STREAM_ROOT=${STREAM_DIR}
+IPZTREAM_FFMPEG_BIN=/usr/bin/ffmpeg
 EOF
 chown root:www-data "${ENV_FILE}"
 chmod 640 "${ENV_FILE}"
 
-mkdir -p "${APP_DIR}/data"
-chown -R www-data:www-data "${APP_DIR}/data"
+mkdir -p "${APP_DIR}/data" "${STREAM_DIR}"
+chown -R www-data:www-data "${APP_DIR}/data" "${STREAM_DIR}"
+chmod 750 "${STREAM_DIR}"
 
 echo "==> Instalando servicio de API seguro..."
 cp "${APP_DIR}/deploy/ipztream-api.service" "${API_SERVICE}"
@@ -155,6 +160,11 @@ else
   exit 1
 fi
 
+if ! /usr/bin/ffmpeg -version >/dev/null 2>&1; then
+  echo "ERROR: FFmpeg no está disponible."
+  exit 1
+fi
+
 # Verifica que las tablas de datos sigan accesibles internamente en MariaDB.
 if ! mariadb -Nse "SELECT COUNT(*) FROM \`${DB_NAME}\`.nodes;" | grep -q '^[0-9][0-9]*$'; then
   echo "ERROR: no se pudo consultar la tabla nodes en MariaDB."
@@ -181,6 +191,17 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location /streams/ {
+        alias /var/lib/ipztream/streams/;
+        add_header Cache-Control "no-store" always;
+        add_header Access-Control-Allow-Origin "*" always;
+        types {
+            application/vnd.apple.mpegurl m3u8;
+            video/mp2t ts;
+        }
+        try_files $uri =404;
     }
 
     location / {
@@ -210,6 +231,8 @@ echo " IPZStream instalado correctamente"
 echo " URL: http://<IP_DEL_CONTENEDOR>/"
 echo " API pública: http://127.0.0.1:3100 (gateway seguro)"
 echo " API interna: 127.0.0.1:3101 (no expuesta)"
+echo " HLS: /streams/"
+echo " FFmpeg: /usr/bin/ffmpeg"
 echo " MariaDB: ${DB_NAME} / ${DB_USER}"
 echo " Config DB: ${ENV_FILE}"
 echo " Archivos: ${APP_DIR}"
