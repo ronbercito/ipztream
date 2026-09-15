@@ -6,7 +6,11 @@ APP_DIR="/opt/${APP_NAME}"
 WEB_DIR="/var/www/${APP_NAME}"
 NGINX_SITE="/etc/nginx/sites-available/${APP_NAME}"
 API_SERVICE="/etc/systemd/system/${APP_NAME}-api.service"
+ENV_DIR="/etc/${APP_NAME}"
+ENV_FILE="${ENV_DIR}/${APP_NAME}-api.env"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DB_NAME="${IPZTREAM_DB_NAME:-ipztream}"
+DB_USER="${IPZTREAM_DB_USER:-ipztream}"
 
 if [[ "${EUID}" -ne 0 ]]; then
   echo "Ejecuta este instalador como root."
@@ -20,7 +24,7 @@ fi
 
 echo "==> Instalando dependencias del sistema..."
 apt-get update
-apt-get install -y ca-certificates curl nginx
+apt-get install -y ca-certificates curl nginx postgresql postgresql-client
 
 if ! command -v node >/dev/null 2>&1 || ! node -e 'process.exit(Number(process.versions.node.split(".")[0]) < 20)' ; then
   echo "==> Instalando Node.js 22..."
@@ -50,22 +54,37 @@ if [[ ! -d dist ]]; then
   exit 1
 fi
 
-echo "==> Preparando almacenamiento de la API..."
-mkdir -p "${APP_DIR}/data"
-touch "${APP_DIR}/data/nodes.json"
-chown -R www-data:www-data "${APP_DIR}/data"
+echo "==> Preparando PostgreSQL..."
+systemctl enable --now postgresql
 
-if [[ ! -f "${APP_DIR}/data/nodes.json" || ! -s "${APP_DIR}/data/nodes.json" ]]; then
-  cat > "${APP_DIR}/data/nodes.json" <<'JSON'
-[
-  {"id":"node-01","name":"Nodo 01 - Lima","status":"En línea","ip":"192.168.10.21","region":"Lima","cpu":22,"ram":41,"capacity":"10 Gbps"},
-  {"id":"node-02","name":"Nodo 02 - Arequipa","status":"En línea","ip":"192.168.10.22","region":"Arequipa","cpu":18,"ram":36,"capacity":"10 Gbps"},
-  {"id":"node-03","name":"Nodo 03 - Trujillo","status":"En línea","ip":"192.168.10.23","region":"Trujillo","cpu":27,"ram":48,"capacity":"5 Gbps"},
-  {"id":"node-05","name":"Nodo 05 - Piura","status":"Fuera de línea","ip":"192.168.10.25","region":"Piura","cpu":null,"ram":null,"capacity":"5 Gbps"}
-]
-JSON
-  chown www-data:www-data "${APP_DIR}/data/nodes.json"
+if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" | grep -q 1; then
+  DB_PASSWORD="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32)"
+  runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "CREATE ROLE ${DB_USER} LOGIN PASSWORD '${DB_PASSWORD}';"
+else
+  DB_PASSWORD="$(awk -F= '/^DATABASE_URL=/{sub(/^.*:\/\//,"");sub(/@.*$/,"");print}' "${ENV_FILE}" 2>/dev/null || true)"
+  if [[ -z "${DB_PASSWORD}" ]]; then
+    DB_PASSWORD="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32)"
+  fi
+  runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "ALTER ROLE ${DB_USER} WITH LOGIN PASSWORD '${DB_PASSWORD}';"
 fi
+
+if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" | grep -q 1; then
+  runuser -u postgres -- createdb -O "${DB_USER}" "${DB_NAME}"
+else
+  runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "ALTER DATABASE ${DB_NAME} OWNER TO ${DB_USER};"
+fi
+
+mkdir -p "${ENV_DIR}"
+cat > "${ENV_FILE}" <<EOF
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:5432/${DB_NAME}
+IPZTREAM_DB_POOL_SIZE=10
+EOF
+chown root:www-data "${ENV_FILE}"
+chmod 640 "${ENV_FILE}"
+
+# Los JSON se conservan como respaldo/fuente de migración inicial.
+mkdir -p "${APP_DIR}/data"
+chown -R www-data:www-data "${APP_DIR}/data"
 
 echo "==> Instalando servicio de API..."
 cp "${APP_DIR}/deploy/ipztream-api.service" "${API_SERVICE}"
@@ -73,18 +92,25 @@ systemctl daemon-reload
 systemctl enable "${APP_NAME}-api"
 systemctl restart "${APP_NAME}-api"
 
-for attempt in {1..10}; do
-  if curl -fsS "http://127.0.0.1:3100/api/health" >/dev/null; then
+for attempt in {1..15}; do
+  if curl -fsS "http://127.0.0.1:3100/api/health" | grep -q '"ok":true'; then
     break
   fi
   sleep 1
 done
 
-if ! curl -fsS "http://127.0.0.1:3100/api/health" >/dev/null; then
+if ! curl -fsS "http://127.0.0.1:3100/api/health" | grep -q '"ok":true'; then
   echo "La API de IPZStream no inició correctamente."
   systemctl status "${APP_NAME}-api" --no-pager || true
+  journalctl -u "${APP_NAME}-api" -n 50 --no-pager || true
   exit 1
 fi
+
+echo "==> Verificando migración inicial..."
+curl -fsS "http://127.0.0.1:3100/api/nodes" >/dev/null
+curl -fsS "http://127.0.0.1:3100/api/channels" >/dev/null
+curl -fsS "http://127.0.0.1:3100/api/packages" >/dev/null
+
 
 echo "==> Publicando panel web..."
 rm -rf "${WEB_DIR}"
@@ -131,6 +157,8 @@ echo "=============================================="
 echo " IPZStream instalado correctamente"
 echo " URL: http://<IP_DEL_CONTENEDOR>/"
 echo " API: http://127.0.0.1:3100 (solo local)"
+echo " PostgreSQL: ${DB_NAME} / ${DB_USER}"
+echo " Config DB: ${ENV_FILE}"
 echo " Archivos: ${APP_DIR}"
 echo " Web: ${WEB_DIR}"
 echo "=============================================="
