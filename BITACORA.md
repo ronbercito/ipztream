@@ -8,12 +8,8 @@ Toda mejora o corrección debe registrarse primero en `BITACORA.md`, después im
 ### Etapa 1 — Configuración — COMPLETADA Y VALIDADA
 Se creó `src/modules/settings/` con las secciones principales de configuración y persistencia inicial.
 
-**Respaldo:** `backup/pre-etapa-1-13-configuracion`.
-
 ### Etapa 2 — Usuarios — COMPLETADA Y VALIDADA
 Se creó `src/modules/users/` con filtros, CRUD, validaciones, paquetes, conexiones y persistencia inicial.
-
-**Respaldos:** `backup/pre-etapa-2-13-usuarios`, `backup/pre-etapa-2-7-usuarios`.
 
 ### Etapa 3 — Servidores / Nodos — COMPLETADA Y VALIDADA
 Se creó `src/modules/nodes/` con API y persistencia.
@@ -43,48 +39,44 @@ Se implementaron autenticación administrativa, sesiones, roles, permisos y prot
 Se corrigió el hash de sesión para usar SHA-256 hexadecimal de 64 caracteres.
 
 ## Etapa 10 — Usuarios IPTV / Panel Cliente — COMPLETADA Y VALIDADA
-El usuario confirmó que la etapa funciona correctamente.
+Se implementó el modelo real de clientes IPTV con credenciales separadas, paquetes, vencimiento, estado, conexiones y edición completa. Se corrigieron las validaciones de contraseña IPTV y el formulario de edición. El usuario confirmó que funciona correctamente.
 
-### Correcciones 10.1–10.5
-- Se corrigió la integración de Usuarios/Paquetes con MariaDB y las rutas `/api/users`.
-- Se ajustó la contraseña IPTV a mínimo 1 carácter sin afectar la política administrativa.
-- Se añadió mostrar/ocultar contraseña.
-- Se corrigió la sincronización entre vencimiento y estado.
-- Se separó `hashPassword()` administrativo de `hashIptvPassword()` y se habilitó la edición completa de la cuenta IPTV.
+## Etapa 11 — API de clientes + sesiones de aplicación — EN IMPLEMENTACIÓN
 
-**Validación final:** CRUD, paquetes, edición completa, vencimiento/estado, contraseña IPTV, persistencia y controles del formulario confirmados por el usuario.
+### Objetivo
+Crear la capa de autenticación y sesión específica para clientes IPTV, independiente de la autenticación administrativa, para que posteriormente una aplicación IPTV pueda iniciar sesión y consumir catálogo y reproducción de forma segura.
 
-**Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
+### Motivo
+El sistema ya dispone de clientes IPTV persistidos en MariaDB y autenticación administrativa. El siguiente paso necesario antes del streaming real es que esos clientes puedan autenticarse por una API propia y mantener una sesión segura.
 
-## Etapa 11 — API de clientes + sesiones de aplicación — INICIO
-
-**Motivo:** con el panel administrativo y el modelo de clientes IPTV ya validados, el siguiente paso es permitir que una aplicación externa se autentique como cliente IPTV y mantenga una sesión propia. Esta capa será la base para dispositivos, autorización de reproducción y conexiones reales.
-
-**Objetivo:** implementar autenticación de clientes IPTV independiente de la autenticación administrativa, con sesiones persistidas y revocables, identidad del cliente, validación de estado/vencimiento y auditoría.
-
-**Alcance previsto:**
-- Login de cliente IPTV.
-- Sesión segura persistida en MariaDB.
-- Token de sesión almacenado mediante hash.
-- Expiración y logout.
-- `/api/client/me` para identidad de cliente.
-- Validación de `Activo`, `Vencido` y `Suspendido` en backend.
-- Separación de sesiones admin/cliente.
+### Alcance registrado antes de implementar
+- Login IPTV mediante usuario y contraseña.
+- Sesiones persistentes temporalmente en MariaDB.
+- Token aleatorio entregado al cliente y almacenado únicamente como hash.
+- Endpoint `/api/client/me`.
+- Endpoint `/api/client/logout`.
+- Expiración de sesiones.
+- Rechazo de credenciales inválidas, usuarios vencidos y suspendidos.
 - Auditoría de login/logout.
-- Base API para futuras aplicaciones web, móvil y TV.
+- Separación completa respecto a `admin_sessions`.
+- Base para futuras APIs de catálogo, dispositivos y reproducción.
 
-**Fuera de esta etapa:** reproducción real, HLS, motor de streaming, tokens de reproducción y aplicación final.
+### No se implementará todavía
+- Motor de streaming.
+- HLS.
+- URLs de reproducción.
+- Aplicación móvil/TV.
+- Control definitivo de conexiones simultáneas.
 
-**Archivos esperados:** nuevos servicios/rutas de autenticación cliente, esquema MariaDB para sesiones IPTV, integración con `server/secure-entry.js` y documentación. Se mantendrá la arquitectura modular y se evitará concentrar lógica nueva en `main.jsx`.
+### Archivos previstos
+- `server/client-auth.js`
+- `server/secure-entry.js` y/o `server/index.js`
+- `server/db.js`
+- `database/schema.sql`
+- Documentación de etapa.
 
-**Respaldo:** `backup/pre-etapa-11-api-clientes-sesiones`.
+### Resultado esperado
+Un cliente IPTV existente podrá hacer login, recibir una sesión segura, consultar su propia identidad/estado, cerrar sesión y ser rechazado automáticamente cuando esté vencido o suspendido. Ninguna respuesta de autenticación deberá devolver el hash o la contraseña.
 
-## Protocolo de cierre
-1. Build correcto.
-2. Servicio `ipztream-api` activo.
-3. Persistencia MariaDB verificada.
-4. CRUD de clientes funcional.
-5. Credenciales seguras.
-6. Paquete/vencimiento/estado/límite de conexiones validados.
-7. Compatibilidad con módulos relacionados comprobada.
-8. Usuario valida y entonces se registra la etapa correspondiente como **COMPLETADA Y VALIDADA**.
+### Respaldo
+`backup/pre-etapa-11-api-clientes-sesiones`.
