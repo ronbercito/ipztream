@@ -4,6 +4,10 @@ import { hashPassword } from './auth.js';
 
 const USER_STATUSES = ['Activo', 'Suspendido', 'Vencido'];
 
+export async function ensureUserSchema() {
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_credentials (user_id VARCHAR(191) PRIMARY KEY, password_hash VARCHAR(255) NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE)`);
+}
+
 function decode(payload) {
   if (payload && typeof payload === 'object') return payload;
   try { return JSON.parse(payload); } catch { return {}; }
