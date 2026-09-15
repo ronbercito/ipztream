@@ -75,7 +75,7 @@ export default function UsersPage() {
     </div>
 
     {error && <div className="form-error" role="alert">{error}</div>}
-    <UserFilters query={query} setQuery={setQuery} status={status} setStatus={setStatus} packageFilter={packageFilter} setPackageFilter={setPackageFilter}/>
+    <UserFilters packages={packages} query={query} setQuery={setQuery} status={status} setStatus={setStatus} packageFilter={packageFilter} setPackageFilter={setPackageFilter}/>
 
     {loading ? <div className="empty-state">Cargando clientes…</div> : <UserTable users={filtered} onEdit={setEditing} onDelete={setConfirming}/>} 
 
