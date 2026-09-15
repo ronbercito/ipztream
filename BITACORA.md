@@ -107,13 +107,20 @@ Se implementaron e integraron los módulos de Logs/Auditoría y Estadísticas.
 
 **Alcance inicial:** infraestructura PostgreSQL, esquema/migraciones para entidades principales, conexión segura desde el backend, repositorio/servicios de datos, health check de base de datos y ruta de migración controlada desde JSON.
 
-**Límites:** esta etapa no incorpora todavía motor real de streaming, telemetría avanzada, licenciamiento ni updater firmado.
+**Respaldo:** `backup/pre-etapa-8-backend-postgres`.
 
-**Archivos previstos:** `server/`, `db/` o `database/`, configuración de entorno, migraciones/esquema, documentación de instalación y pruebas. Se evitará concentrar nueva lógica en `src/main.jsx`.
+## 2026-09-14 — Implementación Etapa 8 — Backend real + PostgreSQL — PENDIENTE DE VALIDACIÓN
+Se migró la persistencia de la API actual desde archivos JSON a PostgreSQL mediante una capa dedicada `server/db.js`. La API crea las tablas al iniciar y, si están vacías, importa automáticamente los datos existentes de `data/*.json` sin sobrescribir datos posteriores.
 
-**Resultado esperado:** el contenedor Debian 13 podrá levantar IPZStream con PostgreSQL como almacenamiento principal y verificar conectividad API ↔ PostgreSQL antes de migrar progresivamente los módulos.
+**Archivos principales:** `server/db.js`, `server/index.js`, `database/schema.sql`, `deploy/ipztream-api.service`, `install.sh`, `package.json`, `INSTALL.md`.
 
-**Respaldo:** se creará antes de modificar la estructura del backend.
+**Backend:** PostgreSQL mediante `pg`, pool de conexiones, health check con estado de base de datos, CRUD actual sobre PostgreSQL, auditoría central básica para operaciones de creación/edición/eliminación y endpoints administrativos existentes preservados.
+
+**Instalador:** instala PostgreSQL, crea base/usuario locales, genera una credencial aleatoria, la guarda en `/etc/ipztream/ipztream-api.env` con permisos restringidos y arranca la API después de PostgreSQL.
+
+**Migración:** los JSON actuales se mantienen como respaldo/fuente de migración inicial; la API deja de escribirlos después de la migración.
+
+**Estado:** implementación publicada en `main`, pendiente de que el usuario actualice el contenedor, ejecute build/instalador y valide API + panel.
 
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
