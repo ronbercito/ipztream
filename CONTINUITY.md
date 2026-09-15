@@ -48,8 +48,8 @@ src/
 3. **Servidores / Nodos** — **COMPLETADA Y VALIDADA.**
 4. **Canales / Fuentes** — **COMPLETADA Y VALIDADA.**
 5. **VOD / Series / EPG / M3U** — **COMPLETADA Y VALIDADA.**
-6. **Paquetes / Conexiones / Dispositivos** — **IMPLEMENTADA, PENDIENTE DE VALIDACIÓN.**
-7. **Logs / Auditoría / Estadísticas** — pendiente.
+6. **Paquetes / Conexiones / Dispositivos** — **COMPLETADA Y VALIDADA.**
+7. **Logs / Auditoría / Estadísticas** — **EN IMPLEMENTACIÓN.**
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -64,7 +64,7 @@ src/
 - Código fuente: `/opt/ipztream`.
 - Servicio API: `ipztream-api`.
 - Dashboard y navegación principal funcionales.
-- Usuarios, Configuración, Nodos, Canales, VOD, Series, EPG y M3U ya fueron validados por el usuario.
+- Usuarios, Configuración, Nodos, Canales, VOD, Series, EPG, M3U, Paquetes, Conexiones y Dispositivos ya fueron validados por el usuario.
 - El backend completo con PostgreSQL, autenticación/RBAC y API integral todavía no está conectado.
 - El updater real todavía será implementado posteriormente mediante releases controlados y firmados.
 
@@ -82,57 +82,40 @@ src/
 ## Referencia visual aprobada
 La interfaz debe seguir el concepto aprobado por el usuario: sidebar azul oscuro, barra superior, búsqueda global, dashboard claro, tarjetas KPI, gráficos, panel de estado de nodos, tablas administrativas, filtros, badges y acciones rápidas. No generar nuevos mockups salvo solicitud explícita.
 
-## Etapa actual — 6/7
-**Paquetes / Conexiones / Dispositivos: IMPLEMENTADA, PENDIENTE DE VALIDACIÓN FUNCIONAL.**
+## Etapa actual — 7/7
+**Logs / Auditoría / Estadísticas: EN IMPLEMENTACIÓN.**
 
-### Paquetes
-Módulo: `src/modules/packages/`
-- `Packages.jsx`
-- `services/packagesApi.js`
-- `styles/packages.css`
-- CRUD mediante `/api/packages`.
-- Validación de nombre duplicado, precio, duración y máximo de 99 conexiones.
+### Objetivo de Etapa 7
+Completar el bloque administrativo de observabilidad del panel manteniendo la arquitectura modular. Se implementarán módulos independientes para:
+- **Logs:** consulta, búsqueda y filtros de eventos registrados.
+- **Auditoría:** registro de acciones administrativas con usuario, acción, módulo, fecha/hora, resultado y detalle.
+- **Estadísticas:** indicadores y resúmenes administrativos sobre usuarios, conexiones, dispositivos, nodos y contenido disponible.
 
-### Conexiones
-Módulo: `src/modules/connections/`
-- `Connections.jsx`
-- `services/connectionsApi.js`
-- `styles/connections.css`
-- Consulta mediante `/api/connections`.
-- Cierre administrativo mediante `POST /api/connections/:id/close`.
+### Arquitectura prevista
+```text
+src/modules/logs/
+├── Logs.jsx
+├── components/
+├── services/
+└── styles/
 
-### Dispositivos
-Módulo: `src/modules/devices/`
-- `Devices.jsx`
-- `services/devicesApi.js`
-- `styles/devices.css`
-- Consulta mediante `/api/devices`.
-- Desvinculación mediante `POST /api/devices/:id/unlink`.
+src/modules/statistics/
+├── Statistics.jsx
+├── components/
+├── services/
+└── styles/
+```
+La auditoría se mantendrá separada de la presentación de Logs para permitir posteriormente conectar eventos reales del backend.
 
-### Backend de Etapa 6
-`server/index.js` ahora mantiene `data/packages.json`, `data/connections.json` y `data/devices.json` mediante la misma persistencia JSON compartida usada en etapas anteriores.
+### Persistencia inicial
+Para esta etapa se mantendrá el patrón actual de persistencia JSON del backend, con archivos independientes dentro de `data/` y endpoints `/api/` dedicados. No se introduce todavía PostgreSQL ni un motor real de métricas de streaming.
 
-### Integración
-`src/main.jsx` importa y muestra `PackagesPage`, `ConnectionsPage` y `DevicesPage`. La lógica de negocio permanece dentro de cada módulo/servicio y no se concentra en `main.jsx`.
-
-### Límites
-- Conexiones y dispositivos son inicialmente datos administrativos/de demostración; no representan todavía sesiones reales de streaming.
-- No hay facturación/pagos.
-- No hay RBAC completo.
-- PostgreSQL queda para la integración de backend posterior.
-
-### Verificación pendiente
-Ejecutar en el contenedor Debian 13:
-1. `git pull` o sincronización con `origin/main`.
-2. `npm install`.
-3. `npm run build`.
-4. Reiniciar `ipztream-api`.
-5. Publicar el `dist` en `/var/www/ipztream`.
-6. Probar Paquetes.
-7. Probar Conexiones.
-8. Probar Dispositivos.
-9. Confirmar persistencia después de recargar.
-10. Confirmar que los datos se comparten por API y no dependen de `localStorage`.
+### Límites de esta etapa
+- Los logs y auditoría serán inicialmente registros administrativos del sistema.
+- Las estadísticas serán administrativas y derivadas de los datos disponibles; no representan todavía métricas reales de bitrate, tráfico, reproducción o consumo de streaming.
+- No se implementa todavía RBAC completo.
+- No se implementa todavía el updater firmado.
+- No se altera la lógica de los módulos previamente validados salvo lo estrictamente necesario para integrar eventos.
 
 ## Protocolo obligatorio por etapa
 1. **Actualizar primero `CONTINUITY.md`.**
@@ -146,4 +129,4 @@ Ejecutar en el contenedor Debian 13:
 9. Informar al usuario qué se cambió y cómo probarlo.
 
 ## Próximo paso
-Validación funcional de Etapa 6/7 por el usuario. No cerrar la etapa hasta confirmar Paquetes, Conexiones y Dispositivos.
+Registrar la intención de Etapa 7/7 en `BITACORA.md`, crear el respaldo previo y comenzar la implementación de Logs / Auditoría / Estadísticas.
