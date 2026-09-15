@@ -27,7 +27,8 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 8. Backend real + MariaDB — **COMPLETADA Y VALIDADA**.
 9. Autenticación real + RBAC — **COMPLETADA Y VALIDADA**.
 10. Usuarios IPTV / Panel Cliente — **COMPLETADA Y VALIDADA**.
-11. API de clientes + sesiones de aplicación — **EN IMPLEMENTACIÓN**.
+11. API de clientes + sesiones de aplicación — **COMPLETADA Y VALIDADA**.
+12. Motor de streaming real + integración de fuentes — **PENDIENTE**.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -39,25 +40,31 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Código fuente: `/opt/ipztream`.
 - Servicio: `ipztream-api`.
 - MariaDB es la base principal y permanente.
-- Etapas 1–10 están validadas por el usuario.
+- Etapas 1–11 están validadas por el usuario.
 
 ## Etapa 11 — API de clientes + sesiones de aplicación
-**Estado técnico:** EN IMPLEMENTACIÓN.
+**Estado técnico:** COMPLETADA Y VALIDADA.
 
-### Objetivo
+### Objetivo cumplido
 Construir la identidad y sesión específica de los clientes IPTV, separada de la autenticación administrativa existente. Esta capa será utilizada posteriormente por la aplicación IPTV y por las APIs de catálogo/reproducción.
 
-### Alcance
-- Login de cliente IPTV mediante usuario y contraseña.
-- Sesiones de cliente almacenadas de forma segura en MariaDB.
-- Token de sesión no reutilizable como contraseña y almacenado únicamente como hash en base de datos.
-- Identidad del cliente mediante `/api/client/me`.
+### Validación funcional realizada
+- Login de cliente IPTV mediante usuario y contraseña: **200 OK**.
+- Creación de sesión mediante cookie `HttpOnly`, `SameSite=Strict` y expiración: **OK**.
+- `/api/client/me` con sesión válida: **200 OK** y devuelve únicamente identidad/estado del cliente.
+- `/api/client/logout`: **200 OK** y cookie de sesión eliminada.
+- `/api/client/me` después del logout: **401 Unauthorized**, confirmando que la sesión queda invalidada.
+
+### Alcance cumplido
+- Login de cliente IPTV.
+- Sesiones de cliente almacenadas en MariaDB.
+- Token de sesión almacenado únicamente como hash SHA-256.
+- Identidad mediante `/api/client/me`.
 - Logout mediante `/api/client/logout`.
-- Middleware de sesión para proteger futuras rutas de aplicación.
-- Rechazo de clientes inexistentes, credenciales inválidas, vencidos o suspendidos.
-- Registro de login/logout en `audit_logs`.
+- Separación de sesiones administrativas e IPTV.
+- Rechazo de clientes vencidos o suspendidos.
+- Auditoría de login/logout.
 - Expiración de sesiones.
-- Mantener separadas las sesiones administrativas y las sesiones IPTV.
 
 ### No incluido todavía
 - Reproducción de video.
@@ -67,21 +74,11 @@ Construir la identidad y sesión específica de los clientes IPTV, separada de l
 - Aplicación móvil/TV.
 - Motor de streaming.
 
-### Archivos previstos
-- `server/client-auth.js`
-- `server/secure-entry.js` y/o `server/index.js`
-- `server/db.js`
-- `database/schema.sql`
-- `src/...` únicamente si se necesita una prueba visual mínima de sesión; la app cliente completa queda para etapas posteriores.
-
-### Resultado esperado
-Un cliente IPTV creado en Etapa 10 podrá autenticarse mediante API, obtener su identidad y estado, mantener una sesión temporal y cerrarla. Las credenciales continuarán almacenándose mediante hash seguro y nunca se devolverán en las respuestas.
-
 ### Respaldo
 `backup/pre-etapa-11-api-clientes-sesiones`.
 
 ## Próxima fase
-Después de cerrar Etapa 11, Etapa 12 será el motor de streaming real e integración de fuentes de reproducción.
+La siguiente etapa, cuando el usuario indique continuar, será **Etapa 12 — Motor de streaming real + integración de fuentes**. El objetivo será comenzar la cadena real de reproducción: fuente real → procesamiento/ingesta → salida de streaming reproducible, sin simulaciones.
 
 ## Respaldos
 - `backup/pre-etapa-1-13-configuracion`
