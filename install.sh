@@ -56,15 +56,11 @@ fi
 
 echo "==> Preparando PostgreSQL..."
 systemctl enable --now postgresql
+DB_PASSWORD="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32)"
 
 if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" | grep -q 1; then
-  DB_PASSWORD="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32)"
   runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "CREATE ROLE ${DB_USER} LOGIN PASSWORD '${DB_PASSWORD}';"
 else
-  DB_PASSWORD="$(awk -F= '/^DATABASE_URL=/{sub(/^.*:\/\//,"");sub(/@.*$/,"");print}' "${ENV_FILE}" 2>/dev/null || true)"
-  if [[ -z "${DB_PASSWORD}" ]]; then
-    DB_PASSWORD="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32)"
-  fi
   runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "ALTER ROLE ${DB_USER} WITH LOGIN PASSWORD '${DB_PASSWORD}';"
 fi
 
