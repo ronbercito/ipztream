@@ -41,7 +41,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Etapas 1–9 están validadas por el usuario.
 
 ## Etapa 10 — Usuarios IPTV / Panel Cliente
-**Estado técnico:** implementación inicial terminada; pendiente de validación funcional. Se detectó una corrección necesaria durante la primera prueba del usuario.
+**Estado técnico:** implementación inicial terminada; pendiente de validación funcional. Se detectaron correcciones necesarias durante las primeras pruebas del usuario.
 
 ### Corrección 10.1 — Usuarios y paquetes
 **Problemas reportados:** al abrir Usuarios aparece `result.map is not a function`; además, al crear un cliente se exige un paquete, pero el módulo Paquetes no permite completar la creación.
@@ -67,6 +67,17 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 
 **Respaldo existente:** `backup/pre-etapa-10-usuarios-iptv`.
 
+### Corrección 10.3 — Mostrar/ocultar contraseña del cliente IPTV
+**Motivo:** el usuario solicita una opción para poder ver la contraseña mientras la escribe en el formulario de creación/edición del cliente IPTV.
+
+**Objetivo:** añadir un control visual de mostrar/ocultar contraseña en el campo de contraseña, sin modificar el almacenamiento seguro ni enviar la contraseña de vuelta desde el backend.
+
+**Archivo afectado:** `src/modules/users/components/UserForm.jsx`.
+
+**Resultado esperado:** el usuario podrá alternar entre contraseña oculta y visible mediante un botón/icono dentro del campo. Por defecto la contraseña permanecerá oculta.
+
+**Respaldo existente:** `backup/pre-etapa-10-usuarios-iptv`.
+
 ### Pendiente de validación
 - Build.
 - Reinicio del servicio.
@@ -74,6 +85,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Carga de Usuarios.
 - Creación de cliente asociado a paquete.
 - Creación/edición de cliente con contraseña de 1 carácter.
+- Mostrar/ocultar contraseña en el formulario.
 - Persistencia y edición.
 
 **No se marca la Etapa 10 como completada hasta la validación del usuario.**
