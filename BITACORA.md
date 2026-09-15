@@ -62,8 +62,17 @@ Crear la capa de autenticación y sesión específica para clientes IPTV, indepe
 
 **Archivos afectados:** `server/client-auth.js`, `server/secure-entry.js`, `database/schema.sql`.
 
-**Objetivo:** adaptar la autenticación al modelo JSON real de MariaDB, crear la tabla de sesiones automáticamente, integrar login/me/logout en el gateway público y mantener la separación de la autenticación administrativa.
+**Cambios realizados:**
+- La autenticación IPTV ahora consulta `users.payload` mediante `JSON_EXTRACT`.
+- Se añadió `ensureClientSessionSchema()` para crear y limpiar sesiones expiradas.
+- Se añadió `client_sessions` al esquema MariaDB con relación a `users`.
+- `secure-entry.js` integra login, identidad y logout IPTV antes de la autenticación administrativa.
+- La cookie de cliente es `HttpOnly`, `SameSite=Strict` y con ruta limitada a `/api/client`.
+- También se acepta `Authorization: Bearer ...` para aplicaciones IPTV.
+- Los clientes vencidos o suspendidos no pueden iniciar ni mantener sesión.
 
-**Resultado esperado:** un cliente real creado desde el panel podrá autenticarse mediante `/api/client/login`, consultar `/api/client/me`, cerrar sesión y quedar rechazado posteriormente con el mismo token. La respuesta nunca expondrá `password_hash`.
+**Resultado esperado:** un cliente real creado desde el panel podrá autenticarse mediante `/api/client/login`, consultar `/api/client/me`, cerrar sesión y quedar rechazado posteriormente con el mismo token. La respuesta nunca expone `password_hash`.
+
+**Estado:** implementación publicada. Build/reinicio y validación funcional en el servidor del usuario siguen pendientes.
 
 **Respaldo:** `backup/pre-etapa-11-api-clientes-sesiones`.
