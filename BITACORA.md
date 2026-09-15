@@ -158,6 +158,17 @@ El usuario confirmó:
 
 **Resultado de implementación:** la corrección quedó publicada en `main`. Falta ejecutar build/reinicio y que el usuario valide Usuarios y Paquetes en el servidor.
 
+### Corrección 10.2 — Contraseña mínima de cliente IPTV
+**Motivo:** el usuario solicita que la contraseña del cliente IPTV no tenga una exigencia de 10–12 caracteres y permita desde 1 carácter.
+
+**Cambio solicitado:** modificar la validación de contraseña del cliente IPTV para aceptar longitud mínima de 1 carácter en creación y edición, manteniendo el hash seguro y sin almacenar la contraseña en texto plano.
+
+**Archivos previstos:** `server/user-service.js`, `src/modules/users/components/UserForm.jsx` y cualquier validación equivalente del servicio/API de usuarios.
+
+**Resultado esperado:** una contraseña de 1 carácter sea aceptada tanto en la interfaz como en el backend y pueda guardarse correctamente como hash.
+
+**Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
+
 ## Protocolo de cierre
 1. Build correcto.
 2. Servicio `ipztream-api` activo.
