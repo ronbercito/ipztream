@@ -77,9 +77,39 @@ Se implementaron módulos independientes para VOD/Series, EPG y M3U con CRUD, b�
 
 **Límites:** conexiones y dispositivos serán inicialmente datos administrativos/de demostración; no se implementará todavía un motor real de sesiones de streaming. Tampoco facturación/pagos, RBAC completo ni PostgreSQL integral.
 
-**Resultado esperado:** los tres menús quedan separados, funcionales y preparados para evolucionar hacia backend real sin mezclar lógica de negocio con la UI.
+**Respaldo:** `backup/pre-etapa-6-7-packages-connections-devices` creado antes del cambio estructural.
 
-**Respaldo previsto antes del cambio estructural:** `backup/pre-etapa-6-7-packages-connections-devices`.
+## 2026-09-14 — Implementación Etapa 6/7 — Paquetes / Conexiones / Dispositivos — IMPLEMENTADA, PENDIENTE DE VALIDACIÓN
+Se implementaron los tres módulos independientes y se integraron en `src/main.jsx`.
+
+**Paquetes:**
+- `src/modules/packages/Packages.jsx`
+- `src/modules/packages/services/packagesApi.js`
+- `src/modules/packages/styles/packages.css`
+- CRUD mediante `/api/packages`.
+- Validación de nombre duplicado, precio, duración y conexiones máximas.
+
+**Conexiones:**
+- `src/modules/connections/Connections.jsx`
+- `src/modules/connections/services/connectionsApi.js`
+- `src/modules/connections/styles/connections.css`
+- Consulta mediante `/api/connections`.
+- Cierre administrativo mediante `POST /api/connections/:id/close`.
+
+**Dispositivos:**
+- `src/modules/devices/Devices.jsx`
+- `src/modules/devices/services/devicesApi.js`
+- `src/modules/devices/styles/devices.css`
+- Consulta mediante `/api/devices`.
+- Desvinculación mediante `POST /api/devices/:id/unlink`.
+
+**Backend:** `server/index.js` fue ampliado con persistencia JSON para `data/packages.json`, `data/connections.json` y `data/devices.json`, manteniendo la misma API compartida usada en etapas anteriores.
+
+**Integración:** `src/main.jsx` ahora carga `PackagesPage`, `ConnectionsPage` y `DevicesPage` como módulos independientes; no se trasladó lógica de negocio al archivo principal.
+
+**Verificación:** se revisaron estáticamente las rutas, imports y contratos de API. No fue posible ejecutar `npm run build` desde el entorno de herramientas porque el contenedor de trabajo no tiene acceso de red/DNS a GitHub para clonar el repositorio. La compilación debe ejecutarse en el contenedor Debian 13 de prueba.
+
+**Estado:** implementación publicada en `main`, pendiente de validación funcional por el usuario.
 
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
