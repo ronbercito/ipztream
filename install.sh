@@ -89,21 +89,41 @@ IPZTREAM_DB_NAME=${DB_NAME}
 IPZTREAM_DB_USER=${DB_USER}
 IPZTREAM_DB_PASSWORD=${DB_PASSWORD}
 IPZTREAM_DB_POOL_SIZE=10
+IPZTREAM_SESSION_TTL=28800
+IPZTREAM_COOKIE_SECURE=false
 EOF
 chown root:www-data "${ENV_FILE}"
 chmod 640 "${ENV_FILE}"
 
-# Los JSON se conservan como respaldo/fuente de migración inicial.
 mkdir -p "${APP_DIR}/data"
 chown -R www-data:www-data "${APP_DIR}/data"
 
-echo "==> Instalando servicio de API..."
+echo "==> Instalando servicio de API seguro..."
 cp "${APP_DIR}/deploy/ipztream-api.service" "${API_SERVICE}"
 systemctl daemon-reload
 systemctl enable "${APP_NAME}-api"
 systemctl restart "${APP_NAME}-api"
 
-echo "==> Verificando API y conexión MariaDB..."
+# El administrador inicial se crea una sola vez y su contraseña no se guarda en el env del servicio.
+set -a
+source "${ENV_FILE}"
+set +a
+admin_count="$(mariadb -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" -p"${DB_PASSWORD}" -Nse "SELECT COUNT(*) FROM \`${DB_NAME}\`.admin_users" 2>/dev/null || echo 0)"
+if [[ "${admin_count}" == "0" ]]; then
+  ADMIN_USER="${IPZTREAM_ADMIN_USER:-admin}"
+  ADMIN_PASSWORD="${IPZTREAM_ADMIN_PASSWORD:-$(node -e "console.log(require('node:crypto').randomBytes(18).toString('base64url'))")"}"
+  IPZTREAM_ADMIN_USER="${ADMIN_USER}" IPZTREAM_ADMIN_PASSWORD="${ADMIN_PASSWORD}" node server/bootstrap-admin.js
+  echo
+  echo "=============================================="
+  echo " Credenciales iniciales de IPZStream"
+  echo " Usuario: ${ADMIN_USER}"
+  echo " Contraseña: ${ADMIN_PASSWORD}"
+  echo " GUÁRDALAS: no se vuelven a mostrar."
+  echo "=============================================="
+  echo
+fi
+
+# Verificación de API y autenticación.
 api_ok=0
 for attempt in {1..20}; do
   if curl -fsS "http://127.0.0.1:3100/api/health" | grep -q '"ok":true' && curl -fsS "http://127.0.0.1:3100/api/health" | grep -q '"database":"mariadb"'; then
@@ -115,11 +135,8 @@ done
 
 if [[ "${api_ok}" -ne 1 ]]; then
   echo "ERROR: la API de IPZStream no inició correctamente o no pudo conectarse a MariaDB."
-  echo "==> Estado del servicio:"
   systemctl status "${APP_NAME}-api" --no-pager -l || true
-  echo "==> Últimos registros:"
   journalctl -u "${APP_NAME}-api" -n 80 --no-pager || true
-  echo "==> Estado de MariaDB:"
   systemctl status mariadb --no-pager -l || true
   exit 1
 fi
@@ -127,12 +144,14 @@ fi
 health="$(curl -fsS "http://127.0.0.1:3100/api/health")"
 echo "API OK: ${health}"
 
-echo "==> Verificando migración inicial..."
-curl -fsS "http://127.0.0.1:3100/api/nodes" >/dev/null
-curl -fsS "http://127.0.0.1:3100/api/channels" >/dev/null
-curl -fsS "http://127.0.0.1:3100/api/packages" >/dev/null
-curl -fsS "http://127.0.0.1:3100/api/users" >/dev/null
+if curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:3100/api/nodes" | grep -q '^401$'; then
+  echo "Autenticación OK: /api/nodes está protegido."
+else
+  echo "ERROR: /api/nodes no está protegido correctamente."
+  exit 1
+fi
 
+# Verifica que las tablas de datos sigan accesibles internamente en MariaDB.
 if ! mariadb -Nse "SELECT COUNT(*) FROM \`${DB_NAME}\`.nodes;" | grep -q '^[0-9][0-9]*$'; then
   echo "ERROR: no se pudo consultar la tabla nodes en MariaDB."
   exit 1
@@ -179,7 +198,6 @@ nginx -t
 systemctl enable nginx
 systemctl restart nginx
 
-# Verificación final: no se informa éxito si el panel o la API no están operativos.
 curl -fsS "http://127.0.0.1:3100/api/health" >/dev/null
 curl -fsS "http://127.0.0.1/" >/dev/null
 
@@ -187,7 +205,8 @@ echo
 echo "=============================================="
 echo " IPZStream instalado correctamente"
 echo " URL: http://<IP_DEL_CONTENEDOR>/"
-echo " API: http://127.0.0.1:3100 (solo local)"
+echo " API pública: http://127.0.0.1:3100 (gateway seguro)"
+echo " API interna: 127.0.0.1:3101 (no expuesta)"
 echo " MariaDB: ${DB_NAME} / ${DB_USER}"
 echo " Config DB: ${ENV_FILE}"
 echo " Archivos: ${APP_DIR}"
