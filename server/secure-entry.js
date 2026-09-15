@@ -3,6 +3,7 @@ import { URL } from 'node:url';
 import { ensureAuthSchema, authenticate, getSessionUser, destroySession, serializeSessionCookie, clearSessionCookie, hasPermission, permissionForRequest } from './auth.js';
 import { addAudit } from './db.js';
 import { ensureUserSchema, listUsers, createUser, updateUser, deleteUser } from './user-service.js';
+import { ensureClientSessionSchema, authenticateClient, createClientSession, getClientSession, destroyClientSession, clientSessionCookie, clearClientSessionCookie, getClientToken, publicClient } from './client-auth.js';
 
 const PUBLIC_PORT = Number(process.env.IPZTREAM_API_PORT || 3100);
 const INTERNAL_PORT = Number(process.env.IPZTREAM_INTERNAL_API_PORT || 3101);
@@ -60,7 +61,6 @@ async function handleUserApi(req, res, user) {
   if (!match) return false;
   const id = match[1] ? decodeURIComponent(match[1]) : null;
   const actor = user.username;
-
   try {
     if (req.method === 'GET' && !id) return send(res, 200, { users: await listUsers() });
     if (req.method === 'POST' && !id) return send(res, 201, await createUser(await readBody(req), actor));
@@ -75,6 +75,38 @@ async function handleUserApi(req, res, user) {
   }
 }
 
+async function handleClientApi(req, res, pathname) {
+  try {
+    if (pathname === '/api/client/login' && req.method === 'POST') {
+      const body = await readBody(req);
+      if (!body.username || body.password === undefined) return send(res, 400, { message: 'Usuario y contraseña son obligatorios.' });
+      const user = await authenticateClient(body.username, body.password);
+      if (!user) {
+        await addAudit({ action: 'CLIENT_LOGIN_FAILED', module: 'client-auth', actor: String(body.username || '').slice(0, 191), detail: 'Credenciales inválidas o cliente no activo', metadata: { ip: clientIp(req) } });
+        return send(res, 401, { message: 'Usuario o contraseña incorrectos, o cliente no activo.' });
+      }
+      const session = await createClientSession(user, user.username);
+      return send(res, 200, { client: publicClient(user), expiresAt: session.expiresAt }, { 'Set-Cookie': clientSessionCookie(session.token) });
+    }
+
+    if (pathname === '/api/client/me' && req.method === 'GET') {
+      const session = await getClientSession(getClientToken(req));
+      if (!session) return send(res, 401, { message: 'Sesión de cliente no válida o expirada.' });
+      return send(res, 200, { client: publicClient(session.user) });
+    }
+
+    if (pathname === '/api/client/logout' && req.method === 'POST') {
+      await destroyClientSession(getClientToken(req));
+      return send(res, 200, { ok: true }, { 'Set-Cookie': clearClientSessionCookie() });
+    }
+
+    if (pathname.startsWith('/api/client/')) return send(res, 404, { message: 'Ruta de cliente no encontrada.' });
+    return false;
+  } catch (error) {
+    return send(res, error.status || 400, { message: error.message || 'No se pudo procesar la sesión del cliente.' });
+  }
+}
+
 async function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
@@ -84,9 +116,14 @@ async function handle(req, res) {
       'Access-Control-Allow-Origin': process.env.IPZTREAM_CORS_ORIGIN || '*',
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     });
     return res.end();
+  }
+
+  if (pathname.startsWith('/api/client/')) {
+    const handled = await handleClientApi(req, res, pathname);
+    if (handled !== false) return;
   }
 
   if (pathname === '/api/auth/login' && req.method === 'POST') {
@@ -143,6 +180,7 @@ async function handle(req, res) {
 
 await ensureAuthSchema();
 await ensureUserSchema();
+await ensureClientSessionSchema();
 process.env.IPZTREAM_API_PORT = String(INTERNAL_PORT);
 await import('./index.js');
 
