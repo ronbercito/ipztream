@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { pool, TABLES, addAudit } from './db.js';
-import { hashPassword } from './auth.js';
+import { hashIptvPassword } from './auth.js';
 
 const USER_STATUSES = ['Activo', 'Suspendido', 'Vencido'];
 
@@ -13,53 +13,29 @@ function decode(payload) {
   if (payload && typeof payload === 'object') return payload;
   try { return JSON.parse(payload); } catch { return {}; }
 }
-
-function makeId() {
-  return `user-${randomUUID()}`;
-}
-
-function validUsername(username) {
-  return /^[a-z0-9._-]{3,64}$/.test(username);
-}
-
-function validDate(value) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
-}
-
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-
+function makeId() { return `user-${randomUUID()}`; }
+function validUsername(username) { return /^[a-z0-9._-]{3,64}$/.test(username); }
+function validDate(value) { return /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')); }
+function todayIso() { return new Date().toISOString().slice(0, 10); }
 function normalizeStatus(status, expiresAt) {
   const requested = USER_STATUSES.includes(status) ? status : 'Activo';
   if (requested === 'Suspendido') return 'Suspendido';
-  if (expiresAt < todayIso()) return 'Vencido';
-  return 'Activo';
+  return expiresAt < todayIso() ? 'Vencido' : 'Activo';
 }
 
 async function getPackages() {
   const result = await pool.query(`SELECT id, payload FROM ${TABLES.packages} ORDER BY created_at ASC`);
   return result.rows.map((row) => decode(row.payload));
 }
-
 async function resolvePackage(input, packages) {
   const requested = String(input.packageId || input.package || '').trim();
   if (!requested) return null;
   return packages.find((item) => item.id === requested || String(item.name || '').toLowerCase() === requested.toLowerCase()) || null;
 }
-
 function publicUser(item, credentialConfigured, packageItem) {
   const expiresAt = item.expiresAt || null;
   const status = expiresAt && validDate(expiresAt) ? normalizeStatus(item.status, expiresAt) : item.status;
-  return {
-    ...item,
-    status,
-    package: packageItem?.name || item.package || 'Sin paquete',
-    packageId: packageItem?.id || item.packageId || null,
-    maxConnections: Number(item.maxConnections || packageItem?.maxConnections || 1),
-    activeConnections: Math.max(0, Number(item.activeConnections || 0)),
-    passwordConfigured: Boolean(credentialConfigured)
-  };
+  return { ...item, status, package: packageItem?.name || item.package || 'Sin paquete', packageId: packageItem?.id || item.packageId || null, maxConnections: Number(item.maxConnections || packageItem?.maxConnections || 1), activeConnections: Math.max(0, Number(item.activeConnections || 0)), passwordConfigured: Boolean(credentialConfigured) };
 }
 
 export async function listUsers() {
@@ -108,17 +84,11 @@ async function normalize(input, current = {}, requirePassword = false) {
   if (requirePassword && password.length < 1) throw new Error('La contraseña es obligatoria y debe tener al menos 1 carácter.');
 
   return {
-    id: current.id || input.id || makeId(),
-    username,
-    name,
+    id: current.id || input.id || makeId(), username, name,
     status: normalizeStatus(input.status ?? current.status, expiresAt),
-    packageId: packageItem.id,
-    package: packageItem.name,
-    maxConnections: requestedMax,
+    packageId: packageItem.id, package: packageItem.name, maxConnections: requestedMax,
     activeConnections: Math.max(0, Math.min(Number(current.activeConnections || input.activeConnections || 0), requestedMax)),
-    expiresAt,
-    createdAt: current.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    expiresAt, createdAt: current.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString()
   };
 }
 
@@ -127,9 +97,8 @@ export async function createUser(input, actor = 'system') {
   const item = await normalize(input, {}, true);
   const duplicate = await pool.query(`SELECT id FROM ${TABLES.users} WHERE LOWER(JSON_VALUE(payload, '$.username')) = LOWER(?) LIMIT 1`, [item.username]);
   if (duplicate.rows.length) throw Object.assign(new Error(`El usuario ${item.username} ya existe.`), { status: 409 });
-
   await pool.query(`INSERT INTO ${TABLES.users} (id, payload) VALUES (?, ?)`, [item.id, JSON.stringify(item)]);
-  await pool.query('INSERT INTO user_credentials (user_id, password_hash) VALUES (?, ?)', [item.id, await hashPassword(password)]);
+  await pool.query('INSERT INTO user_credentials (user_id, password_hash) VALUES (?, ?)', [item.id, await hashIptvPassword(password)]);
   await addAudit({ action: 'CREATE', module: 'users', actor, detail: `Creado ${item.username}` });
   return publicUser(item, true, { id: item.packageId, name: item.package, maxConnections: item.maxConnections });
 }
@@ -140,10 +109,9 @@ export async function updateUser(id, input, actor = 'system') {
   const item = await normalize(input, existing, false);
   const duplicate = await pool.query(`SELECT id FROM ${TABLES.users} WHERE LOWER(JSON_VALUE(payload, '$.username')) = LOWER(?) AND id <> ? LIMIT 1`, [item.username, id]);
   if (duplicate.rows.length) throw Object.assign(new Error(`El usuario ${item.username} ya existe.`), { status: 409 });
-
   await pool.query(`UPDATE ${TABLES.users} SET payload = ? WHERE id = ?`, [JSON.stringify(item), id]);
   if (input.password) {
-    await pool.query('INSERT INTO user_credentials (user_id, password_hash) VALUES (?, ?) ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), updated_at = CURRENT_TIMESTAMP', [id, await hashPassword(String(input.password))]);
+    await pool.query('INSERT INTO user_credentials (user_id, password_hash) VALUES (?, ?) ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), updated_at = CURRENT_TIMESTAMP', [id, await hashIptvPassword(String(input.password))]);
   }
   await addAudit({ action: 'UPDATE', module: 'users', actor, detail: `Actualizado ${item.username}` });
   return getUser(id);
