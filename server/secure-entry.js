@@ -4,6 +4,7 @@ import { ensureAuthSchema, authenticate, getSessionUser, destroySession, seriali
 import { addAudit } from './db.js';
 import { ensureUserSchema, listUsers, createUser, updateUser, deleteUser } from './user-service.js';
 import { ensureClientSessionSchema, authenticateClient, createClientSession, getClientSession, destroyClientSession, clientSessionCookie, clearClientSessionCookie, getClientToken, publicClient } from './client-auth.js';
+import { assertFfmpeg, getStream, listStreams, startStream, stopStream, restartStream } from './stream-manager.js';
 
 const PUBLIC_PORT = Number(process.env.IPZTREAM_API_PORT || 3100);
 const INTERNAL_PORT = Number(process.env.IPZTREAM_INTERNAL_API_PORT || 3101);
@@ -107,6 +108,36 @@ async function handleClientApi(req, res, pathname) {
   }
 }
 
+async function handleStreamApi(req, res, pathname, user) {
+  try {
+    if (pathname === '/api/streams' && req.method === 'GET') {
+      return send(res, 200, { ffmpeg: await assertFfmpeg(), streams: listStreams() });
+    }
+
+    const stateMatch = pathname.match(/^\/api\/streams\/([^/]+)$/);
+    if (stateMatch && req.method === 'GET') {
+      return send(res, 200, { stream: getStream(decodeURIComponent(stateMatch[1])) });
+    }
+
+    const actionMatch = pathname.match(/^\/api\/streams\/([^/]+)\/(start|stop|restart)$/);
+    if (actionMatch && req.method === 'POST') {
+      const channelId = decodeURIComponent(actionMatch[1]);
+      const action = actionMatch[2];
+      const stream = action === 'start'
+        ? await startStream(channelId)
+        : action === 'stop'
+          ? await stopStream(channelId)
+          : await restartStream(channelId);
+      await addAudit({ action: `STREAM_${action.toUpperCase()}`, module: 'streaming', actor: user.username, detail: `Canal ${channelId}`, metadata: { channelId, status: stream.status } });
+      return send(res, 200, { stream });
+    }
+
+    return false;
+  } catch (error) {
+    return send(res, error.status || 500, { message: error.message || 'No se pudo controlar el stream.' });
+  }
+}
+
 async function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
@@ -158,8 +189,15 @@ async function handle(req, res) {
   const user = await getSessionUser(sessionToken(req));
   if (!user) return send(res, 401, { message: 'Autenticación requerida.' });
 
-  const permission = permissionForRequest(req.method, pathname);
+  const permission = pathname.startsWith('/api/streams')
+    ? (req.method === 'GET' ? 'channels.view' : 'channels.update')
+    : permissionForRequest(req.method, pathname);
   if (permission && !hasPermission(user, permission)) return send(res, 403, { message: 'No tienes permiso para realizar esta acción.', permission });
+
+  if (pathname.startsWith('/api/streams')) {
+    const handled = await handleStreamApi(req, res, pathname, user);
+    if (handled !== false) return;
+  }
 
   if (pathname === '/api/users' || pathname.startsWith('/api/users/')) return handleUserApi(req, res, user);
 
