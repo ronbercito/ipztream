@@ -41,47 +41,28 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Etapas 1–9 están validadas por el usuario.
 
 ## Etapa 10 — Usuarios IPTV / Panel Cliente
-**Estado técnico:** implementación inicial terminada; pendiente de instalación/build y validación funcional del usuario.
+**Estado técnico:** implementación inicial terminada; pendiente de validación funcional. Se detectó una corrección necesaria durante la primera prueba del usuario.
 
-### Implementado
-- `server/user-service.js`: servicio separado para clientes IPTV.
-- Tabla `user_credentials` en MariaDB para mantener los hashes de contraseña fuera del payload del usuario.
-- Contraseñas de cliente protegidas con el mismo esquema `scrypt` seguro utilizado por la autenticación administrativa.
-- CRUD real de `/api/users` y `/api/users/:id` detrás del gateway autenticado.
-- Validación de usuario, nombre, paquete, vencimiento, estado y máximo de conexiones.
-- El máximo de conexiones se limita al máximo definido por el paquete.
-- El estado se presenta como `Vencido` cuando la fecha ha expirado aunque el registro permanezca almacenado.
-- La API nunca devuelve el hash de contraseña; solo informa `passwordConfigured`.
-- Cambio de contraseña disponible al editar un cliente.
-- Eliminación de cliente elimina sus credenciales y desasocia sus dispositivos existentes.
-- RBAC ahora distingue `users.view`, `users.create`, `users.update` y `users.delete` también para rutas individuales.
-- `src/modules/users/` dejó de depender de `localStorage` y consume la API real.
-- El formulario de cliente permite seleccionar paquetes reales, vencimiento, conexiones y contraseña.
-- El filtro de paquetes se genera a partir de los paquetes existentes.
-- `database/schema.sql` documenta la nueva tabla de credenciales.
+### Corrección 10.1 — Usuarios y paquetes
+**Problemas reportados:** al abrir Usuarios aparece `result.map is not a function`; además, al crear un cliente se exige un paquete, pero el módulo Paquetes no permite completar la creación.
 
-### Archivos principales afectados
-- `server/user-service.js`
-- `server/secure-entry.js`
-- `server/auth.js`
-- `database/schema.sql`
-- `src/modules/users/Users.jsx`
-- `src/modules/users/components/UserForm.jsx`
-- `src/modules/users/components/UserFilters.jsx`
-- `src/modules/users/services/usersApi.js`
+**Causa identificada:** `server/user-service.js` utiliza el contrato `{ rows, rowCount }` de `pool.query()` pero `getPackages()` intentaba ejecutar `.map()` directamente sobre el objeto de respuesta. Además, el servicio de usuarios no quedó conectado de forma completa al enrutador interno de `/api/users`, por lo que el CRUD real no estaba disponible de extremo a extremo.
+
+**Objetivo de la corrección:** normalizar el acceso a resultados MariaDB, registrar/asegurar `user_credentials` al iniciar la API, conectar correctamente las rutas CRUD de clientes al servicio de usuarios y revisar la comunicación del módulo Paquetes para que pueda crear/editar/eliminar paquetes desde el panel autenticado.
+
+**Resultado esperado:** Usuarios carga sin excepción, los paquetes se consultan correctamente, un paquete puede crearse y luego seleccionarse al crear un cliente, y el CRUD de clientes persiste en MariaDB sin contraseñas en texto plano.
+
+**Archivos previstos:** `server/user-service.js`, `server/index.js`, `server/secure-entry.js` si fuera necesario, `src/modules/packages/services/packagesApi.js` si fuera necesario, y documentación de etapa.
+
+**Respaldo existente:** `backup/pre-etapa-10-usuarios-iptv`.
 
 ### Pendiente de validación
-1. Actualizar el servidor desde `main`.
-2. Ejecutar instalación/build.
-3. Confirmar que el servicio inicia y crea `user_credentials`.
-4. Abrir Usuarios IPTV.
-5. Crear un cliente con contraseña de 12+ caracteres.
-6. Confirmar persistencia tras recargar el panel.
-7. Editar paquete/vencimiento/estado/conexiones.
-8. Cambiar contraseña y confirmar que no se muestra en la API.
-9. Intentar usuario duplicado y comprobar rechazo.
-10. Eliminar cliente y comprobar desasociación de dispositivos.
-11. Confirmar que el panel administrativo sigue funcionando.
+- Build.
+- Reinicio del servicio.
+- Creación de paquete.
+- Carga de Usuarios.
+- Creación de cliente asociado a paquete.
+- Persistencia y edición.
 
 **No se marca la Etapa 10 como completada hasta la validación del usuario.**
 
