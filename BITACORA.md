@@ -145,13 +145,18 @@ El usuario confirmó:
 
 **Causa identificada:** `server/user-service.js` usa el contrato `{ rows, rowCount }` de `pool.query()`, pero `getPackages()` aplicaba `.map()` directamente sobre el objeto resultado. Además, aunque existía `server/user-service.js`, las rutas `/api/users` no estaban integradas completamente en `server/index.js`, dejando el CRUD de clientes desconectado del servicio.
 
-**Corrección prevista:** usar `result.rows` en `getPackages()`, asegurar `user_credentials` durante el arranque, integrar CRUD de usuarios en `server/index.js`, y reforzar las llamadas del módulo Paquetes para trabajar con la sesión administrativa y mostrar errores HTTP reales.
+**Cambios realizados:**
+- `getPackages()` ahora usa `result.rows`.
+- `server/index.js` integra `GET/POST /api/users` y `GET/PUT/DELETE /api/users/:id` mediante `server/user-service.js`.
+- El arranque de la API ejecuta `ensureUserSchema()` para garantizar `user_credentials`.
+- Los paquetes nuevos reciben un ID real (`pkg-...`) en lugar de poder quedar con `undefined`.
+- `packagesApi.js` usa `credentials: 'same-origin'`, `cache: 'no-store'` y conserva el mensaje HTTP real en errores.
 
 **Archivos afectados:** `server/user-service.js`, `server/index.js`, `src/modules/packages/services/packagesApi.js`.
 
 **Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
 
-**Resultado esperado:** Usuarios carga correctamente; Paquetes permite crear/editar/eliminar; el paquete creado aparece al crear un cliente; el cliente se guarda en MariaDB y la contraseña permanece protegida.
+**Resultado de implementación:** la corrección quedó publicada en `main`. Falta ejecutar build/reinicio y que el usuario valide Usuarios y Paquetes en el servidor.
 
 ## Protocolo de cierre
 1. Build correcto.
