@@ -97,6 +97,19 @@ Se añadieron:
 
 **Estado actual:** código publicado en `main`; pendiente de ejecutar build, instalación/reinicio y pruebas reales en Debian 13. No se marca la Etapa 9 como completada hasta la validación del usuario.
 
+### Corrección 9.1.1 — Error de sintaxis en `install.sh` — INICIO
+**Motivo:** durante la instalación en Debian 13, el build terminó correctamente pero `install.sh` falló con `syntax error near unexpected token '('` al llegar a la sección de creación del administrador inicial.
+
+**Causa identificada:** la asignación de `ADMIN_PASSWORD` utilizaba una expansión de parámetro con sustitución de comando anidada y comillas complejas, innecesariamente frágil para el parser de Bash.
+
+**Cambio previsto:** separar la generación de la contraseña aleatoria en un bloque `if/else`, evitando la expresión anidada y manteniendo el mismo comportamiento de seguridad.
+
+**Archivos afectados:** `install.sh`.
+
+**Respaldo:** `backup/pre-etapa-9-auth-rbac`.
+
+**Resultado esperado:** `bash install.sh` debe pasar la sección de bootstrap administrativo sin error de sintaxis y continuar hasta las verificaciones de API/autenticación.
+
 ## Protocolo de cierre
 1. Build correcto.
 2. Servicio `ipztream-api` activo.
