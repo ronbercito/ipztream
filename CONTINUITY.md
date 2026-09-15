@@ -24,12 +24,12 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 5. VOD / Series / EPG / M3U — **COMPLETADA Y VALIDADA**.
 6. Paquetes / Conexiones / Dispositivos — **COMPLETADA Y VALIDADA**.
 7. Logs / Auditoría / Estadísticas — **COMPLETADA Y VALIDADA**.
-8. Backend real + MariaDB — **IMPLEMENTACIÓN CORREGIDA, PENDIENTE DE VALIDACIÓN EN CONTENEDOR**.
+8. Backend real + MariaDB — **EN CORRECCIÓN, PENDIENTE DE VALIDACIÓN**.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama principal: `main`
-- Versión visible actual: `0.1.0`
+- Versión visible actual: `0.1.0`.
 - Entorno de prueba: Debian 13 en contenedor.
 - Node.js: `v22.23.2`.
 - npm: `10.9.8`.
@@ -41,8 +41,8 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Las etapas 1–7 del panel fueron implementadas y validadas por el usuario.
 - **MariaDB es la base de datos principal y permanente definida para IPZStream.**
 - La implementación PostgreSQL de la Etapa 8 fue reemplazada. No debe utilizarse PostgreSQL como requisito de la aplicación.
-- La Etapa 8 queda pendiente de validación real en Debian 13: instalación, servicio MariaDB, API, migración, CRUD, persistencia y reinicio.
-- El updater real, autenticación/RBAC completo, motor de streaming y telemetría avanzada todavía serán fases posteriores.
+- La instalación real confirmó que MariaDB está operativo y que las credenciales del servicio están configuradas, pero la API no inicia porque `server/db.js` intenta enviar varias sentencias `CREATE TABLE` en una sola consulta; MariaDB responde `ER_PARSE_ERROR` al comenzar la segunda sentencia.
+- La API no está escuchando actualmente en `127.0.0.1:3100` mientras persista esta corrección.
 
 ## Respaldos importantes
 - `backup/pre-etapa-1-13-configuracion`
@@ -79,8 +79,16 @@ Sidebar azul oscuro, barra superior, búsqueda global, dashboard claro, tarjetas
 
 **Respaldo:** `backup/pre-correccion-etapa-8-mariadb`.
 
-### Pendiente de validación
-El asistente no ejecutó el build dentro del contenedor Debian 13. El usuario debe actualizar `main` y probar la instalación. La Etapa 8 no se cierra hasta recibir esa validación.
+### Corrección actual — inicialización del esquema MariaDB
+**Motivo:** la prueba real en Debian 13 mostró `ER_PARSE_ERROR` porque `createSchema()` envía múltiples `CREATE TABLE ...;` dentro de una sola llamada `mariaPool.query()`. El driver/servidor usado no está ejecutando ese lote como múltiples sentencias.
+
+**Objetivo:** hacer que la creación del esquema sea compatible y determinista en MariaDB ejecutando cada sentencia DDL por separado, sin alterar el contrato de los endpoints ni la estructura JSON de los datos. Mantener la migración inicial y la auditoría.
+
+**Archivos previstos:** `server/db.js`; `CONTINUITY.md` y `BITACORA.md` para trazabilidad.
+
+**Resultado esperado:** `initDatabase()` debe completar todas las tablas sin `ER_PARSE_ERROR`, permitir que `ipztream-api` escuche en `3100` y dejar disponible `/api/health` reportando MariaDB. Después se validará CRUD y persistencia.
+
+**Respaldo requerido antes del código:** crear un nuevo punto de restauración `backup/pre-correccion-schema-mariadb-multistatements`.
 
 ## Próximas fases después de validar Etapa 8
 1. Autenticación real y RBAC.
