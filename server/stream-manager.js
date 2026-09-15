@@ -61,13 +61,14 @@ function selectSource(channel) {
 function ffmpegArgs(sourceUrl, outputDir) {
   const playlist = path.join(outputDir, 'index.m3u8');
   const segments = path.join(outputDir, 'segment_%06d.ts');
+  const reconnect = ['http:', 'https:'].includes(sourceProtocol(sourceUrl))
+    ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5']
+    : [];
   return [
     '-hide_banner',
     '-nostdin',
     '-loglevel', 'warning',
-    '-reconnect', '1',
-    '-reconnect_streamed', '1',
-    '-reconnect_delay_max', '5',
+    ...reconnect,
     '-i', sourceUrl,
     '-map', '0:v:0',
     '-map', '0:a:0?',
@@ -195,26 +196,38 @@ export async function startStream(channelId) {
 export async function stopStream(channelId) {
   const id = String(channelId);
   const state = processes.get(id);
-  if (!state?.process || state.process.killed) {
-    return getStream(id);
-  }
+  if (!state?.process || state.process.killed) return getStream(id);
   state.status = 'stopping';
-  state.process.kill('SIGTERM');
-  return publicState(id, state);
+  const child = state.process;
+  await new Promise((resolve) => {
+    const timeout = setTimeout(resolve, 5000);
+    child.once('exit', () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+    child.kill('SIGTERM');
+  });
+  return getStream(id);
 }
 
 export async function restartStream(channelId) {
   await stopStream(channelId);
-  await new Promise((resolve) => setTimeout(resolve, 250));
   return startStream(channelId);
 }
 
 export async function stopAllStreams() {
   const active = [...processes.values()].filter((state) => state.process && !state.process.killed);
-  for (const state of active) {
+  await Promise.all(active.map((state) => {
     state.status = 'stopping';
-    state.process.kill('SIGTERM');
-  }
+    return new Promise((resolve) => {
+      const timeout = setTimeout(resolve, 5000);
+      state.process.once('exit', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+      state.process.kill('SIGTERM');
+    });
+  }));
 }
 
 export function streamRoot() {
