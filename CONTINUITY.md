@@ -25,6 +25,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 6. Paquetes / Conexiones / Dispositivos — **COMPLETADA Y VALIDADA**.
 7. Logs / Auditoría / Estadísticas — **COMPLETADA Y VALIDADA**.
 8. Backend real + MariaDB — **COMPLETADA Y VALIDADA**.
+9. Autenticación real + RBAC — **EN PROGRESO**.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -38,14 +39,13 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Nginx publica el panel desde `/var/www/ipztream`.
 - Código fuente: `/opt/ipztream`.
 - Servicio API: `ipztream-api`.
-- Las etapas 1–7 del panel fueron implementadas y validadas por el usuario.
+- Las etapas 1–8 fueron implementadas y validadas por el usuario.
 - **MariaDB es la base de datos principal y permanente definida para IPZStream.**
 - La implementación PostgreSQL de la Etapa 8 fue reemplazada y no forma parte de la arquitectura operativa.
 - La corrección 8.2 eliminó el fallo de inicialización provocado por múltiples sentencias DDL enviadas en una sola consulta.
 - En la validación real, MariaDB creó correctamente las 11 tablas: `audit_logs`, `channels`, `connections`, `devices`, `epg`, `m3u`, `nodes`, `packages`, `series`, `users` y `vod`.
 - La API responde correctamente en `127.0.0.1:3100` y `/api/health` confirma `database: mariadb`.
 - El servicio `ipztream-api` permanece activo después de reinicio y la API continúa respondiendo correctamente.
-- La base de datos de la instalación de prueba está inicialmente vacía en las tablas verificadas (`nodes`, `channels`, `users`, `audit_logs`); esto es válido para una instalación nueva.
 
 ## Respaldos importantes
 - `backup/pre-etapa-1-13-configuracion`
@@ -61,47 +61,48 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - `backup/pre-etapa-8-backend-postgres`
 - `backup/pre-correccion-etapa-8-mariadb`
 - `backup/pre-correccion-schema-mariadb-multistatements`
+- `backup/pre-etapa-9-auth-rbac`
 
 ## Referencia visual aprobada
 Sidebar azul oscuro, barra superior, búsqueda global, dashboard claro, tarjetas KPI, gráficos, estado de nodos, tablas administrativas, filtros, badges y acciones rápidas. No generar nuevos mockups salvo solicitud explícita.
 
-## Etapa 8 — Backend real + MariaDB
-### Implementado
-- `server/db.js` utiliza el paquete `mariadb` y pool de conexiones.
-- Esquema MariaDB para nodos, canales, VOD, series, EPG, M3U, paquetes, conexiones, dispositivos, usuarios y auditoría.
-- Migración inicial desde `data/*.json` cuando cada tabla está vacía.
-- `/api/health` reporta `database: mariadb`.
-- Servicio systemd depende de `mariadb.service`.
-- Instalador instala/configura MariaDB y verifica realmente la disponibilidad de la API antes de informar éxito.
-- `INSTALL.md` documenta MariaDB como base principal.
+## Etapa 9 — Autenticación real + RBAC
+### Estado
+**EN PROGRESO — INICIO REGISTRADO**
 
-### Corrección 8.2 — inicialización del esquema MariaDB
-Se corrigió `server/db.js` para ejecutar cada sentencia DDL de creación de tabla por separado, evitando el `ER_PARSE_ERROR` producido por el lote de múltiples `CREATE TABLE`.
+### Objetivo
+Construir la primera capa de seguridad real de IPZStream sobre el backend/MariaDB ya validado, sin romper los módulos administrativos existentes.
 
-**Respaldo:** `backup/pre-correccion-schema-mariadb-multistatements`.
+### Alcance de esta etapa
+- Usuarios administrativos reales almacenados en MariaDB.
+- Hash seguro de contraseñas; nunca guardar contraseñas en texto plano.
+- Login y logout del panel.
+- Sesiones/tokens con expiración y validación en backend.
+- Roles y permisos RBAC.
+- Protección de endpoints administrativos.
+- Identidad del usuario disponible para auditoría.
+- Preparar permisos por módulo para ampliaciones posteriores.
+- Mantener separadas autenticación, autorización, acceso a datos y UI.
 
-### Validación final 8.2 — COMPLETADA Y VALIDADA
-- Build de producción ejecutado correctamente en Debian 13.
-- `bash install.sh` completó correctamente.
-- MariaDB está activo y operativo.
-- Las 11 tablas fueron creadas correctamente.
-- `ipztream-api` quedó `active (running)`.
-- `/api/health` respondió correctamente con `database: mariadb`.
-- El puerto `127.0.0.1:3100` quedó escuchando.
-- Después de reiniciar `ipztream-api`, el servicio y la API continuaron respondiendo correctamente.
-- El usuario confirmó explícitamente que **todo responde correctamente**.
+### Criterios de diseño
+- No usar `localStorage` como fuente de verdad para autenticación.
+- Las credenciales y secretos deben permanecer en backend/variables de entorno.
+- El frontend no debe contener contraseñas ni secretos del servidor.
+- Los endpoints protegidos deben rechazar solicitudes no autenticadas.
+- Los permisos deben evaluarse en backend, no únicamente ocultando botones en React.
+- No modificar innecesariamente los contratos existentes de los módulos ya validados.
 
-**Estado:** Etapa 8 y corrección 8.2 cerradas y validadas.
+### Archivos previstos
+Se podrán crear/modificar únicamente los archivos necesarios, previsiblemente `server/index.js`, `server/db.js`, `database/schema.sql`, módulos nuevos bajo `src/modules/auth/` o componentes relacionados, servicios de autenticación y documentación/configuración. La estructura final se confirmará durante la implementación.
 
-## Próxima fase — Etapa 9 — Autenticación real y RBAC
-**Objetivo general:** construir la base de seguridad de IPZStream sobre el backend/MariaDB ya validado.
+### Respaldo
+`backup/pre-etapa-9-auth-rbac`.
 
-**Alcance previsto:** usuarios administrativos reales en backend, autenticación segura, sesiones/tokens, roles y permisos RBAC, protección de endpoints y preparación de auditoría asociada a identidad.
-
-**Regla:** antes de iniciar Etapa 9 se deberá actualizar nuevamente este documento con el objetivo concreto de la etapa y después registrar la intención en `BITACORA.md`, crear respaldo y comenzar la implementación.
+### Resultado esperado
+Al finalizar la etapa, IPZStream deberá disponer de un acceso administrativo real con identidad, roles y permisos validados por backend/MariaDB, con endpoints protegidos y auditoría preparada para registrar el actor autenticado.
 
 ## Fases posteriores
-1. Usuarios migrados completamente al backend y administración avanzada.
+1. Administración avanzada de usuarios y permisos.
 2. Auditoría asociada a usuario/rol/IP/sesión.
 3. Health checks y telemetría real de nodos/streams.
 4. Motor real de sesiones y reproducción.
