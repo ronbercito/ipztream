@@ -28,7 +28,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 9. Autenticación real + RBAC — **COMPLETADA Y VALIDADA**.
 10. Usuarios IPTV / Panel Cliente — **COMPLETADA Y VALIDADA**.
 11. API de clientes + sesiones de aplicación — **COMPLETADA Y VALIDADA**.
-12. Motor de streaming real + integración de fuentes — **PENDIENTE**.
+12. Motor de streaming real + integración de fuentes — **EN IMPLEMENTACIÓN**.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -42,43 +42,51 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - MariaDB es la base principal y permanente.
 - Etapas 1–11 están validadas por el usuario.
 
-## Etapa 11 — API de clientes + sesiones de aplicación
-**Estado técnico:** COMPLETADA Y VALIDADA.
+## Etapa 12 — Motor de streaming real + integración de fuentes
+**Estado técnico:** EN IMPLEMENTACIÓN.
 
-### Objetivo cumplido
-Construir la identidad y sesión específica de los clientes IPTV, separada de la autenticación administrativa existente. Esta capa será utilizada posteriormente por la aplicación IPTV y por las APIs de catálogo/reproducción.
+### Objetivo
+Iniciar el primer motor de streaming real de IPZStream. La etapa no debe crear una simulación de reproducción: debe preparar una fuente real, un proceso de ingesta/transcodificación controlado por el servidor y una salida HLS reproducible por HTTP.
 
-### Validación funcional realizada
-- Login de cliente IPTV mediante usuario y contraseña: **200 OK**.
-- Creación de sesión mediante cookie `HttpOnly`, `SameSite=Strict` y expiración: **OK**.
-- `/api/client/me` con sesión válida: **200 OK** y devuelve únicamente identidad/estado del cliente.
-- `/api/client/logout`: **200 OK** y cookie de sesión eliminada.
-- `/api/client/me` después del logout: **401 Unauthorized**, confirmando que la sesión queda invalidada.
+### Alcance de esta etapa
+- Integrar FFmpeg como motor de procesamiento de fuentes.
+- Crear un servicio modular de gestión de procesos de stream, separado de `server/index.js`.
+- Tomar una fuente real configurada en un canal existente.
+- Generar una salida HLS por canal en almacenamiento local controlado por IPZStream.
+- Exponer estado real del proceso: detenido, iniciando, ejecutando, error.
+- Detectar salida del proceso y registrar errores básicos.
+- Evitar procesos duplicados para el mismo canal.
+- Permitir iniciar/detener/reiniciar un stream desde API administrativa.
+- Preparar un endpoint de estado para comprobar si el stream realmente está procesándose.
+- Registrar acciones de inicio/detención/reinicio en `audit_logs`.
+- Mantener la arquitectura preparada para múltiples nodos en etapas posteriores.
+- Mantener separado el motor de streaming de la autenticación, catálogo y UI.
 
-### Alcance cumplido
-- Login de cliente IPTV.
-- Sesiones de cliente almacenadas en MariaDB.
-- Token de sesión almacenado únicamente como hash SHA-256.
-- Identidad mediante `/api/client/me`.
-- Logout mediante `/api/client/logout`.
-- Separación de sesiones administrativas e IPTV.
-- Rechazo de clientes vencidos o suspendidos.
-- Auditoría de login/logout.
-- Expiración de sesiones.
+### Seguridad y operación
+- FFmpeg se ejecutará como proceso hijo controlado por IPZStream, sin ejecutar comandos recibidos directamente desde el navegador.
+- Las URLs de fuente deberán validarse antes de construir argumentos.
+- Los identificadores de canal se tratarán como datos, no como fragmentos de shell.
+- El API administrativo continuará protegido por la autenticación/RBAC existente.
+- La salida HLS no deberá exponer archivos arbitrarios del sistema.
+
+### Resultado esperado
+Un canal con una fuente real podrá ser iniciado desde IPZStream, FFmpeg procesará la fuente, se generará un `index.m3u8` y segmentos HLS, el API podrá informar el estado real del proceso y el stream podrá comprobarse mediante HTTP. Si la fuente falla, IPZStream deberá detectar la terminación/error y reflejarlo como tal.
 
 ### No incluido todavía
-- Reproducción de video.
-- HLS real.
-- Generación de URLs de stream.
-- Control real de conexiones simultáneas.
 - Aplicación móvil/TV.
-- Motor de streaming.
+- Control definitivo de conexiones simultáneas.
+- Balanceo entre nodos.
+- DRM.
+- CDN.
+- Transcodificación adaptativa multi-bitrate completa.
+- Motor de sesiones de reproducción del cliente.
+- Producción de todos los perfiles HLS.
 
-### Respaldo
-`backup/pre-etapa-11-api-clientes-sesiones`.
+### Respaldo requerido
+Antes de modificar código estructural se creará `backup/pre-etapa-12-streaming-real`.
 
 ## Próxima fase
-La siguiente etapa, cuando el usuario indique continuar, será **Etapa 12 — Motor de streaming real + integración de fuentes**. El objetivo será comenzar la cadena real de reproducción: fuente real → procesamiento/ingesta → salida de streaming reproducible, sin simulaciones.
+Después de cerrar Etapa 12, la siguiente fase continuará con HLS/reproducción y el primer flujo de canal real de extremo a extremo.
 
 ## Respaldos
 - `backup/pre-etapa-1-13-configuracion`
@@ -98,6 +106,7 @@ La siguiente etapa, cuando el usuario indique continuar, será **Etapa 12 — Mo
 - `backup/pre-correccion-etapa-9-session-token-hash`
 - `backup/pre-etapa-10-usuarios-iptv`
 - `backup/pre-etapa-11-api-clientes-sesiones`
+- `backup/pre-etapa-12-streaming-real`
 
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
