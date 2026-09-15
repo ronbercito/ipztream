@@ -91,8 +91,6 @@ Se añadieron:
 - `index.html` carga `src/auth-guard.js` antes del panel.
 - `src/auth-guard.js` añade pantalla de login, consulta de sesión, identidad visual y cierre de sesión.
 
-**Criterios respetados:** las contraseñas no se guardan en texto plano, la autenticación no depende de `localStorage`, los permisos se verifican en backend y el API interno no queda expuesto directamente.
-
 ### Corrección 9.1.1 — Error de sintaxis en `install.sh` — CORREGIDA
 **Motivo:** durante la instalación en Debian 13, el build terminó correctamente pero `install.sh` falló con `syntax error near unexpected token '('` al llegar a la sección de creación del administrador inicial.
 
@@ -125,25 +123,31 @@ El usuario confirmó:
 - Después del logout, `/api/nodes` responde `{"message":"Autenticación requerida."}`, confirmando que el endpoint protegido requiere sesión.
 - Después de la prueba, el usuario puede iniciar sesión nuevamente normalmente.
 
-**Resultado:** la autenticación administrativa, gestión de sesión, logout y protección de endpoints quedaron validados. La prueba específica de un rol restringido con `403` queda como prueba complementaria futura y no bloquea el cierre de la Etapa 9.
+**Resultado:** la autenticación administrativa, gestión de sesión, logout y protección de endpoints quedaron validados.
 
 **ESTADO FINAL: ETAPA 9 — COMPLETADA Y VALIDADA.**
 
-## Próxima etapa
-**Etapa 10 — Usuarios IPTV / Panel Cliente — PENDIENTE DE INICIO.**
+## Etapa 10 — Usuarios IPTV / Panel Cliente — EN PROGRESO
 
-Objetivo general: transformar el módulo de usuarios IPTV en una base real para clientes, considerando desde el diseño inicial cuentas de cliente, paquetes, vencimientos, dispositivos, límites de conexiones y la futura integración con streaming real y aplicación cliente.
+### Inicio de etapa
+**Motivo:** transformar el módulo administrativo de usuarios existente en una base real para clientes IPTV y preparar desde ahora la futura autenticación de aplicaciones, dispositivos, sesiones y streaming real.
+
+**Objetivo:** mantener una separación clara entre cuentas administrativas (`admin_users`) y cuentas de clientes IPTV (`users`), evitando diseñar el modelo actual de forma que después bloquee la aplicación cliente o el motor de streaming.
+
+**Alcance inicial:** identidad del cliente, credenciales seguras, estado, paquete, vencimiento, límite de conexiones, dispositivos y base para sesiones futuras.
+
+**Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
+
+**Resultado esperado:** modelo y API de cliente persistentes en MariaDB, con validaciones de negocio y sin contraseñas en texto plano, manteniendo compatibilidad con paquetes/conexiones/dispositivos existentes.
+
+**Archivos a revisar/modificar:** `src/modules/users/`, `server/index.js`, `server/db.js`, `database/schema.sql` y servicios relacionados de usuarios/paquetes/conexiones/dispositivos.
 
 ## Protocolo de cierre
 1. Build correcto.
 2. Servicio `ipztream-api` activo.
-3. MariaDB con tablas RBAC.
-4. Primer administrador creado una sola vez.
-5. `/api/health` público y funcional.
-6. `/api/auth/login` funcional.
-7. `/api/auth/me` funcional con sesión.
-8. `/api/nodes` y otros endpoints protegidos sin sesión.
-9. `403` con permisos insuficientes como prueba complementaria futura.
-10. Logout invalida sesión.
-11. Panel web exige login.
-12. Usuario valida y entonces se registra **COMPLETADA Y VALIDADA**.
+3. Persistencia MariaDB verificada.
+4. CRUD de clientes funcional.
+5. Credenciales seguras.
+6. Paquete/vencimiento/estado/límite de conexiones validados.
+7. Compatibilidad con módulos relacionados comprobada.
+8. Usuario valida y entonces se registra **COMPLETADA Y VALIDADA**.
