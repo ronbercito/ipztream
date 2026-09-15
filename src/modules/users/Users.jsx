@@ -48,8 +48,9 @@ export default function UsersPage() {
       await load();
       return true;
     } catch (err) {
-      setError(err.message || 'No se pudo guardar el usuario.');
-      return false;
+      const message = err.message || 'No se pudo guardar el usuario.';
+      setError(message);
+      return { error: message };
     }
   };
 
