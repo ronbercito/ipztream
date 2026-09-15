@@ -26,7 +26,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 7. Logs / Auditoría / Estadísticas — **COMPLETADA Y VALIDADA**.
 8. Backend real + MariaDB — **COMPLETADA Y VALIDADA**.
 9. Autenticación real + RBAC — **COMPLETADA Y VALIDADA**.
-10. Usuarios IPTV / Panel Cliente — **EN PROGRESO**.
+10. Usuarios IPTV / Panel Cliente — **IMPLEMENTADA, PENDIENTE DE VALIDACIÓN**.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -41,40 +41,49 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Etapas 1–9 están validadas por el usuario.
 
 ## Etapa 10 — Usuarios IPTV / Panel Cliente
-**Objetivo:** convertir la gestión de usuarios IPTV en una base real para cuentas de clientes y para la futura aplicación cliente, sin confundirlas con las cuentas administrativas `admin_users`.
+**Estado técnico:** implementación inicial terminada; pendiente de instalación/build y validación funcional del usuario.
 
-### Alcance inicial
-- Mantener `admin_users` exclusivamente para administración/RBAC.
-- Evolucionar `users` para clientes IPTV.
-- Definir identidad de cliente, credenciales, estado, paquete, vencimiento y límite de conexiones.
-- Preparar dispositivos y sesiones de cliente para las siguientes etapas.
-- Mantener API/servicios separados de la UI.
-- Conservar compatibilidad con módulos existentes de paquetes, conexiones y dispositivos siempre que sea posible.
-- No implementar todavía el motor de streaming real; esta etapa prepara su autorización y consumo futuro.
+### Implementado
+- `server/user-service.js`: servicio separado para clientes IPTV.
+- Tabla `user_credentials` en MariaDB para mantener los hashes de contraseña fuera del payload del usuario.
+- Contraseñas de cliente protegidas con el mismo esquema `scrypt` seguro utilizado por la autenticación administrativa.
+- CRUD real de `/api/users` y `/api/users/:id` detrás del gateway autenticado.
+- Validación de usuario, nombre, paquete, vencimiento, estado y máximo de conexiones.
+- El máximo de conexiones se limita al máximo definido por el paquete.
+- El estado se presenta como `Vencido` cuando la fecha ha expirado aunque el registro permanezca almacenado.
+- La API nunca devuelve el hash de contraseña; solo informa `passwordConfigured`.
+- Cambio de contraseña disponible al editar un cliente.
+- Eliminación de cliente elimina sus credenciales y desasocia sus dispositivos existentes.
+- RBAC ahora distingue `users.view`, `users.create`, `users.update` y `users.delete` también para rutas individuales.
+- `src/modules/users/` dejó de depender de `localStorage` y consume la API real.
+- El formulario de cliente permite seleccionar paquetes reales, vencimiento, conexiones y contraseña.
+- El filtro de paquetes se genera a partir de los paquetes existentes.
+- `database/schema.sql` documenta la nueva tabla de credenciales.
 
-### Diseño previsto
-El cliente IPTV deberá poder quedar asociado a:
-- cuenta/usuario
-- contraseña almacenada de forma segura
-- estado
-- paquete
-- fecha de vencimiento
-- límite de conexiones
-- dispositivos autorizados
-- sesiones activas
+### Archivos principales afectados
+- `server/user-service.js`
+- `server/secure-entry.js`
+- `server/auth.js`
+- `database/schema.sql`
+- `src/modules/users/Users.jsx`
+- `src/modules/users/components/UserForm.jsx`
+- `src/modules/users/components/UserFilters.jsx`
+- `src/modules/users/services/usersApi.js`
 
-La futura autenticación de clientes será independiente de la sesión administrativa y se utilizará posteriormente por la aplicación/portal del cliente.
+### Pendiente de validación
+1. Actualizar el servidor desde `main`.
+2. Ejecutar instalación/build.
+3. Confirmar que el servicio inicia y crea `user_credentials`.
+4. Abrir Usuarios IPTV.
+5. Crear un cliente con contraseña de 12+ caracteres.
+6. Confirmar persistencia tras recargar el panel.
+7. Editar paquete/vencimiento/estado/conexiones.
+8. Cambiar contraseña y confirmar que no se muestra en la API.
+9. Intentar usuario duplicado y comprobar rechazo.
+10. Eliminar cliente y comprobar desasociación de dispositivos.
+11. Confirmar que el panel administrativo sigue funcionando.
 
-### Criterios de cierre de la Etapa 10
-- CRUD y validaciones de clientes funcionales.
-- Persistencia en MariaDB.
-- Credenciales no almacenadas en texto plano.
-- Paquete y vencimiento gestionables.
-- Límite de conexiones validado.
-- Estado de cuenta validado.
-- Compatibilidad con módulos relacionados comprobada.
-- Build y API funcionales.
-- Usuario valida las pruebas antes de marcar la etapa como completada.
+**No se marca la Etapa 10 como completada hasta la validación del usuario.**
 
 ## Próxima fase
 Después de cerrar Etapa 10, Etapa 11 será la API/autenticación de clientes y sesiones de aplicación.
