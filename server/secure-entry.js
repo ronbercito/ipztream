@@ -2,6 +2,7 @@ import http from 'node:http';
 import { URL } from 'node:url';
 import { ensureAuthSchema, authenticate, getSessionUser, destroySession, serializeSessionCookie, clearSessionCookie, hasPermission, permissionForRequest } from './auth.js';
 import { addAudit } from './db.js';
+import { ensureUserSchema, listUsers, createUser, updateUser, deleteUser } from './user-service.js';
 
 const PUBLIC_PORT = Number(process.env.IPZTREAM_API_PORT || 3100);
 const INTERNAL_PORT = Number(process.env.IPZTREAM_INTERNAL_API_PORT || 3101);
@@ -30,6 +31,10 @@ function clientIp(req) {
   return String(req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket.remoteAddress || '').split(',')[0].trim();
 }
 
+function sessionToken(req) {
+  return decodeURIComponent((req.headers.cookie || '').match(/(?:^|;\s*)ipztream_session=([^;]+)/)?.[1] || '');
+}
+
 function proxyRequest(req, res, body) {
   const options = {
     hostname: HOST,
@@ -47,6 +52,27 @@ function proxyRequest(req, res, body) {
   proxy.on('error', (error) => send(res, 502, { message: `API interna no disponible: ${error.message}` }));
   if (body?.length) proxy.write(body);
   proxy.end();
+}
+
+async function handleUserApi(req, res, user) {
+  const pathname = new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname;
+  const match = pathname.match(/^\/api\/users(?:\/([^/]+))?$/);
+  if (!match) return false;
+  const id = match[1] ? decodeURIComponent(match[1]) : null;
+  const actor = user.username;
+
+  try {
+    if (req.method === 'GET' && !id) return send(res, 200, { users: await listUsers() });
+    if (req.method === 'POST' && !id) return send(res, 201, await createUser(await readBody(req), actor));
+    if (req.method === 'PUT' && id) {
+      const updated = await updateUser(id, await readBody(req), actor);
+      return send(res, updated ? 200 : 404, updated || { message: 'Usuario no encontrado.' });
+    }
+    if (req.method === 'DELETE' && id) return send(res, (await deleteUser(id, actor)) ? 200 : 404, { ok: true });
+    return send(res, 405, { message: 'Método no permitido.' });
+  } catch (error) {
+    return send(res, error.status || 400, { message: error.message || 'No se pudo procesar el usuario.' });
+  }
 }
 
 async function handle(req, res) {
@@ -77,13 +103,13 @@ async function handle(req, res) {
   }
 
   if (pathname === '/api/auth/me' && req.method === 'GET') {
-    const user = await getSessionUser((req.headers.cookie || '').match(/(?:^|;\s*)ipztream_session=([^;]+)/)?.[1] || '');
+    const user = await getSessionUser(sessionToken(req));
     if (!user) return send(res, 401, { message: 'No autenticado.' });
     return send(res, 200, { user });
   }
 
   if (pathname === '/api/auth/logout' && req.method === 'POST') {
-    const token = decodeURIComponent((req.headers.cookie || '').match(/(?:^|;\s*)ipztream_session=([^;]+)/)?.[1] || '');
+    const token = sessionToken(req);
     const user = await getSessionUser(token);
     await destroySession(token);
     if (user) await addAudit({ action: 'LOGOUT', module: 'auth', actor: user.username, detail: 'Cierre de sesión', metadata: { ip: clientIp(req) } });
@@ -92,12 +118,13 @@ async function handle(req, res) {
 
   if (pathname === '/api/health') return proxyRequest(req, res);
 
-  const token = decodeURIComponent((req.headers.cookie || '').match(/(?:^|;\s*)ipztream_session=([^;]+)/)?.[1] || '');
-  const user = await getSessionUser(token);
+  const user = await getSessionUser(sessionToken(req));
   if (!user) return send(res, 401, { message: 'Autenticación requerida.' });
 
   const permission = permissionForRequest(req.method, pathname);
   if (permission && !hasPermission(user, permission)) return send(res, 403, { message: 'No tienes permiso para realizar esta acción.', permission });
+
+  if (pathname === '/api/users' || pathname.startsWith('/api/users/')) return handleUserApi(req, res, user);
 
   let body = null;
   if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -117,6 +144,7 @@ async function handle(req, res) {
 await ensureAuthSchema();
 process.env.IPZTREAM_API_PORT = String(INTERNAL_PORT);
 await import('./index.js');
+await ensureUserSchema();
 
 const server = http.createServer((req, res) => {
   handle(req, res).catch((error) => {
