@@ -16,8 +16,8 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - La arquitectura debe mantenerse modular: cada menú principal tendrá su módulo y las opciones importantes se separarán en componentes, servicios/API y estilos cuando corresponda.
 - Evitar concentrar nuevas funcionalidades en `src/main.jsx`.
 
-## Estado de las etapas del panel
-1. Configuración — **COMPLETADA**.
+## Estado de las etapas
+1. Configuración — **COMPLETADA Y VALIDADA**.
 2. Usuarios — **COMPLETADA Y VALIDADA**.
 3. Servidores / Nodos — **COMPLETADA Y VALIDADA**.
 4. Canales / Fuentes — **COMPLETADA Y VALIDADA**.
@@ -25,29 +25,52 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 6. Paquetes / Conexiones / Dispositivos — **COMPLETADA Y VALIDADA**.
 7. Logs / Auditoría / Estadísticas — **COMPLETADA Y VALIDADA**.
 8. Backend real + MariaDB — **COMPLETADA Y VALIDADA**.
-9. Autenticación real + RBAC — **EN PROGRESO**.
+9. Autenticación real + RBAC — **IMPLEMENTADA, PENDIENTE DE VALIDACIÓN DEL USUARIO**.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
-- Rama principal: `main`
-- Versión visible actual: `0.1.0`.
-- Entorno de prueba: Debian 13 en contenedor.
-- Node.js: `v22.23.2`.
-- npm: `10.9.8`.
+- Rama: `main`
+- Versión visible: `0.1.0`.
+- Debian 13 / Node.js 22 / npm 10 en el entorno de prueba.
 - IP de prueba: `192.168.10.220`.
-- URL de prueba: `http://192.168.10.220`.
-- Nginx publica el panel desde `/var/www/ipztream`.
+- Nginx publica `/var/www/ipztream`.
 - Código fuente: `/opt/ipztream`.
-- Servicio API: `ipztream-api`.
-- Las etapas 1–8 fueron implementadas y validadas por el usuario.
-- **MariaDB es la base de datos principal y permanente definida para IPZStream.**
-- La implementación PostgreSQL de la Etapa 8 fue reemplazada y no forma parte de la arquitectura operativa.
-- La corrección 8.2 eliminó el fallo de inicialización provocado por múltiples sentencias DDL enviadas en una sola consulta.
-- En la validación real, MariaDB creó correctamente las 11 tablas: `audit_logs`, `channels`, `connections`, `devices`, `epg`, `m3u`, `nodes`, `packages`, `series`, `users` y `vod`.
-- La API responde correctamente en `127.0.0.1:3100` y `/api/health` confirma `database: mariadb`.
-- El servicio `ipztream-api` permanece activo después de reinicio y la API continúa respondiendo correctamente.
+- Servicio: `ipztream-api`.
+- MariaDB es la base principal y permanente.
+- Etapas 1–8 están validadas por el usuario.
 
-## Respaldos importantes
+## Etapa 9 — Estado técnico implementado
+- `server/auth.js` contiene hashing `scrypt`, roles, permisos, sesiones y consultas de identidad.
+- `server/secure-entry.js` funciona como gateway de autenticación delante de la API existente.
+- La API interna usa `127.0.0.1:3101`; el gateway ocupa `127.0.0.1:3100`.
+- `/api/health` queda público.
+- `/api/auth/login`, `/api/auth/me` y `/api/auth/logout` gestionan la sesión administrativa.
+- Los endpoints administrativos requieren sesión y permiso RBAC.
+- La sesión se almacena mediante cookie `HttpOnly`, `SameSite=Strict` y expiración configurable.
+- MariaDB añade tablas `admin_roles`, `admin_permissions`, `admin_role_permissions`, `admin_users` y `admin_sessions`.
+- Roles iniciales: `superadmin`, `admin`, `operator`, `viewer`.
+- `server/bootstrap-admin.js` permite crear el primer administrador una sola vez; la contraseña inicial no se guarda en el env del servicio.
+- `install.sh` integra el bootstrap inicial y comprueba que `/api/nodes` devuelve `401` sin sesión.
+- `src/auth-guard.js` impide cargar el panel hasta validar una sesión y ofrece cierre de sesión.
+- `index.html` carga `src/auth-guard.js` como punto de entrada.
+
+## Validación pendiente de Etapa 9
+En el contenedor se debe comprobar, como mínimo:
+1. `git pull origin main`.
+2. `bash install.sh`.
+3. Build sin errores.
+4. Servicio activo.
+5. MariaDB con las tablas RBAC.
+6. Credenciales iniciales mostradas por el instalador.
+7. `/api/health` responde `200`.
+8. `/api/nodes` sin sesión responde `401`.
+9. Login devuelve sesión.
+10. `/api/auth/me` devuelve usuario, rol y permisos.
+11. Logout invalida la sesión.
+12. El panel web muestra login y después permite entrar al panel.
+13. Un usuario con permisos limitados recibe `403` al intentar una operación no autorizada.
+
+## Respaldos
 - `backup/pre-etapa-1-13-configuracion`
 - `backup/pre-etapa-2-13-usuarios`
 - `backup/pre-correccion-configuracion-completa`
@@ -63,60 +86,16 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - `backup/pre-correccion-schema-mariadb-multistatements`
 - `backup/pre-etapa-9-auth-rbac`
 
-## Referencia visual aprobada
-Sidebar azul oscuro, barra superior, búsqueda global, dashboard claro, tarjetas KPI, gráficos, estado de nodos, tablas administrativas, filtros, badges y acciones rápidas. No generar nuevos mockups salvo solicitud explícita.
+## Próxima fase
+La siguiente etapa no se inicia hasta cerrar y validar la Etapa 9. Después se podrá avanzar a administración avanzada de usuarios/permisos, auditoría asociada a identidad, telemetría real, sesiones de streaming, licenciamiento y updater firmado.
 
-## Etapa 9 — Autenticación real + RBAC
-### Estado
-**EN PROGRESO — INICIO REGISTRADO**
-
-### Objetivo
-Construir la primera capa de seguridad real de IPZStream sobre el backend/MariaDB ya validado, sin romper los módulos administrativos existentes.
-
-### Alcance de esta etapa
-- Usuarios administrativos reales almacenados en MariaDB.
-- Hash seguro de contraseñas; nunca guardar contraseñas en texto plano.
-- Login y logout del panel.
-- Sesiones/tokens con expiración y validación en backend.
-- Roles y permisos RBAC.
-- Protección de endpoints administrativos.
-- Identidad del usuario disponible para auditoría.
-- Preparar permisos por módulo para ampliaciones posteriores.
-- Mantener separadas autenticación, autorización, acceso a datos y UI.
-
-### Criterios de diseño
-- No usar `localStorage` como fuente de verdad para autenticación.
-- Las credenciales y secretos deben permanecer en backend/variables de entorno.
-- El frontend no debe contener contraseñas ni secretos del servidor.
-- Los endpoints protegidos deben rechazar solicitudes no autenticadas.
-- Los permisos deben evaluarse en backend, no únicamente ocultando botones en React.
-- No modificar innecesariamente los contratos existentes de los módulos ya validados.
-
-### Archivos previstos
-Se podrán crear/modificar únicamente los archivos necesarios, previsiblemente `server/index.js`, `server/db.js`, `database/schema.sql`, módulos nuevos bajo `src/modules/auth/` o componentes relacionados, servicios de autenticación y documentación/configuración. La estructura final se confirmará durante la implementación.
-
-### Respaldo
-`backup/pre-etapa-9-auth-rbac`.
-
-### Resultado esperado
-Al finalizar la etapa, IPZStream deberá disponer de un acceso administrativo real con identidad, roles y permisos validados por backend/MariaDB, con endpoints protegidos y auditoría preparada para registrar el actor autenticado.
-
-## Fases posteriores
-1. Administración avanzada de usuarios y permisos.
-2. Auditoría asociada a usuario/rol/IP/sesión.
-3. Health checks y telemetría real de nodos/streams.
-4. Motor real de sesiones y reproducción.
-5. Licenciamiento.
-6. Releases/updater firmado para clientes.
-7. Endurecimiento y protección del código en instalaciones finales.
-
-## Protocolo obligatorio por etapa
-1. **Actualizar primero `CONTINUITY.md`.**
+## Protocolo obligatorio
+1. Actualizar primero `CONTINUITY.md`.
 2. Registrar la intención/corrección en `BITACORA.md`.
 3. Crear respaldo cuando el cambio sea estructural.
-4. Implementar el cambio.
+4. Implementar.
 5. Ejecutar build/verificación.
-6. Probar en el contenedor cuando corresponda.
-7. Registrar el resultado final en la bitácora.
-8. Publicar la actualización.
-9. Informar al usuario qué se cambió y cómo probarlo.
+6. Probar en el contenedor.
+7. Registrar resultado.
+8. Publicar.
+9. Informar al usuario qué cambió y cómo probarlo.
