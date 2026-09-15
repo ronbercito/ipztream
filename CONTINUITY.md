@@ -26,7 +26,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 7. Logs / Auditoría / Estadísticas — **COMPLETADA Y VALIDADA**.
 8. Backend real + MariaDB — **COMPLETADA Y VALIDADA**.
 9. Autenticación real + RBAC — **COMPLETADA Y VALIDADA**.
-10. Usuarios IPTV / Panel Cliente — **PENDIENTE DE INICIO**.
+10. Usuarios IPTV / Panel Cliente — **EN PROGRESO**.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -40,30 +40,44 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - MariaDB es la base principal y permanente.
 - Etapas 1–9 están validadas por el usuario.
 
-## Etapa 9 — Autenticación real + RBAC — CERRADA
-- `server/auth.js` contiene hashing de contraseñas con `scrypt`, roles, permisos, sesiones y consultas de identidad.
-- `server/secure-entry.js` funciona como gateway de autenticación delante de la API existente.
-- La API interna usa `127.0.0.1:3101`; el gateway ocupa `127.0.0.1:3100`.
-- `/api/health` queda público.
-- `/api/auth/login`, `/api/auth/me` y `/api/auth/logout` gestionan la sesión administrativa.
-- Los endpoints administrativos requieren sesión y permiso RBAC.
-- La sesión se almacena mediante cookie `HttpOnly`, `SameSite=Strict` y expiración configurable.
-- MariaDB añade tablas `admin_roles`, `admin_permissions`, `admin_role_permissions`, `admin_users` y `admin_sessions`.
-- Roles iniciales: `superadmin`, `admin`, `operator`, `viewer`.
-- `server/bootstrap-admin.js` permite crear el primer administrador una sola vez; la contraseña inicial no se guarda en el env del servicio.
-- `install.sh` integra el bootstrap inicial y comprueba que `/api/nodes` devuelve `401` sin sesión.
-- `src/auth-guard.js` impide cargar el panel hasta validar una sesión y ofrece cierre de sesión.
-- `index.html` carga `src/auth-guard.js` como punto de entrada.
-- La corrección del hash de sesión usa SHA-256 y mantiene `admin_sessions.token_hash` en `CHAR(64)`.
+## Etapa 10 — Usuarios IPTV / Panel Cliente
+**Objetivo:** convertir la gestión de usuarios IPTV en una base real para cuentas de clientes y para la futura aplicación cliente, sin confundirlas con las cuentas administrativas `admin_users`.
 
-## Validación final de Etapa 9
-El usuario confirmó las pruebas finales de seguridad y sesión:
-1. Cierre de sesión correcto.
-2. Tras cerrar sesión, `/api/nodes` responde `{"message":"Autenticación requerida."}`, confirmando que el endpoint protegido no es accesible sin sesión.
-3. El inicio de sesión posterior funciona normalmente.
-4. `/api/auth/me` devuelve correctamente el administrador autenticado, rol `superadmin` y sus permisos.
+### Alcance inicial
+- Mantener `admin_users` exclusivamente para administración/RBAC.
+- Evolucionar `users` para clientes IPTV.
+- Definir identidad de cliente, credenciales, estado, paquete, vencimiento y límite de conexiones.
+- Preparar dispositivos y sesiones de cliente para las siguientes etapas.
+- Mantener API/servicios separados de la UI.
+- Conservar compatibilidad con módulos existentes de paquetes, conexiones y dispositivos siempre que sea posible.
+- No implementar todavía el motor de streaming real; esta etapa prepara su autorización y consumo futuro.
 
-**Conclusión:** la autenticación administrativa, la sesión, el logout y la protección de los endpoints quedaron validados. La comprobación específica de un rol restringido con `403` queda como prueba adicional futura, no bloqueante para el cierre de esta etapa.
+### Diseño previsto
+El cliente IPTV deberá poder quedar asociado a:
+- cuenta/usuario
+- contraseña almacenada de forma segura
+- estado
+- paquete
+- fecha de vencimiento
+- límite de conexiones
+- dispositivos autorizados
+- sesiones activas
+
+La futura autenticación de clientes será independiente de la sesión administrativa y se utilizará posteriormente por la aplicación/portal del cliente.
+
+### Criterios de cierre de la Etapa 10
+- CRUD y validaciones de clientes funcionales.
+- Persistencia en MariaDB.
+- Credenciales no almacenadas en texto plano.
+- Paquete y vencimiento gestionables.
+- Límite de conexiones validado.
+- Estado de cuenta validado.
+- Compatibilidad con módulos relacionados comprobada.
+- Build y API funcionales.
+- Usuario valida las pruebas antes de marcar la etapa como completada.
+
+## Próxima fase
+Después de cerrar Etapa 10, Etapa 11 será la API/autenticación de clientes y sesiones de aplicación.
 
 ## Respaldos
 - `backup/pre-etapa-1-13-configuracion`
@@ -81,9 +95,7 @@ El usuario confirmó las pruebas finales de seguridad y sesión:
 - `backup/pre-correccion-schema-mariadb-multistatements`
 - `backup/pre-etapa-9-auth-rbac`
 - `backup/pre-correccion-etapa-9-session-token-hash`
-
-## Próxima fase
-La **Etapa 10 — Usuarios IPTV / Panel Cliente** será la siguiente. Se diseñará teniendo desde el inicio en cuenta autenticación de clientes, paquetes, vencimientos, dispositivos y límites de conexiones para integrarla posteriormente con el streaming real y la aplicación cliente.
+- `backup/pre-etapa-10-usuarios-iptv`
 
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
