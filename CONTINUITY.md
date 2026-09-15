@@ -87,8 +87,8 @@ src/
 2. **Usuarios** — consolidar el módulo de usuarios, CRUD de demostración, filtros, validaciones, persistencia local temporal y preparación limpia para API/RBAC. **COMPLETADA Y VALIDADA.**
 3. **Servidores / Nodos** — módulo independiente para alta, estado y gestión de nodos. **COMPLETADA Y VALIDADA.**
 4. **Canales / Fuentes** — módulo independiente para administrar canales, fuentes de streaming, estado y parámetros de reproducción. **COMPLETADA Y VALIDADA.**
-5. **VOD / Series / EPG / M3U** — separar y consolidar gestión de contenido y listas. **IMPLEMENTADA, PENDIENTE DE VALIDACIÓN.**
-6. **Paquetes / Conexiones / Dispositivos** — gestión comercial y control de sesiones/dispositivos.
+5. **VOD / Series / EPG / M3U** — separar y consolidar gestión de contenido y listas. **COMPLETADA Y VALIDADA.**
+6. **Paquetes / Conexiones / Dispositivos** — gestión comercial y control de sesiones/dispositivos. **EN CURSO.**
 7. **Logs / Auditoría / Estadísticas** — observabilidad, métricas y cierre de integración visual del panel.
 
 ## Estado actual
@@ -112,7 +112,7 @@ src/
 - Canales está separado en `src/modules/channels/`, con API compartida y persistencia en `data/channels.json`.
 - Canales fue validado por el usuario: nuevo canal, edición, activar/desactivar, eliminar, búsqueda, filtros y administración de fuentes.
 - El estado `Activo/Activa` de Canales representa actualmente estado administrativo/demo; todavía no equivale a una comprobación real de conectividad del stream.
-- VOD, Series, EPG y M3U ya tienen módulos independientes y endpoints API compartidos; la validación del usuario está pendiente.
+- VOD, Series, EPG y M3U ya tienen módulos independientes y endpoints API compartidos y fueron validados por el usuario.
 - El backend real completo con PostgreSQL, autenticación/RBAC y API integral todavía no está conectado.
 - El botón `Actualizar` del panel todavía es una interfaz de actualización; el updater real se implementará posteriormente mediante releases controlados y firmados.
 
@@ -141,35 +141,35 @@ No generar nuevos mockups salvo solicitud explícita; utilizar la referencia vis
 - Nodos: alta, aparición del nodo, sincronización entre navegadores/perfiles, rechazo de duplicados, mensaje visible, formulario sin parpadeo/cierre y modificación posterior de IP; todo validado por el usuario.
 - API de Canales: `GET /api/channels` responde correctamente.
 - Canales: nuevo canal, edición, activar/desactivar, eliminación, búsqueda, filtros y administración de fuentes; todo validado por el usuario.
+- VOD: alta, edición, eliminación y búsqueda validadas por el usuario.
+- Series: creación, edición y eliminación validadas por el usuario.
+- EPG: alta, edición, eliminación y búsqueda validadas por el usuario.
+- M3U: alta, edición, eliminación, búsqueda y persistencia validadas por el usuario.
 
 ### Etapa actual
-**Etapa 5/7 — VOD / Series / EPG / M3U: IMPLEMENTADA, PENDIENTE DE VALIDACIÓN FUNCIONAL.**
+**Etapa 6/7 — Paquetes / Conexiones / Dispositivos: EN CURSO.**
 
-Implementación realizada:
-- `src/modules/vod/Vod.jsx` + `vod.css`: VOD y Series con alta, edición, eliminación y búsqueda.
-- `src/modules/epg/Epg.jsx` + `epg.css`: programación EPG con alta, edición, eliminación y búsqueda.
-- `src/modules/m3u/M3u.jsx` + `m3u.css`: listas M3U con alta, edición, eliminación, búsqueda e interfaz inicial de importación/exportación.
-- `src/main.jsx`: integración directa de los tres módulos sin trasladar su lógica al archivo principal.
-- `server/index.js`: persistencia compartida para VOD, Series, EPG y M3U mediante archivos JSON temporales y endpoints CRUD.
+### Objetivo de Etapa 6
+Construir tres módulos independientes y conectados a una API compartida:
+- **Paquetes:** planes comerciales con nombre, descripción, precio, duración, límite de conexiones, estado y cantidad de usuarios asociados.
+- **Conexiones:** sesiones/conexiones activas con usuario, dispositivo, IP, nodo, canal/stream, inicio, última actividad y estado; incluir búsqueda, filtros y cierre de sesión administrativo.
+- **Dispositivos:** inventario de dispositivos asociados a usuarios, identificador, tipo, IP, nodo, última actividad, estado y posibilidad de desvincular.
 
-### Pendiente de validación
-1. Sincronizar el contenedor con `origin/main`.
-2. Ejecutar `npm install`.
-3. Ejecutar `npm run build`.
-4. Reiniciar `ipztream-api`.
-5. Publicar el `dist` actualizado en `/var/www/ipztream`.
-6. Probar VOD.
-7. Probar Series.
-8. Probar EPG.
-9. Probar M3U.
-10. Confirmar persistencia después de recargar y, cuando corresponda, desde otro navegador.
+### Criterios de validación de Etapa 6
+1. Crear, editar, activar/desactivar y eliminar un paquete.
+2. Validar datos básicos de paquete y evitar duplicados relevantes.
+3. Crear/visualizar conexiones de prueba y comprobar búsqueda/filtros.
+4. Cerrar una conexión y verificar cambio de estado.
+5. Crear/visualizar dispositivos y comprobar búsqueda/filtros.
+6. Asociar/desvincular un dispositivo de un usuario cuando corresponda.
+7. Confirmar persistencia después de recargar.
+8. Confirmar que la información compartida por API no dependa únicamente de `localStorage`.
 
-### Límites conocidos de esta etapa
-- La importación M3U todavía registra la fuente/lista y no realiza sincronización automática con proveedores externos.
-- La exportación M3U está preparada a nivel de interfaz/API para una iteración posterior.
-- EPG todavía no ingiere fuentes XMLTV externas.
-- Series usa una estructura inicial de temporadas/episodios; la edición granular de episodios se ampliará posteriormente.
-- No se implementan todavía reproductor, transcodificación, health checks reales, PostgreSQL, autenticación/RBAC ni balanceo.
+### Límites de Etapa 6
+- Las conexiones y dispositivos serán inicialmente datos administrativos/de demostración; no se implementará todavía un motor real de sesiones de streaming.
+- No se implementará todavía facturación, pagos ni lógica comercial avanzada.
+- No se implementará todavía autenticación/RBAC completa.
+- La integración profunda con PostgreSQL queda para una etapa posterior de backend.
 
 ## Protocolo obligatorio por etapa
 1. **Actualizar primero `CONTINUITY.md`.**
@@ -183,4 +183,4 @@ Implementación realizada:
 9. Informar al usuario qué se cambió y cómo probarlo.
 
 ## Próximo paso
-Validar la implementación de Etapa 5/7 en el contenedor. No cerrar la etapa hasta que el usuario confirme VOD, Series, EPG y M3U.
+Registrar el inicio de Etapa 6/7 en `BITACORA.md`, crear el respaldo estructural y comenzar la implementación modular de Paquetes, Conexiones y Dispositivos.
