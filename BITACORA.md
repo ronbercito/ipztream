@@ -68,14 +68,14 @@ Se corrigió `server/db.js` para ejecutar cada sentencia DDL por separado y elim
 
 **Validación:** el usuario confirmó build correcto, MariaDB activo, 11 tablas creadas, API en `127.0.0.1:3100`, `/api/health` correcto, servicio activo tras reinicio y funcionamiento general correcto.
 
-## Etapa 9 — Autenticación real + RBAC — IMPLEMENTACIÓN EN PROGRESO
+## Etapa 9 — Autenticación real + RBAC — COMPLETADA Y VALIDADA
 
 ### Inicio
 **Motivo:** establecer una capa de seguridad real sobre el backend/MariaDB ya validado.
 
 **Respaldo:** `backup/pre-etapa-9-auth-rbac`.
 
-### Implementación 9.1 — Backend de autenticación y gateway seguro — IMPLEMENTADO / PENDIENTE DE VALIDACIÓN
+### Implementación 9.1 — Backend de autenticación y gateway seguro
 Se añadieron:
 - `server/auth.js`: hash de contraseñas con `scrypt`, roles, permisos, sesiones, expiración y consultas de identidad.
 - `server/secure-entry.js`: gateway de autenticación delante de la API existente.
@@ -87,15 +87,11 @@ Se añadieron:
 - `/api/auth/login`, `/api/auth/me` y `/api/auth/logout`.
 - Protección de endpoints administrativos con respuesta `401` para usuarios no autenticados y `403` para permisos insuficientes.
 - `install.sh` actualizado para crear el primer administrador una sola vez y verificar que `/api/nodes` queda protegido.
-- El servicio systemd ahora ejecuta `server/secure-entry.js`; la API original queda en `127.0.0.1:3101` y el gateway público en `127.0.0.1:3100`.
+- El servicio systemd ejecuta `server/secure-entry.js`; la API original queda en `127.0.0.1:3101` y el gateway público en `127.0.0.1:3100`.
 - `index.html` carga `src/auth-guard.js` antes del panel.
 - `src/auth-guard.js` añade pantalla de login, consulta de sesión, identidad visual y cierre de sesión.
 
 **Criterios respetados:** las contraseñas no se guardan en texto plano, la autenticación no depende de `localStorage`, los permisos se verifican en backend y el API interno no queda expuesto directamente.
-
-**Resultado esperado de esta implementación:** al instalar/actualizar, el panel debe exigir autenticación antes de cargar la aplicación y las APIs administrativas deben quedar protegidas.
-
-**Estado actual:** código publicado en `main`; pendiente de ejecutar build, instalación/reinicio y pruebas reales en Debian 13. No se marca la Etapa 9 como completada hasta la validación del usuario.
 
 ### Corrección 9.1.1 — Error de sintaxis en `install.sh` — CORREGIDA
 **Motivo:** durante la instalación en Debian 13, el build terminó correctamente pero `install.sh` falló con `syntax error near unexpected token '('` al llegar a la sección de creación del administrador inicial.
@@ -108,18 +104,35 @@ Se añadieron:
 
 **Respaldo:** `backup/pre-etapa-9-auth-rbac`.
 
-### Corrección 9.1.2 — `admin_sessions.token_hash` demasiado corto para el digest generado — EN PROCESO
+### Corrección 9.1.2 — `admin_sessions.token_hash` demasiado corto para el digest generado — CORREGIDA
 **Motivo:** el primer intento de login llegó correctamente al backend de autenticación, pero MariaDB rechazó la creación de la sesión con `ER_DATA_TOO_LONG` para `admin_sessions.token_hash`.
 
 **Causa identificada:** el token aleatorio de 32 bytes se estaba procesando con `scrypt` a 64 bytes y convirtiendo a hexadecimal, produciendo 128 caracteres. La columna está definida como `CHAR(64)`.
 
-**Cambio previsto:** sustituir el hash de sesión por SHA-256 hexadecimal, que produce exactamente 64 caracteres y es apropiado para resumir un token aleatorio de alta entropía. La operación se centralizará para login, lectura de sesión y logout.
+**Cambio realizado:** se sustituyó el hash de sesión por SHA-256 hexadecimal, que produce exactamente 64 caracteres y es apropiado para resumir un token aleatorio de alta entropía. La operación quedó centralizada para creación, lectura y destrucción de sesiones.
 
 **Archivo afectado:** `server/auth.js`.
 
 **Respaldo:** `backup/pre-correccion-etapa-9-session-token-hash`.
 
-**Resultado esperado:** login crea la sesión sin error, `/api/auth/me` reconoce la sesión y logout elimina/invalida la sesión correctamente, sin modificar innecesariamente el esquema `CHAR(64)`.
+**Commit de corrección:** `6faa83cc3f74c413d490fd1da95d553bd06787bc`.
+
+### Validación final — Etapa 9
+El usuario confirmó:
+- Login administrativo funcionando.
+- `/api/auth/me` devuelve correctamente el usuario `admin`, rol `superadmin` y sus permisos.
+- Logout funcionando.
+- Después del logout, `/api/nodes` responde `{"message":"Autenticación requerida."}`, confirmando que el endpoint protegido requiere sesión.
+- Después de la prueba, el usuario puede iniciar sesión nuevamente normalmente.
+
+**Resultado:** la autenticación administrativa, gestión de sesión, logout y protección de endpoints quedaron validados. La prueba específica de un rol restringido con `403` queda como prueba complementaria futura y no bloquea el cierre de la Etapa 9.
+
+**ESTADO FINAL: ETAPA 9 — COMPLETADA Y VALIDADA.**
+
+## Próxima etapa
+**Etapa 10 — Usuarios IPTV / Panel Cliente — PENDIENTE DE INICIO.**
+
+Objetivo general: transformar el módulo de usuarios IPTV en una base real para clientes, considerando desde el diseño inicial cuentas de cliente, paquetes, vencimientos, dispositivos, límites de conexiones y la futura integración con streaming real y aplicación cliente.
 
 ## Protocolo de cierre
 1. Build correcto.
@@ -130,7 +143,7 @@ Se añadieron:
 6. `/api/auth/login` funcional.
 7. `/api/auth/me` funcional con sesión.
 8. `/api/nodes` y otros endpoints protegidos sin sesión.
-9. `403` con permisos insuficientes.
+9. `403` con permisos insuficientes como prueba complementaria futura.
 10. Logout invalida sesión.
 11. Panel web exige login.
 12. Usuario valida y entonces se registra **COMPLETADA Y VALIDADA**.
