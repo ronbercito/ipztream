@@ -90,17 +90,10 @@ export async function ensureAuthSchema() {
   ];
   for (const statement of statements) await pool.query(statement);
 
-  for (const [name, description] of roles) {
-    const id = name;
-    await pool.query('INSERT IGNORE INTO admin_roles (id, name, description) VALUES (?, ?, ?)', [id, name, description]);
-  }
-  for (const [code, description] of permissions) {
-    await pool.query('INSERT IGNORE INTO admin_permissions (id, code, description) VALUES (?, ?, ?)', [code, code, description]);
-  }
+  for (const [name, description] of roles) await pool.query('INSERT IGNORE INTO admin_roles (id, name, description) VALUES (?, ?, ?)', [name, name, description]);
+  for (const [code, description] of permissions) await pool.query('INSERT IGNORE INTO admin_permissions (id, code, description) VALUES (?, ?, ?)', [code, code, description]);
   for (const [role, codes] of Object.entries(permissionGroups)) {
-    for (const code of codes) {
-      await pool.query('INSERT IGNORE INTO admin_role_permissions (role_id, permission_id) VALUES (?, ?)', [role, code]);
-    }
+    for (const code of codes) await pool.query('INSERT IGNORE INTO admin_role_permissions (role_id, permission_id) VALUES (?, ?)', [role, code]);
   }
   await pool.query('DELETE FROM admin_sessions WHERE expires_at < CURRENT_TIMESTAMP');
 }
@@ -125,7 +118,6 @@ export async function authenticate(username, password, metadata = {}) {
   const result = await pool.query('SELECT id, username, password_hash AS passwordHash, role_id AS roleId, status FROM admin_users WHERE username = ? LIMIT 1', [normalized]);
   const user = result.rows[0];
   if (!user || user.status !== 'active' || !(await verifyPassword(password, user.passwordHash))) return null;
-
   const token = randomBytes(32).toString('hex');
   const tokenHash = hashSessionToken(token);
   await pool.query('INSERT INTO admin_sessions (token_hash, admin_user_id, expires_at, ip_address, user_agent) VALUES (?, ?, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ? SECOND), ?, ?)', [tokenHash, user.id, SESSION_TTL_SECONDS, metadata.ip || '', metadata.userAgent || '']);
@@ -171,6 +163,13 @@ export function hasPermission(user, permission) {
 export function permissionForRequest(method, pathname) {
   if (pathname === '/api/audit') return 'audit.view';
   if (pathname === '/api/users') return method === 'GET' ? 'users.view' : method === 'POST' ? 'users.create' : null;
+  const userMatch = pathname.match(/^\/api\/users\/([^/]+)$/);
+  if (userMatch) {
+    if (method === 'GET') return 'users.view';
+    if (method === 'PUT') return 'users.update';
+    if (method === 'DELETE') return 'users.delete';
+    return null;
+  }
   const match = pathname.match(/^\/api\/(nodes|channels|vod|series|epg|m3u|packages|connections|devices)(?:\/|$)/);
   if (!match) return 'dashboard.view';
   const module = match[1];
