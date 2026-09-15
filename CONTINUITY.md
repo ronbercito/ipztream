@@ -26,7 +26,8 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 7. Logs / Auditoría / Estadísticas — **COMPLETADA Y VALIDADA**.
 8. Backend real + MariaDB — **COMPLETADA Y VALIDADA**.
 9. Autenticación real + RBAC — **COMPLETADA Y VALIDADA**.
-10. Usuarios IPTV / Panel Cliente — **IMPLEMENTADA, PENDIENTE DE VALIDACIÓN**.
+10. Usuarios IPTV / Panel Cliente — **COMPLETADA Y VALIDADA**.
+11. API de clientes + sesiones de aplicación — **SIGUIENTE ETAPA / PREPARADA**.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -38,108 +39,56 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Código fuente: `/opt/ipztream`.
 - Servicio: `ipztream-api`.
 - MariaDB es la base principal y permanente.
-- Etapas 1–9 están validadas por el usuario.
+- Etapas 1–10 están validadas por el usuario.
 
 ## Etapa 10 — Usuarios IPTV / Panel Cliente
-**Estado técnico:** implementación inicial terminada; pendiente de validación funcional. Se detectaron correcciones necesarias durante las primeras pruebas del usuario.
+**Estado:** COMPLETADA Y VALIDADA por el usuario.
 
-### Corrección 10.1 — Usuarios y paquetes
-**Problemas reportados:** al abrir Usuarios aparece `result.map is not a function`; además, al crear un cliente se exige un paquete, pero el módulo Paquetes no permite completar la creación.
+Se validó el CRUD real de clientes IPTV, asociación a paquetes, vencimiento/estado, límite de conexiones, edición completa de la cuenta, contraseña IPTV desde 1 carácter, mostrar/ocultar contraseña y persistencia. Se mantiene separación entre credenciales administrativas y credenciales IPTV: administradores con política mínima de 12 caracteres y clientes IPTV con mínimo de 1 carácter, ambos almacenados mediante hash.
 
-**Causa identificada:** `server/user-service.js` utiliza el contrato `{ rows, rowCount }` de `pool.query()` pero `getPackages()` intentaba ejecutar `.map()` directamente sobre el objeto de respuesta. Además, el servicio de usuarios no quedó conectado de forma completa al enrutador interno de `/api/users`, por lo que el CRUD real no estaba disponible de extremo a extremo.
-
-**Objetivo de la corrección:** normalizar el acceso a resultados MariaDB, registrar/asegurar `user_credentials` al iniciar la API, conectar correctamente las rutas CRUD de clientes al servicio de usuarios y revisar la comunicación del módulo Paquetes para que pueda crear/editar/eliminar paquetes desde el panel autenticado.
-
-**Resultado esperado:** Usuarios carga sin excepción, los paquetes se consultan correctamente, un paquete puede crearse y luego seleccionarse al crear un cliente, y el CRUD de clientes persiste en MariaDB sin contraseñas en texto plano.
-
-**Archivos previstos:** `server/user-service.js`, `server/index.js`, `server/secure-entry.js` si fuera necesario, `src/modules/packages/services/packagesApi.js` si fuera necesario, y documentación de etapa.
-
-**Respaldo existente:** `backup/pre-etapa-10-usuarios-iptv`.
-
-### Corrección 10.2 — Contraseña de cliente IPTV
-**Motivo:** al crear o editar un usuario IPTV, la validación actual exige una contraseña de 10–12 caracteres. El usuario solicita que la contraseña tenga únicamente un mínimo de 1 carácter.
-
-**Objetivo:** cambiar la validación de credenciales del cliente IPTV para aceptar contraseñas desde 1 carácter, tanto en la interfaz como en el backend, sin alterar el almacenamiento seguro mediante hash.
-
-**Archivos previstos:** `server/user-service.js`, `src/modules/users/components/UserForm.jsx` y cualquier servicio/API de usuarios que contenga la validación equivalente.
-
-**Resultado esperado:** una contraseña de 1 carácter sea aceptada al crear/editar un cliente IPTV y continúe almacenándose como hash, sin contraseña en texto plano.
-
-**Respaldo existente:** `backup/pre-etapa-10-usuarios-iptv`.
-
-### Corrección 10.3 — Mostrar/ocultar contraseña del cliente IPTV
-**Motivo:** el usuario solicita una opción para poder ver la contraseña mientras la escribe en el formulario de creación/edición del cliente IPTV.
-
-**Objetivo:** añadir un control visual de mostrar/ocultar contraseña en el campo de contraseña, sin modificar el almacenamiento seguro ni enviar la contraseña de vuelta desde el backend.
-
-**Archivo afectado:** `src/modules/users/components/UserForm.jsx`.
-
-**Resultado esperado:** el usuario podrá alternar entre contraseña oculta y visible mediante un botón/icono dentro del campo. Por defecto la contraseña permanecerá oculta.
-
-**Respaldo existente:** `backup/pre-etapa-10-usuarios-iptv`.
-
-### Corrección 10.4 — Edición de cliente con fecha de vencimiento futura
-**Estado:** EN PROGRESO.
-
-**Problema reportado:** al editar un cliente IPTV y colocar una fecha de vencimiento posterior, el cliente puede seguir mostrándose como `Vencido` y al guardar aparece el mensaje genérico `No se pudo guardar el cliente. Revisa los datos.`
-
-**Objetivo:** corregir la sincronización entre fecha de vencimiento y estado del cliente, evitando que un estado `Vencido` quede arrastrado al editar una fecha futura. El backend debe recalcular el estado coherentemente y la interfaz debe actualizarlo al cambiar la fecha.
-
-**Archivos previstos:** `server/user-service.js`, `src/modules/users/components/UserForm.jsx` y, si la verificación lo requiere, `src/modules/users/services/usersApi.js`.
-
-**Resultado esperado:** una fecha futura no se marque como `Vencido`; al editar un cliente previamente vencido y poner una fecha futura, el estado se normaliza a `Activo` salvo que el administrador seleccione explícitamente `Suspendido`. El guardado debe completarse y persistir correctamente en MariaDB.
+### Correcciones 10.1–10.5
+- Se corrigió la integración de Usuarios/Paquetes con MariaDB y las rutas `/api/users`.
+- Se corrigió la validación mínima de contraseña IPTV.
+- Se añadió mostrar/ocultar contraseña.
+- Se corrigió la normalización de vencimiento y estado.
+- Se separó `hashPassword()` administrativo de `hashIptvPassword()` y se habilitó la edición completa de la cuenta IPTV.
 
 **Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
 
-### Corrección 10.5 — Contraseña IPTV y edición completa del cliente
-**Estado:** EN PROGRESO.
+## Etapa 11 — API de clientes + sesiones de aplicación
+**Objetivo:** construir la primera capa real para que una aplicación IPTV pueda autenticarse como cliente, consultar su cuenta y trabajar con una sesión propia, separada de la autenticación administrativa del panel.
 
-**Problemas reportados:** el sistema sigue mostrando `La contraseña debe tener al menos 12 caracteres.` al trabajar con clientes IPTV; además, al editar un cliente el formulario aparentemente solo permite modificar el nombre y no la cuenta completa.
+### Alcance inicial
+- Login de cliente IPTV mediante usuario/contraseña.
+- Sesiones de cliente persistidas y revocables en MariaDB.
+- Token de sesión seguro, almacenado de forma no reversible en la base.
+- Expiración de sesión y cierre de sesión.
+- Endpoint de identidad `/api/client/me`.
+- Validación de estado y vencimiento del cliente antes de crear/usar una sesión.
+- Separación estricta entre sesiones administrativas y sesiones IPTV.
+- Base para autorizar posteriormente dispositivos, conexiones y reproducción.
+- Respuestas API preparadas para futuras aplicaciones web/móvil/TV.
+- Auditoría de login/logout y eventos relevantes.
 
-**Causa identificada:** `server/auth.js` mantiene una política global de 12 caracteres dentro de `hashPassword()`, pero esa función también es utilizada por las credenciales IPTV. La política administrativa y la de clientes deben estar separadas. Además, el formulario de cliente tiene el campo `username` explícitamente deshabilitado.
+### Restricciones de seguridad
+- La aplicación cliente no utilizará credenciales administrativas.
+- No se almacenarán contraseñas IPTV en texto plano.
+- No se usará `localStorage` como fuente de autoridad para autenticación.
+- El backend será la autoridad para sesión, estado, vencimiento y permisos del cliente.
+- No se expondrá directamente la contraseña ni el hash en ninguna respuesta API.
 
-**Objetivo:** separar el hash de credenciales administrativas del hash de clientes IPTV, permitiendo contraseñas IPTV desde 1 carácter sin reducir la política de administradores; habilitar la edición de los campos de la cuenta IPTV que corresponden al cliente (usuario, nombre, estado, paquete, conexiones, vencimiento y contraseña opcional).
+### Fuera de esta etapa
+- Reproducción real de streams.
+- Generación/entrega HLS.
+- Motor de streaming.
+- Límite real de conexiones simultáneas por dispositivo.
+- Tokens de reproducción protegidos.
+- Aplicación final para Android/TV/web.
 
-**Archivos previstos:** `server/auth.js`, `server/user-service.js`, `src/modules/users/components/UserForm.jsx`.
+Estos puntos se implementarán en las etapas posteriores.
 
-**Resultado esperado:** una contraseña IPTV de 1 carácter pueda crearse o cambiarse; las contraseñas administrativas continúen requiriendo 12 caracteres; al editar un cliente se puedan modificar los datos de la cuenta y guardar correctamente.
-
-**Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
-
-### Pendiente de validación
-- Build.
-- Reinicio del servicio.
-- Creación de paquete.
-- Carga de Usuarios.
-- Creación de cliente asociado a paquete.
-- Creación/edición de cliente con contraseña de 1 carácter.
-- Mostrar/ocultar contraseña en el formulario.
-- Edición completa de cuenta IPTV.
-- Persistencia y edición.
-- Corrección de vencimiento futuro y guardado de cliente.
-
-**No se marca la Etapa 10 como completada hasta la validación del usuario.**
-
-## Próxima fase
-Después de cerrar Etapa 10, Etapa 11 será la API/autenticación de clientes y sesiones de aplicación.
-
-## Respaldos
-- `backup/pre-etapa-1-13-configuracion`
-- `backup/pre-etapa-2-13-usuarios`
-- `backup/pre-correccion-configuracion-completa`
-- `backup/pre-etapa-2-7-usuarios`
-- `backup/pre-etapa-3-7-nodes`
-- `backup/pre-correccion-nodos-persistencia`
-- `backup/pre-etapa-4-7-channels`
-- `backup/pre-etapa-5-7-vod-series-epg-m3u`
-- `backup/pre-etapa-6-7-packages-connections-devices`
-- `backup/pre-etapa-7-7-logs-auditoria-estadisticas`
-- `backup/pre-etapa-8-backend-postgres`
-- `backup/pre-correccion-etapa-8-mariadb`
-- `backup/pre-correccion-schema-mariadb-multistatements`
-- `backup/pre-etapa-9-auth-rbac`
-- `backup/pre-correccion-etapa-9-session-token-hash`
-- `backup/pre-etapa-10-usuarios-iptv`
+## Respaldo de Etapa 11
+- `backup/pre-etapa-11-api-clientes-sesiones`
 
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
