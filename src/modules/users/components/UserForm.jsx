@@ -38,12 +38,12 @@ export default function UserForm({ user, packages = [], onSave, onClose }) {
       setError(`El máximo de conexiones debe estar entre 1 y ${packageMax}.`);
       return;
     }
-    if (!user && password.length < 12) {
-      setError('La contraseña inicial debe tener al menos 12 caracteres.');
+    if (!user && password.length < 1) {
+      setError('La contraseña es obligatoria y debe tener al menos 1 carácter.');
       return;
     }
-    if (user && password && password.length < 12) {
-      setError('La nueva contraseña debe tener al menos 12 caracteres.');
+    if (user && password && password.length < 1) {
+      setError('La nueva contraseña debe tener al menos 1 carácter.');
       return;
     }
 
@@ -68,7 +68,7 @@ export default function UserForm({ user, packages = [], onSave, onClose }) {
       <label>Paquete<select value={form.packageId} onChange={e=>set('packageId',e.target.value)} required><option value="">Seleccionar…</option>{packages.map(item => <option key={item.id} value={item.id}>{item.name} · {item.maxConnections} conexión(es)</option>)}</select></label>
       <label>Máximo de conexiones<input type="number" min="1" max={packageMax} value={form.maxConnections} onChange={e=>set('maxConnections',e.target.value)}/></label>
       <label>Vencimiento<input type="date" value={form.expiresAt || ''} onChange={e=>set('expiresAt',e.target.value)} required/></label>
-      <label className="full-width">{user ? 'Nueva contraseña (opcional)' : 'Contraseña'}<input type="password" minLength="12" autoComplete="new-password" value={form.password} onChange={e=>set('password',e.target.value)} placeholder={user ? 'Dejar vacío para conservar la actual' : 'Mínimo 12 caracteres'} required={!user}/></label>
+      <label className="full-width">{user ? 'Nueva contraseña (opcional)' : 'Contraseña'}<input type="password" minLength="1" autoComplete="new-password" value={form.password} onChange={e=>set('password',e.target.value)} placeholder={user ? 'Dejar vacío para conservar la actual' : 'Mínimo 1 carácter'} required={!user}/></label>
     </div>
 
     <div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button type="submit" className="primary-button"><Save size={15}/>Guardar cliente</button></div>
