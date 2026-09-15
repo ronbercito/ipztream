@@ -155,7 +155,7 @@ async function handle(req, res) {
   }
 
   if (req.method === 'GET' && pathname === '/api/health') {
-    try { return send(res, 200, await dbHealth()); } catch (error) { return send(res, 503, { ok: false, database: 'postgresql', message: error.message }); }
+    try { return send(res, 200, await dbHealth()); } catch (error) { return send(res, 503, { ok: false, database: 'mariadb', message: error.message }); }
   }
 
   if (req.method === 'GET' && pathname === '/api/audit') {
@@ -307,7 +307,7 @@ async function start() {
       send(res, error.status || 500, { message: error.message || 'Error interno del servidor.' });
     }
   });
-  server.listen(PORT, HOST, () => console.log(`IPZStream API escuchando en http://${HOST}:${PORT} con PostgreSQL`));
+  server.listen(PORT, HOST, () => console.log(`IPZStream API escuchando en http://${HOST}:${PORT} con MariaDB`));
 }
 
 start().catch(async (error) => {
