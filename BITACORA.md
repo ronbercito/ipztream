@@ -42,47 +42,41 @@ Se corrigió el hash de sesión para usar SHA-256 hexadecimal de 64 caracteres.
 Se implementó el modelo real de clientes IPTV con credenciales separadas, paquetes, vencimiento, estado, conexiones y edición completa. El usuario confirmó que funciona correctamente.
 
 ## Etapa 11 — API de clientes + sesiones de aplicación — COMPLETADA Y VALIDADA
+Se implementó login IPTV, sesiones en MariaDB, `/api/client/me`, logout, expiración y separación de sesiones administrativas. Las pruebas reales confirmaron login 200, `/me` 200, logout 200 y `/me` posterior 401.
+
+## Etapa 12 — Motor de streaming real + integración de fuentes — EN IMPLEMENTACIÓN
 
 ### Objetivo
-Crear la capa de autenticación y sesión específica para clientes IPTV, independiente de la autenticación administrativa, para que posteriormente una aplicación IPTV pueda iniciar sesión y consumir catálogo y reproducción de forma segura.
+Iniciar el primer motor de streaming real de IPZStream. No se utilizarán simulaciones: una fuente real configurada en un canal deberá poder ser procesada por FFmpeg y convertirse en una salida HLS reproducible.
 
-### Alcance implementado
-- Login IPTV mediante usuario y contraseña.
-- Sesiones temporales en MariaDB.
-- Token aleatorio almacenado únicamente como SHA-256.
-- `/api/client/me`.
-- `/api/client/logout`.
-- Expiración de sesiones.
-- Rechazo de clientes inválidos, vencidos o suspendidos.
-- Auditoría de login/logout.
-- Separación respecto a `admin_sessions`.
+### Alcance previsto
+- Integrar FFmpeg como dependencia del servidor.
+- Crear un servicio independiente para administrar procesos FFmpeg.
+- Iniciar, detener y reiniciar streams por canal.
+- Generar HLS (`index.m3u8` + segmentos) por canal.
+- Consultar estado real del proceso.
+- Detectar errores y terminación del proceso.
+- Evitar procesos duplicados por canal.
+- Registrar acciones en `audit_logs`.
+- Proteger el API de control mediante autenticación/RBAC.
+- Validar las fuentes y construir argumentos de FFmpeg sin shell injection.
+- Mantener el diseño preparado para futuros nodos de streaming.
 
-### Corrección 11.1 — Integración y modelo real de datos del cliente
-**Motivo:** la primera implementación del servicio de clientes asumía columnas físicas (`username`, `status`, `package_id`, etc.) que no existen en la tabla `users`; IPZStream guarda esos datos dentro del campo JSON `payload`. Además, las rutas `/api/client/*` todavía no estaban integradas en `secure-entry.js` y faltaba crear automáticamente `client_sessions`.
+### Archivos/componentes previstos
+- Servicio nuevo de streaming en `server/`.
+- Rutas API de control integradas de forma modular.
+- Configuración de salida HLS.
+- Ajustes del instalador para disponer de FFmpeg.
+- Ajustes de Nginx para servir exclusivamente la salida HLS de IPZStream.
+- Documentación de Etapa 12 y pruebas.
 
-**Archivos afectados:** `server/client-auth.js`, `server/secure-entry.js`, `database/schema.sql`.
+### Resultado esperado
+Un canal real podrá iniciar un proceso FFmpeg, generar una salida HLS verificable y reportar estado/error real. El objetivo de esta etapa es establecer la primera cadena de streaming real del proyecto, sin crear un reproductor simulado.
 
-**Cambios realizados:**
-- La autenticación IPTV consulta `users.payload` mediante extracción JSON.
-- Se añadió `ensureClientSessionSchema()` para crear y limpiar sesiones expiradas.
-- Se añadió `client_sessions` al esquema MariaDB con relación a `users`.
-- `secure-entry.js` integra login, identidad y logout IPTV antes de la autenticación administrativa.
-- La cookie de cliente es `HttpOnly`, `SameSite=Strict` y con ruta limitada a `/api/client`.
-- También se acepta `Authorization: Bearer ...` para aplicaciones IPTV.
-- Los clientes vencidos o suspendidos no pueden iniciar ni mantener sesión.
+### Seguridad
+FFmpeg será ejecutado como proceso hijo con argumentos controlados por IPZStream. No se ejecutarán comandos arbitrarios enviados por el cliente. Los identificadores de canal y rutas de salida se tratarán como datos controlados.
 
-### Validación final en servidor
-El usuario ejecutó las pruebas reales en el contenedor:
+### Respaldo
+Se creará `backup/pre-etapa-12-streaming-real` antes de los cambios estructurales de código.
 
-1. `POST /api/client/login` → **200 OK** y creación de sesión.
-2. `GET /api/client/me` con la cookie válida → **200 OK** y datos del cliente.
-3. `POST /api/client/logout` → **200 OK** y eliminación de la cookie.
-4. `GET /api/client/me` después del logout → **401 Unauthorized** con mensaje de sesión no válida o expirada.
-
-**Resultado:** la sesión IPTV queda correctamente creada, consultable, cerrable e invalidada. La autenticación de clientes de Etapa 11 queda **COMPLETADA Y VALIDADA**.
-
-**Respaldo:** `backup/pre-etapa-11-api-clientes-sesiones`.
-
-## Próxima etapa pendiente
-### Etapa 12 — Motor de streaming real + integración de fuentes
-Objetivo futuro: comenzar la cadena real de reproducción, desde una fuente real hasta una salida de streaming reproducible, sin simulaciones. La etapa deberá prepararse siguiendo el protocolo de `CONTINUITY.md` y creando respaldo antes de cambios estructurales.
+**Estado:** intención registrada; implementación pendiente.
