@@ -30,6 +30,13 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function normalizeStatus(status, expiresAt) {
+  const requested = USER_STATUSES.includes(status) ? status : 'Activo';
+  if (requested === 'Suspendido') return 'Suspendido';
+  if (expiresAt < todayIso()) return 'Vencido';
+  return 'Activo';
+}
+
 async function getPackages() {
   const result = await pool.query(`SELECT id, payload FROM ${TABLES.packages} ORDER BY created_at ASC`);
   return result.rows.map((row) => decode(row.payload));
@@ -43,8 +50,7 @@ async function resolvePackage(input, packages) {
 
 function publicUser(item, credentialConfigured, packageItem) {
   const expiresAt = item.expiresAt || null;
-  const expired = expiresAt && expiresAt < todayIso();
-  const status = expired && item.status === 'Activo' ? 'Vencido' : item.status;
+  const status = expiresAt && validDate(expiresAt) ? normalizeStatus(item.status, expiresAt) : item.status;
   return {
     ...item,
     status,
@@ -83,7 +89,6 @@ export async function getUser(id) {
 async function normalize(input, current = {}, requirePassword = false) {
   const username = String(input.username ?? current.username ?? '').trim().toLowerCase();
   const name = String(input.name ?? current.name ?? '').trim();
-  const status = USER_STATUSES.includes(input.status) ? input.status : (current.status || 'Activo');
   if (!validUsername(username)) throw new Error('El usuario debe tener entre 3 y 64 caracteres y solo usar letras minúsculas, números, punto, guion o guion bajo.');
   if (!name) throw new Error('El nombre del cliente es obligatorio.');
 
@@ -106,7 +111,7 @@ async function normalize(input, current = {}, requirePassword = false) {
     id: current.id || input.id || makeId(),
     username,
     name,
-    status,
+    status: normalizeStatus(input.status ?? current.status, expiresAt),
     packageId: packageItem.id,
     package: packageItem.name,
     maxConnections: requestedMax,
