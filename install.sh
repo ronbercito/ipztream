@@ -111,7 +111,11 @@ set +a
 admin_count="$(mariadb -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" -p"${DB_PASSWORD}" -Nse "SELECT COUNT(*) FROM \`${DB_NAME}\`.admin_users" 2>/dev/null || echo 0)"
 if [[ "${admin_count}" == "0" ]]; then
   ADMIN_USER="${IPZTREAM_ADMIN_USER:-admin}"
-  ADMIN_PASSWORD="${IPZTREAM_ADMIN_PASSWORD:-$(node -e "console.log(require('node:crypto').randomBytes(18).toString('base64url'))")"}"
+  if [[ -n "${IPZTREAM_ADMIN_PASSWORD:-}" ]]; then
+    ADMIN_PASSWORD="${IPZTREAM_ADMIN_PASSWORD}"
+  else
+    ADMIN_PASSWORD="$(node -e "console.log(require('node:crypto').randomBytes(18).toString('base64url'))")"
+  fi
   IPZTREAM_ADMIN_USER="${ADMIN_USER}" IPZTREAM_ADMIN_PASSWORD="${ADMIN_PASSWORD}" node server/bootstrap-admin.js
   echo
   echo "=============================================="
@@ -156,7 +160,6 @@ if ! mariadb -Nse "SELECT COUNT(*) FROM \`${DB_NAME}\`.nodes;" | grep -q '^[0-9]
   echo "ERROR: no se pudo consultar la tabla nodes en MariaDB."
   exit 1
 fi
-
 
 echo "==> Publicando panel web..."
 rm -rf "${WEB_DIR}"
