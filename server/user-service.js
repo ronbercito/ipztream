@@ -32,7 +32,7 @@ function todayIso() {
 
 async function getPackages() {
   const result = await pool.query(`SELECT id, payload FROM ${TABLES.packages} ORDER BY created_at ASC`);
-  return result.map((row) => decode(row.payload));
+  return result.rows.map((row) => decode(row.payload));
 }
 
 async function resolvePackage(input, packages) {
@@ -62,8 +62,8 @@ export async function listUsers() {
     pool.query('SELECT user_id FROM user_credentials'),
     getPackages()
   ]);
-  const configured = new Set(credentialsResult.map((row) => row.user_id));
-  return usersResult.map((row) => {
+  const configured = new Set(credentialsResult.rows.map((row) => row.user_id));
+  return usersResult.rows.map((row) => {
     const item = decode(row.payload);
     const packageItem = packages.find((pkg) => pkg.id === item.packageId || String(pkg.name || '').toLowerCase() === String(item.package || '').toLowerCase());
     return publicUser(item, configured.has(item.id || row.id), packageItem);
