@@ -12,6 +12,7 @@ import {
   deleteItem,
   addAudit
 } from './db.js';
+import { ensureUserSchema, listUsers, getUser, createUser, updateUser, deleteUser } from './user-service.js';
 
 const PORT = Number(process.env.IPZTREAM_API_PORT || 3100);
 const HOST = process.env.IPZTREAM_API_HOST || '127.0.0.1';
@@ -105,7 +106,7 @@ function normalizeGeneric(type, input, current = {}) {
   if (type === 'series') return { id: value.id, title: String(value.title || '').trim(), description: String(value.description || '').trim(), category: String(value.category || '').trim(), year: Number(value.year) || new Date().getFullYear(), poster: String(value.poster || '').trim(), status: value.status === 'Inactivo' ? 'Inactivo' : 'Activo', seasons: Math.max(1, Number(value.seasons) || 1), episodes: Math.max(1, Number(value.episodes) || 1) };
   if (type === 'epg') return { id: value.id, channel: String(value.channel || '').trim(), title: String(value.title || '').trim(), start: String(value.start || ''), end: String(value.end || ''), description: String(value.description || '').trim(), status: ['Programado', 'Emitido', 'Cancelado'].includes(value.status) ? value.status : 'Programado' };
   if (type === 'm3u') return { id: value.id, name: String(value.name || '').trim(), profile: String(value.profile || '').trim(), status: value.status === 'Inactivo' ? 'Inactivo' : 'Activo', description: String(value.description || '').trim(), sourceUrl: String(value.sourceUrl || '').trim(), items: Math.max(0, Number(value.items) || 0) };
-  if (type === 'packages') return { id: value.id, name: String(value.name || '').trim(), description: String(value.description || '').trim(), price: Number(value.price) || 0, duration: Math.max(1, Number(value.duration) || 30), maxConnections: Math.max(1, Number(value.maxConnections) || 1), status: value.status === 'Inactivo' ? 'Inactivo' : 'Activo', userCount: Math.max(0, Number(value.userCount) || 0) };
+  if (type === 'packages') return { id: value.id || makeId('pkg'), name: String(value.name || '').trim(), description: String(value.description || '').trim(), price: Number(value.price) || 0, duration: Math.max(1, Number(value.duration) || 30), maxConnections: Math.max(1, Number(value.maxConnections) || 1), status: value.status === 'Inactivo' ? 'Inactivo' : 'Activo', userCount: Math.max(0, Number(value.userCount) || 0) };
   return { id: value.id || makeId(type), ...value };
 }
 
@@ -163,7 +164,24 @@ async function handle(req, res) {
     return send(res, 200, { logs: result.rows });
   }
 
-  if (req.method === 'GET' && pathname === '/api/users') return send(res, 200, { users: await listItems(TABLES.users) });
+  if (pathname === '/api/users') {
+    if (req.method === 'GET') return send(res, 200, { users: await listUsers() });
+    if (req.method === 'POST') return send(res, 201, await createUser(await readBody(req), req.headers['x-ipztream-actor'] || 'system'));
+  }
+
+  const userMatch = pathname.match(/^\/api\/users\/([^/]+)$/);
+  if (userMatch) {
+    const id = decodeURIComponent(userMatch[1]);
+    if (req.method === 'GET') {
+      const user = await getUser(id);
+      return user ? send(res, 200, { user }) : send(res, 404, { message: 'Usuario no encontrado.' });
+    }
+    if (req.method === 'PUT') {
+      const user = await updateUser(id, await readBody(req), req.headers['x-ipztream-actor'] || 'system');
+      return user ? send(res, 200, { user }) : send(res, 404, { message: 'Usuario no encontrado.' });
+    }
+    if (req.method === 'DELETE') return send(res, (await deleteUser(id, req.headers['x-ipztream-actor'] || 'system')) ? 200 : 404, { ok: true });
+  }
 
   if (pathname === '/api/nodes') {
     if (req.method === 'GET') return send(res, 200, { nodes: await listItems(TABLES.nodes) });
@@ -285,20 +303,12 @@ async function handle(req, res) {
     }
   }
 
-  if (pathname === '/api/users' && req.method === 'POST') {
-    const input = await readBody(req);
-    const item = { ...input, id: input.id || makeId('user') };
-    if (!String(item.username || '').trim()) return send(res, 400, { message: 'El usuario es obligatorio.' });
-    const users = await listItems(TABLES.users);
-    if (users.some((user) => String(user.username || '').toLowerCase() === String(item.username).toLowerCase())) return send(res, 409, { message: `El usuario ${item.username} ya existe.` });
-    return send(res, 201, await saveNew(TABLES.users, item, 'users'));
-  }
-
   return send(res, 404, { message: 'Ruta no encontrada.' });
 }
 
 async function start() {
   await initDatabase();
+  await ensureUserSchema();
   const server = http.createServer(async (req, res) => {
     try {
       await handle(req, res);
