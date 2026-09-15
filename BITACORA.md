@@ -70,77 +70,85 @@ Se corrigió `server/db.js` para ejecutar cada sentencia DDL por separado y elim
 
 ## Etapa 9 — Autenticación real + RBAC — COMPLETADA Y VALIDADA
 
-### Inicio
-**Motivo:** establecer una capa de seguridad real sobre el backend/MariaDB ya validado.
+### Implementación y correcciones
+Se implementaron autenticación administrativa, RBAC, gateway seguro, sesiones HttpOnly, bootstrap del administrador y corrección del hash de sesión mediante SHA-256.
 
-**Respaldo:** `backup/pre-etapa-9-auth-rbac`.
+**Respaldo:** `backup/pre-etapa-9-auth-rbac` y `backup/pre-correccion-etapa-9-session-token-hash`.
 
-### Implementación 9.1 — Backend de autenticación y gateway seguro
-Se añadieron:
-- `server/auth.js`: hash de contraseñas con `scrypt`, roles, permisos, sesiones, expiración y consultas de identidad.
-- `server/secure-entry.js`: gateway de autenticación delante de la API existente.
-- `server/bootstrap-admin.js`: creación única del primer administrador sin guardar su contraseña en el archivo de entorno.
-- `admin_roles`, `admin_permissions`, `admin_role_permissions`, `admin_users` y `admin_sessions` en MariaDB.
-- Roles iniciales `superadmin`, `admin`, `operator` y `viewer`.
-- Permisos por módulo y operación.
-- Cookie de sesión `HttpOnly`, `SameSite=Strict`, con expiración.
-- `/api/auth/login`, `/api/auth/me` y `/api/auth/logout`.
-- Protección de endpoints administrativos con respuesta `401` para usuarios no autenticados y `403` para permisos insuficientes.
-- `install.sh` actualizado para crear el primer administrador una sola vez y verificar que `/api/nodes` queda protegido.
-- El servicio systemd ejecuta `server/secure-entry.js`; la API original queda en `127.0.0.1:3101` y el gateway público en `127.0.0.1:3100`.
-- `index.html` carga `src/auth-guard.js` antes del panel.
-- `src/auth-guard.js` añade pantalla de login, consulta de sesión, identidad visual y cierre de sesión.
-
-### Corrección 9.1.1 — Error de sintaxis en `install.sh` — CORREGIDA
-**Motivo:** durante la instalación en Debian 13, el build terminó correctamente pero `install.sh` falló con `syntax error near unexpected token '('` al llegar a la sección de creación del administrador inicial.
-
-**Causa identificada:** la asignación de `ADMIN_PASSWORD` utilizaba una expansión de parámetro con sustitución de comando anidada y comillas complejas, innecesariamente frágil para el parser de Bash.
-
-**Cambio realizado:** se separó la generación de la contraseña aleatoria en un bloque `if/else`, evitando la expresión anidada y manteniendo el mismo comportamiento de seguridad.
-
-**Archivo afectado:** `install.sh`.
-
-**Respaldo:** `backup/pre-etapa-9-auth-rbac`.
-
-### Corrección 9.1.2 — `admin_sessions.token_hash` demasiado corto para el digest generado — CORREGIDA
-**Motivo:** el primer intento de login llegó correctamente al backend de autenticación, pero MariaDB rechazó la creación de la sesión con `ER_DATA_TOO_LONG` para `admin_sessions.token_hash`.
-
-**Causa identificada:** el token aleatorio de 32 bytes se estaba procesando con `scrypt` a 64 bytes y convirtiendo a hexadecimal, produciendo 128 caracteres. La columna está definida como `CHAR(64)`.
-
-**Cambio realizado:** se sustituyó el hash de sesión por SHA-256 hexadecimal, que produce exactamente 64 caracteres y es apropiado para resumir un token aleatorio de alta entropía. La operación quedó centralizada para creación, lectura y destrucción de sesiones.
-
-**Archivo afectado:** `server/auth.js`.
-
-**Respaldo:** `backup/pre-correccion-etapa-9-session-token-hash`.
-
-**Commit de corrección:** `6faa83cc3f74c413d490fd1da95d553bd06787bc`.
-
-### Validación final — Etapa 9
-El usuario confirmó:
-- Login administrativo funcionando.
-- `/api/auth/me` devuelve correctamente el usuario `admin`, rol `superadmin` y sus permisos.
-- Logout funcionando.
-- Después del logout, `/api/nodes` responde `{"message":"Autenticación requerida."}`, confirmando que el endpoint protegido requiere sesión.
-- Después de la prueba, el usuario puede iniciar sesión nuevamente normalmente.
-
-**Resultado:** la autenticación administrativa, gestión de sesión, logout y protección de endpoints quedaron validados.
+### Validación final
+El usuario confirmó login, `/api/auth/me`, logout y protección de `/api/nodes` sin sesión.
 
 **ESTADO FINAL: ETAPA 9 — COMPLETADA Y VALIDADA.**
 
-## Etapa 10 — Usuarios IPTV / Panel Cliente — EN PROGRESO
+## Etapa 10 — Usuarios IPTV / Panel Cliente — IMPLEMENTADA, PENDIENTE DE VALIDACIÓN
 
 ### Inicio de etapa
 **Motivo:** transformar el módulo administrativo de usuarios existente en una base real para clientes IPTV y preparar desde ahora la futura autenticación de aplicaciones, dispositivos, sesiones y streaming real.
 
-**Objetivo:** mantener una separación clara entre cuentas administrativas (`admin_users`) y cuentas de clientes IPTV (`users`), evitando diseñar el modelo actual de forma que después bloquee la aplicación cliente o el motor de streaming.
-
-**Alcance inicial:** identidad del cliente, credenciales seguras, estado, paquete, vencimiento, límite de conexiones, dispositivos y base para sesiones futuras.
-
 **Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
 
-**Resultado esperado:** modelo y API de cliente persistentes en MariaDB, con validaciones de negocio y sin contraseñas en texto plano, manteniendo compatibilidad con paquetes/conexiones/dispositivos existentes.
+### Implementación 10.1 — Modelo y API de clientes IPTV
+Se añadió `server/user-service.js` como servicio independiente de clientes.
 
-**Archivos a revisar/modificar:** `src/modules/users/`, `server/index.js`, `server/db.js`, `database/schema.sql` y servicios relacionados de usuarios/paquetes/conexiones/dispositivos.
+Implementado:
+- CRUD real de `/api/users` y `/api/users/:id`.
+- Persistencia en MariaDB.
+- Tabla `user_credentials` separada del payload del cliente.
+- Hash de contraseña mediante `scrypt`.
+- La API nunca devuelve el hash de contraseña.
+- Validación de usuario y duplicados.
+- Validación de nombre.
+- Asociación real con paquetes existentes.
+- Vencimiento en formato ISO `AAAA-MM-DD`.
+- Estado `Activo`, `Suspendido` o `Vencido`.
+- Detección automática de vencimiento al consultar.
+- Máximo de conexiones limitado por el paquete.
+- Indicador `passwordConfigured` sin revelar credenciales.
+- Cambio de contraseña durante edición.
+- Eliminación de credenciales al borrar cliente.
+- Desasociación de dispositivos que pertenecían al usuario eliminado.
+
+### Implementación 10.2 — Gateway y RBAC
+`server/secure-entry.js` intercepta las rutas de clientes antes de la API administrativa genérica y las ejecuta mediante `user-service.js`.
+
+`server/auth.js` ahora aplica permisos específicos también a `/api/users/:id`:
+- `GET` → `users.view`
+- `POST` → `users.create`
+- `PUT` → `users.update`
+- `DELETE` → `users.delete`
+
+### Implementación 10.3 — Panel administrativo de clientes
+`src/modules/users/` dejó de usar `localStorage` como persistencia principal.
+
+Ahora:
+- carga clientes desde `/api/users`;
+- carga paquetes desde `/api/packages`;
+- crea/edita/elimina mediante API;
+- exige contraseña inicial de mínimo 12 caracteres;
+- permite cambio de contraseña al editar;
+- selecciona paquetes reales;
+- limita conexiones al máximo del paquete;
+- filtra por paquetes existentes;
+- muestra errores provenientes del backend;
+- mantiene la separación entre UI y servicio API.
+
+### Implementación 10.4 — Esquema
+`database/schema.sql` fue actualizado a v3 e incluye `user_credentials` con relación a `users` y eliminación en cascada.
+
+**Archivos principales afectados:**
+- `server/user-service.js`
+- `server/secure-entry.js`
+- `server/auth.js`
+- `database/schema.sql`
+- `src/modules/users/Users.jsx`
+- `src/modules/users/components/UserForm.jsx`
+- `src/modules/users/components/UserFilters.jsx`
+- `src/modules/users/services/usersApi.js`
+
+### Resultado técnico
+La implementación quedó publicada en `main` y comparada contra el punto de respaldo de Etapa 10. El cambio comprende 10 archivos y mantiene intacta la arquitectura administrativa existente.
+
+**Pendiente:** instalación/build y validación funcional en el entorno Debian del usuario. No se marca la etapa como completada hasta que el usuario confirme las pruebas.
 
 ## Protocolo de cierre
 1. Build correcto.
