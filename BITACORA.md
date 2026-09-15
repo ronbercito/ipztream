@@ -97,18 +97,29 @@ Se añadieron:
 
 **Estado actual:** código publicado en `main`; pendiente de ejecutar build, instalación/reinicio y pruebas reales en Debian 13. No se marca la Etapa 9 como completada hasta la validación del usuario.
 
-### Corrección 9.1.1 — Error de sintaxis en `install.sh` — INICIO
+### Corrección 9.1.1 — Error de sintaxis en `install.sh` — CORREGIDA
 **Motivo:** durante la instalación en Debian 13, el build terminó correctamente pero `install.sh` falló con `syntax error near unexpected token '('` al llegar a la sección de creación del administrador inicial.
 
 **Causa identificada:** la asignación de `ADMIN_PASSWORD` utilizaba una expansión de parámetro con sustitución de comando anidada y comillas complejas, innecesariamente frágil para el parser de Bash.
 
-**Cambio previsto:** separar la generación de la contraseña aleatoria en un bloque `if/else`, evitando la expresión anidada y manteniendo el mismo comportamiento de seguridad.
+**Cambio realizado:** se separó la generación de la contraseña aleatoria en un bloque `if/else`, evitando la expresión anidada y manteniendo el mismo comportamiento de seguridad.
 
-**Archivos afectados:** `install.sh`.
+**Archivo afectado:** `install.sh`.
 
 **Respaldo:** `backup/pre-etapa-9-auth-rbac`.
 
-**Resultado esperado:** `bash install.sh` debe pasar la sección de bootstrap administrativo sin error de sintaxis y continuar hasta las verificaciones de API/autenticación.
+### Corrección 9.1.2 — `admin_sessions.token_hash` demasiado corto para el digest generado — EN PROCESO
+**Motivo:** el primer intento de login llegó correctamente al backend de autenticación, pero MariaDB rechazó la creación de la sesión con `ER_DATA_TOO_LONG` para `admin_sessions.token_hash`.
+
+**Causa identificada:** el token aleatorio de 32 bytes se estaba procesando con `scrypt` a 64 bytes y convirtiendo a hexadecimal, produciendo 128 caracteres. La columna está definida como `CHAR(64)`.
+
+**Cambio previsto:** sustituir el hash de sesión por SHA-256 hexadecimal, que produce exactamente 64 caracteres y es apropiado para resumir un token aleatorio de alta entropía. La operación se centralizará para login, lectura de sesión y logout.
+
+**Archivo afectado:** `server/auth.js`.
+
+**Respaldo:** `backup/pre-correccion-etapa-9-session-token-hash`.
+
+**Resultado esperado:** login crea la sesión sin error, `/api/auth/me` reconoce la sesión y logout elimina/invalida la sesión correctamente, sin modificar innecesariamente el esquema `CHAR(64)`.
 
 ## Protocolo de cierre
 1. Build correcto.
