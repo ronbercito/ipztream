@@ -78,7 +78,7 @@ export async function createClientSession(user, actor = 'client') {
 
 export async function getClientSession(token) {
   if (!token) return null;
-  const result = await pool.query(`${clientQuery()} JOIN client_sessions s ON s.user_id = u.id WHERE s.token_hash = ? AND s.expires_at > CURRENT_TIMESTAMP LIMIT 1`, [tokenHash(token)]);
+  const result = await pool.query(`${clientQuery().replace('SELECT', 'SELECT s.id AS session_id,')} JOIN client_sessions s ON s.user_id = u.id WHERE s.token_hash = ? AND s.expires_at > CURRENT_TIMESTAMP LIMIT 1`, [tokenHash(token)]);
   const row = result.rows?.[0];
   const user = normalizeClient(row);
   if (!row || !user || !isClientActive(user)) return null;
@@ -111,11 +111,5 @@ export function getClientToken(req) {
 }
 
 export function publicClient(user) {
-  return normalizeClient({
-    ...user,
-    packageId: user.packageId,
-    packageName: user.package,
-    maxConnections: user.maxConnections,
-    expiresAt: user.expiresAt
-  });
+  return { ...user };
 }
