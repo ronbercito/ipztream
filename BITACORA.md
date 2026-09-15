@@ -158,16 +158,23 @@ El usuario confirmó:
 
 **Resultado de implementación:** la corrección quedó publicada en `main`. Falta ejecutar build/reinicio y que el usuario valide Usuarios y Paquetes en el servidor.
 
-### Corrección 10.2 — Contraseña mínima de cliente IPTV
-**Motivo:** el usuario solicita que la contraseña del cliente IPTV no tenga una exigencia de 10–12 caracteres y permita desde 1 carácter.
+### Corrección 10.2 — Contraseña mínima de cliente IPTV — IMPLEMENTADA
+**Motivo:** el usuario solicitó eliminar la exigencia de 10–12 caracteres para la contraseña del cliente IPTV y permitir desde 1 carácter.
 
-**Cambio solicitado:** modificar la validación de contraseña del cliente IPTV para aceptar longitud mínima de 1 carácter en creación y edición, manteniendo el hash seguro y sin almacenar la contraseña en texto plano.
+**Cambios realizados:**
+- `server/user-service.js`: la creación de clientes ahora exige únicamente `password.length >= 1`.
+- `src/modules/users/components/UserForm.jsx`: la validación visual y `minLength` pasan a 1 carácter.
+- La edición permite cambiar la contraseña con 1 carácter.
+- Se mantiene el hash seguro mediante `hashPassword`; no se almacena la contraseña en texto plano.
+- No se modificó la política de contraseña de las cuentas administrativas (`admin_users`).
 
-**Archivos previstos:** `server/user-service.js`, `src/modules/users/components/UserForm.jsx` y cualquier validación equivalente del servicio/API de usuarios.
-
-**Resultado esperado:** una contraseña de 1 carácter sea aceptada tanto en la interfaz como en el backend y pueda guardarse correctamente como hash.
+**Archivos afectados:** `server/user-service.js`, `src/modules/users/components/UserForm.jsx`.
 
 **Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
+
+**Commits:** `af74f1419ee0d367c53765343d4b8f5fd8d50c2d` y `b04fc3bb80b70d9fbd8649b3d55ab158bb8b0174`.
+
+**Resultado:** cambio publicado en `main`. Queda pendiente la validación del usuario en el servidor mediante build/reinicio y creación de un cliente con contraseña de 1 carácter.
 
 ## Protocolo de cierre
 1. Build correcto.
