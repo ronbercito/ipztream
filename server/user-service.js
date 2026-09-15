@@ -100,7 +100,7 @@ async function normalize(input, current = {}, requirePassword = false) {
   if (!Number.isInteger(requestedMax) || requestedMax < 1 || requestedMax > maxAllowed) throw new Error(`El máximo de conexiones debe estar entre 1 y ${maxAllowed} para el paquete seleccionado.`);
 
   const password = String(input.password || '');
-  if (requirePassword && password.length < 12) throw new Error('La contraseña debe tener al menos 12 caracteres.');
+  if (requirePassword && password.length < 1) throw new Error('La contraseña es obligatoria y debe tener al menos 1 carácter.');
 
   return {
     id: current.id || input.id || makeId(),
