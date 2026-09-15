@@ -176,6 +176,17 @@ El usuario confirmó:
 
 **Resultado:** cambio publicado en `main`. Queda pendiente la validación del usuario en el servidor mediante build/reinicio y creación de un cliente con contraseña de 1 carácter.
 
+### Corrección 10.3 — Mostrar/ocultar contraseña del cliente IPTV
+**Motivo:** el usuario solicita una opción para poder ver la contraseña mientras la escribe en el formulario de creación/edición del cliente IPTV.
+
+**Cambio realizado:** se añadirá un control de mostrar/ocultar en `src/modules/users/components/UserForm.jsx`, usando estado local para alternar entre `type="password"` y `type="text"`. Por defecto la contraseña permanecerá oculta.
+
+**Archivo afectado:** `src/modules/users/components/UserForm.jsx`.
+
+**Resultado esperado:** el usuario podrá pulsar el icono de ojo para mostrar temporalmente la contraseña y volver a ocultarla, sin modificar cómo se almacena la contraseña en MariaDB.
+
+**Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
+
 ## Protocolo de cierre
 1. Build correcto.
 2. Servicio `ipztream-api` activo.
