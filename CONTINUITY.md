@@ -78,6 +78,19 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 
 **Respaldo existente:** `backup/pre-etapa-10-usuarios-iptv`.
 
+### Corrección 10.4 — Edición de cliente con fecha de vencimiento futura
+**Estado:** EN PROGRESO.
+
+**Problema reportado:** al editar un cliente IPTV y colocar una fecha de vencimiento posterior, el cliente puede seguir mostrándose como `Vencido` y al guardar aparece el mensaje genérico `No se pudo guardar el cliente. Revisa los datos.`
+
+**Objetivo:** corregir la sincronización entre fecha de vencimiento y estado del cliente, evitando que un estado `Vencido` quede arrastrado al editar una fecha futura. El backend debe recalcular el estado coherentemente y la interfaz debe actualizarlo al cambiar la fecha.
+
+**Archivos previstos:** `server/user-service.js`, `src/modules/users/components/UserForm.jsx` y, si la verificación lo requiere, `src/modules/users/services/usersApi.js`.
+
+**Resultado esperado:** una fecha futura no se marque como `Vencido`; al editar un cliente previamente vencido y poner una fecha futura, el estado se normaliza a `Activo` salvo que el administrador seleccione explícitamente `Suspendido`. El guardado debe completarse y persistir correctamente en MariaDB.
+
+**Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
+
 ### Pendiente de validación
 - Build.
 - Reinicio del servicio.
@@ -87,6 +100,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Creación/edición de cliente con contraseña de 1 carácter.
 - Mostrar/ocultar contraseña en el formulario.
 - Persistencia y edición.
+- Corrección de vencimiento futuro y guardado de cliente.
 
 **No se marca la Etapa 10 como completada hasta la validación del usuario.**
 
