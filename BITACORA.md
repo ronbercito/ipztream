@@ -187,6 +187,17 @@ El usuario confirmó:
 
 **Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
 
+### Corrección 10.4 — Fecha futura mostrada como vencida y fallo al guardar edición — EN PROGRESO
+**Motivo:** al editar un cliente IPTV y colocar una fecha de vencimiento posterior, el cliente puede seguir mostrándose como `Vencido` y al intentar guardar aparece `No se pudo guardar el cliente. Revisa los datos.`
+
+**Hipótesis/corrección a aplicar:** el estado y la fecha deben tratarse como reglas de negocio relacionadas. Si la fecha de vencimiento pasa a ser futura, no debe quedar arrastrado un estado `Vencido`; el backend debe normalizarlo a `Activo` salvo `Suspendido`. La interfaz debe reflejar esa transición al cambiar la fecha y enviar un estado coherente.
+
+**Archivos previstos:** `server/user-service.js`, `src/modules/users/components/UserForm.jsx` y, si la verificación lo requiere, `src/modules/users/services/usersApi.js`.
+
+**Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
+
+**Resultado esperado:** cliente vencido + nueva fecha futura => estado `Activo`; cliente suspendido => se conserva `Suspendido`; fecha pasada => `Vencido`. El guardado debe devolver éxito y persistir en MariaDB.
+
 ## Protocolo de cierre
 1. Build correcto.
 2. Servicio `ipztream-api` activo.
