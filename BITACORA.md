@@ -42,37 +42,42 @@ Se implementaron autenticación administrativa, sesiones, roles, permisos y prot
 ### Corrección 9.1.2 — `admin_sessions.token_hash`
 Se corrigió el hash de sesión para usar SHA-256 hexadecimal de 64 caracteres.
 
-## Etapa 10 — Usuarios IPTV / Panel Cliente — EN PROGRESO
+## Etapa 10 — Usuarios IPTV / Panel Cliente — COMPLETADA Y VALIDADA
+El usuario confirmó que la etapa funciona correctamente.
 
-### Corrección 10.1 — Usuarios y paquetes
-Se corrigieron resultados MariaDB, rutas `/api/users`, `user_credentials`, IDs de paquetes y comunicación del módulo Paquetes.
+### Correcciones 10.1–10.5
+- Se corrigió la integración de Usuarios/Paquetes con MariaDB y las rutas `/api/users`.
+- Se ajustó la contraseña IPTV a mínimo 1 carácter sin afectar la política administrativa.
+- Se añadió mostrar/ocultar contraseña.
+- Se corrigió la sincronización entre vencimiento y estado.
+- Se separó `hashPassword()` administrativo de `hashIptvPassword()` y se habilitó la edición completa de la cuenta IPTV.
 
-### Corrección 10.2 — Contraseña mínima de cliente IPTV
-Se preparó la interfaz para aceptar contraseñas desde 1 carácter.
-
-### Corrección 10.3 — Mostrar/ocultar contraseña
-Se añadió el control `Eye/EyeOff` al campo de contraseña del cliente IPTV.
-
-### Corrección 10.4 — Fecha futura mostrada como vencida y fallo al guardar
-Se corrigió la normalización entre vencimiento y estado y se mejoró la propagación del error real de API.
-
-### Corrección 10.5 — Separar política de contraseña y edición completa
-**Motivo:** el usuario reportó que seguía apareciendo `La contraseña debe tener al menos 12 caracteres.` para clientes IPTV y que al editar una cuenta solo podía modificar el nombre.
-
-**Causa:** `hashPassword()` en `server/auth.js` tenía una política global de 12 caracteres y era utilizada por credenciales IPTV. Además, `UserForm.jsx` deshabilitaba el campo `username` durante la edición.
-
-**Cambios realizados:**
-- `server/auth.js`: se conserva `hashPassword()` con mínimo de 12 caracteres para administradores y se añade `hashIptvPassword()` con mínimo de 1 carácter para clientes IPTV.
-- `server/user-service.js`: creación y cambio de contraseña de clientes utilizan `hashIptvPassword()`.
-- `server/user-service.js`: se mantiene la normalización de vencimiento/estado: fecha pasada = `Vencido`, fecha actual/futura = `Activo`, salvo `Suspendido`.
-- `src/modules/users/components/UserForm.jsx`: el campo `Usuario` deja de estar bloqueado al editar; también se mantienen editables nombre, estado, paquete, conexiones, vencimiento y contraseña opcional.
-- La contraseña IPTV continúa almacenándose como hash `scrypt`, nunca en texto plano.
-
-**Archivos afectados:** `server/auth.js`, `server/user-service.js`, `src/modules/users/components/UserForm.jsx`.
-
-**Resultado:** corrección publicada en `main`. Falta ejecutar build/reinicio y validar creación, cambio de contraseña de 1 carácter y edición completa de cuenta.
+**Validación final:** CRUD, paquetes, edición completa, vencimiento/estado, contraseña IPTV, persistencia y controles del formulario confirmados por el usuario.
 
 **Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
+
+## Etapa 11 — API de clientes + sesiones de aplicación — INICIO
+
+**Motivo:** con el panel administrativo y el modelo de clientes IPTV ya validados, el siguiente paso es permitir que una aplicación externa se autentique como cliente IPTV y mantenga una sesión propia. Esta capa será la base para dispositivos, autorización de reproducción y conexiones reales.
+
+**Objetivo:** implementar autenticación de clientes IPTV independiente de la autenticación administrativa, con sesiones persistidas y revocables, identidad del cliente, validación de estado/vencimiento y auditoría.
+
+**Alcance previsto:**
+- Login de cliente IPTV.
+- Sesión segura persistida en MariaDB.
+- Token de sesión almacenado mediante hash.
+- Expiración y logout.
+- `/api/client/me` para identidad de cliente.
+- Validación de `Activo`, `Vencido` y `Suspendido` en backend.
+- Separación de sesiones admin/cliente.
+- Auditoría de login/logout.
+- Base API para futuras aplicaciones web, móvil y TV.
+
+**Fuera de esta etapa:** reproducción real, HLS, motor de streaming, tokens de reproducción y aplicación final.
+
+**Archivos esperados:** nuevos servicios/rutas de autenticación cliente, esquema MariaDB para sesiones IPTV, integración con `server/secure-entry.js` y documentación. Se mantendrá la arquitectura modular y se evitará concentrar lógica nueva en `main.jsx`.
+
+**Respaldo:** `backup/pre-etapa-11-api-clientes-sesiones`.
 
 ## Protocolo de cierre
 1. Build correcto.
@@ -82,4 +87,4 @@ Se corrigió la normalización entre vencimiento y estado y se mejoró la propag
 5. Credenciales seguras.
 6. Paquete/vencimiento/estado/límite de conexiones validados.
 7. Compatibilidad con módulos relacionados comprobada.
-8. Usuario valida y entonces se registra **COMPLETADA Y VALIDADA**.
+8. Usuario valida y entonces se registra la etapa correspondiente como **COMPLETADA Y VALIDADA**.
