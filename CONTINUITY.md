@@ -19,29 +19,6 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 ## Dirección del producto
 Objetivo: construir una plataforma moderna, segura, modular y escalable para administración de streaming, usuarios, contenido, nodos, monitoreo, licencias y actualizaciones.
 
-## Arquitectura modular objetivo
-```text
-src/
-├── app/
-├── modules/
-│   ├── dashboard/
-│   ├── users/
-│   ├── nodes/
-│   ├── channels/
-│   ├── vod/
-│   ├── epg/
-│   ├── m3u/
-│   ├── packages/
-│   ├── connections/
-│   ├── devices/
-│   ├── logs/
-│   ├── statistics/
-│   └── settings/
-├── components/
-├── services/
-└── styles/
-```
-
 ## Plan actual de 7 subetapas del panel
 1. **Configuración** — **COMPLETADA.**
 2. **Usuarios** — **COMPLETADA Y VALIDADA.**
@@ -49,7 +26,7 @@ src/
 4. **Canales / Fuentes** — **COMPLETADA Y VALIDADA.**
 5. **VOD / Series / EPG / M3U** — **COMPLETADA Y VALIDADA.**
 6. **Paquetes / Conexiones / Dispositivos** — **COMPLETADA Y VALIDADA.**
-7. **Logs / Auditoría / Estadísticas** — **EN IMPLEMENTACIÓN.**
+7. **Logs / Auditoría / Estadísticas** — **IMPLEMENTADA, PENDIENTE DE VALIDACIÓN.**
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -65,6 +42,7 @@ src/
 - Servicio API: `ipztream-api`.
 - Dashboard y navegación principal funcionales.
 - Usuarios, Configuración, Nodos, Canales, VOD, Series, EPG, M3U, Paquetes, Conexiones y Dispositivos ya fueron validados por el usuario.
+- Logs y Estadísticas ya están integrados en el panel; falta validación funcional en el contenedor.
 - El backend completo con PostgreSQL, autenticación/RBAC y API integral todavía no está conectado.
 - El updater real todavía será implementado posteriormente mediante releases controlados y firmados.
 
@@ -78,44 +56,35 @@ src/
 - `backup/pre-etapa-4-7-channels`
 - `backup/pre-etapa-5-7-vod-series-epg-m3u`
 - `backup/pre-etapa-6-7-packages-connections-devices`
+- `backup/pre-etapa-7-7-logs-auditoria-estadisticas`
 
 ## Referencia visual aprobada
 La interfaz debe seguir el concepto aprobado por el usuario: sidebar azul oscuro, barra superior, búsqueda global, dashboard claro, tarjetas KPI, gráficos, panel de estado de nodos, tablas administrativas, filtros, badges y acciones rápidas. No generar nuevos mockups salvo solicitud explícita.
 
 ## Etapa actual — 7/7
-**Logs / Auditoría / Estadísticas: EN IMPLEMENTACIÓN.**
+**Logs / Auditoría / Estadísticas: IMPLEMENTADA, PENDIENTE DE VALIDACIÓN FUNCIONAL.**
 
-### Objetivo de Etapa 7
-Completar el bloque administrativo de observabilidad del panel manteniendo la arquitectura modular. Se implementarán módulos independientes para:
-- **Logs:** consulta, búsqueda y filtros de eventos registrados.
-- **Auditoría:** registro de acciones administrativas con usuario, acción, módulo, fecha/hora, resultado y detalle.
-- **Estadísticas:** indicadores y resúmenes administrativos sobre usuarios, conexiones, dispositivos, nodos y contenido disponible.
+### Implementación realizada
+**Logs / Auditoría:**
+- `src/modules/logs/Logs.jsx`
+- `src/modules/logs/styles/logs.css`
+- Consulta de eventos, búsqueda, filtros por nivel y módulo, detalle, contadores de registros/errores/auditorías.
+- Persistencia administrativa inicial mediante `localStorage` hasta disponer del backend integral.
 
-### Arquitectura prevista
-```text
-src/modules/logs/
-├── Logs.jsx
-├── components/
-├── services/
-└── styles/
+**Estadísticas:**
+- `src/modules/statistics/Statistics.jsx`
+- `src/modules/statistics/styles/statistics.css`
+- Consulta de datos disponibles mediante API para usuarios, conexiones, dispositivos, nodos, canales, VOD y Series.
+- Indicadores administrativos derivados de los datos actuales.
 
-src/modules/statistics/
-├── Statistics.jsx
-├── components/
-├── services/
-└── styles/
-```
-La auditoría se mantendrá separada de la presentación de Logs para permitir posteriormente conectar eventos reales del backend.
+**Integración:**
+- `src/main.jsx` integra `LogsPage` y `StatisticsPage` como módulos independientes.
+- No se concentra lógica de negocio nueva en `main.jsx`.
 
-### Persistencia inicial
-Para esta etapa se mantendrá el patrón actual de persistencia JSON del backend, con archivos independientes dentro de `data/` y endpoints `/api/` dedicados. No se introduce todavía PostgreSQL ni un motor real de métricas de streaming.
-
-### Límites de esta etapa
-- Los logs y auditoría serán inicialmente registros administrativos del sistema.
-- Las estadísticas serán administrativas y derivadas de los datos disponibles; no representan todavía métricas reales de bitrate, tráfico, reproducción o consumo de streaming.
-- No se implementa todavía RBAC completo.
-- No se implementa todavía el updater firmado.
-- No se altera la lógica de los módulos previamente validados salvo lo estrictamente necesario para integrar eventos.
+### Límites
+- Logs/Auditoría todavía no reciben automáticamente todos los eventos del backend; su persistencia inicial es administrativa y local al navegador.
+- Estadísticas no representan todavía bitrate, tráfico real, horas de reproducción ni disponibilidad real de streaming.
+- PostgreSQL, RBAC completo, telemetría real y updater firmado quedan para fases posteriores.
 
 ## Protocolo obligatorio por etapa
 1. **Actualizar primero `CONTINUITY.md`.**
@@ -129,4 +98,4 @@ Para esta etapa se mantendrá el patrón actual de persistencia JSON del backend
 9. Informar al usuario qué se cambió y cómo probarlo.
 
 ## Próximo paso
-Registrar la intención de Etapa 7/7 en `BITACORA.md`, crear el respaldo previo y comenzar la implementación de Logs / Auditoría / Estadísticas.
+Ejecutar `npm install` y `npm run build` en el contenedor Debian 13, reiniciar `ipztream-api`, publicar `dist` y validar Logs / Auditoría / Estadísticas antes de cerrar la etapa 7/7.
