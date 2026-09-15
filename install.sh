@@ -56,7 +56,7 @@ fi
 
 echo "==> Preparando PostgreSQL..."
 systemctl enable --now postgresql
-DB_PASSWORD="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32)"
+DB_PASSWORD="$(node -e "console.log(require('node:crypto').randomBytes(24).toString('hex'))")"
 
 if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" | grep -q 1; then
   runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "CREATE ROLE ${DB_USER} LOGIN PASSWORD '${DB_PASSWORD}';"
