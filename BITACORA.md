@@ -79,7 +79,7 @@ Se implementaron módulos independientes para VOD/Series, EPG y M3U con CRUD, b�
 
 **Respaldo:** `backup/pre-etapa-6-7-packages-connections-devices` creado antes del cambio estructural.
 
-## 2026-09-14 — Implementación Etapa 6/7 — Paquetes / Conexiones / Dispositivos — IMPLEMENTADA, PENDIENTE DE VALIDACIÓN
+## 2026-09-14 — Implementación Etapa 6/7 — Paquetes / Conexiones / Dispositivos — COMPLETADA Y VALIDADA
 Se implementaron los tres módulos independientes y se integraron en `src/main.jsx`.
 
 **Paquetes:**
@@ -107,9 +107,32 @@ Se implementaron los tres módulos independientes y se integraron en `src/main.j
 
 **Integración:** `src/main.jsx` ahora carga `PackagesPage`, `ConnectionsPage` y `DevicesPage` como módulos independientes; no se trasladó lógica de negocio al archivo principal.
 
-**Verificación:** se revisaron estáticamente las rutas, imports y contratos de API. No fue posible ejecutar `npm run build` desde el entorno de herramientas porque el contenedor de trabajo no tiene acceso de red/DNS a GitHub para clonar el repositorio. La compilación debe ejecutarse en el contenedor Debian 13 de prueba.
+**Validación del usuario:** el usuario confirmó que creación/edición/activación/desactivación/eliminación y validaciones de Paquetes funcionan; búsqueda/filtros y cierre administrativo de Conexiones funcionan; Dispositivos, búsqueda/filtros y desvinculación funcionan; persistencia y operación general confirmadas como **todo funciona**.
 
-**Estado:** implementación publicada en `main`, pendiente de validación funcional por el usuario.
+**Estado:** Etapa 6/7 cerrada y validada.
+
+## 2026-09-14 — Etapa 7/7 — Logs / Auditoría / Estadísticas — INICIO
+**Motivo:** completar el último bloque de las siete subetapas actuales del panel, incorporando observabilidad administrativa sin mezclarla con la lógica de los módulos ya validados.
+
+**Regla:** esta entrada queda registrada después de actualizar `CONTINUITY.md` y antes de modificar código.
+
+**Objetivo:**
+- Crear `src/modules/logs/` independiente para consulta y filtrado de registros.
+- Separar la auditoría administrativa de la presentación de Logs para poder conectar posteriormente eventos reales del backend.
+- Crear `src/modules/statistics/` independiente para indicadores y resúmenes administrativos.
+- Mantener componentes, servicios/API y estilos separados por módulo cuando corresponda.
+- Mantener `src/main.jsx` únicamente como punto de integración.
+- Persistir inicialmente mediante archivos JSON del backend y endpoints `/api/` dedicados.
+
+**Alcance de Logs:** listado de eventos, búsqueda, filtros por nivel/módulo/fecha y visualización del detalle disponible.
+
+**Alcance de Auditoría:** usuario, acción, módulo, fecha/hora, resultado y detalle; inicialmente orientado a acciones administrativas registradas por la aplicación.
+
+**Alcance de Estadísticas:** indicadores administrativos derivados de usuarios, conexiones, dispositivos, nodos y contenido disponible, con resúmenes claros para el panel.
+
+**Límites:** no se implementará todavía telemetría real de bitrate/tráfico/reproducción, motor de métricas de streaming, PostgreSQL, RBAC completo ni updater firmado. No se modificarán módulos previos salvo lo estrictamente necesario para integrar eventos.
+
+**Resultado esperado:** disponer de Logs, Auditoría y Estadísticas funcionales y persistentes a nivel administrativo, listas para una posterior migración a PostgreSQL y métricas reales.
 
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
