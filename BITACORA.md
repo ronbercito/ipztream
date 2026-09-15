@@ -122,6 +122,19 @@ Se migró la persistencia de la API actual desde archivos JSON a PostgreSQL medi
 
 **Estado:** implementación publicada en `main`, pendiente de que el usuario actualice el contenedor, ejecute build/instalador y valide API + panel.
 
+## 2026-09-14 — Corrección Etapa 8.1 — PostgreSQL → MariaDB — INICIO
+**Motivo:** se confirmó que la base de datos definida para IPZStream es **MariaDB**. La implementación PostgreSQL de la Etapa 8 fue provisional y no debe considerarse arquitectura definitiva. Además, el instalador reportó éxito aunque `ipztream-api` no llegó a responder en el puerto `3100`, por lo que la instalación deberá validar realmente el servicio antes de informar éxito.
+
+**Regla:** esta entrada se registra después de actualizar `CONTINUITY.md` y antes de modificar código.
+
+**Objetivo:** sustituir la capa PostgreSQL por MariaDB, conservar la compatibilidad de los endpoints actuales, migrar los datos JSON cuando las tablas estén vacías, eliminar la dependencia operativa de `pg`, adaptar servicio/instalador/documentación y dejar el instalador preparado para fallar de forma explícita si la API no inicia correctamente.
+
+**Archivos previstos:** `server/db.js`, `server/index.js`, `database/schema.sql`, `package.json`, `deploy/ipztream-api.service`, `install.sh`, `INSTALL.md` y cualquier archivo estrictamente necesario.
+
+**Resultado esperado:** backend preparado para MariaDB sin cambiar innecesariamente el frontend ni los contratos actuales de la API; instalación verificable y reversible mediante el respaldo previo.
+
+**Respaldo requerido antes del código:** crear `backup/pre-correccion-etapa-8-mariadb`.
+
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
 2. Registrar la intención/corrección en `BITACORA.md`.
