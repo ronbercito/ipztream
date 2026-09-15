@@ -91,6 +91,21 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 
 **Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
 
+### Corrección 10.5 — Contraseña IPTV y edición completa del cliente
+**Estado:** EN PROGRESO.
+
+**Problemas reportados:** el sistema sigue mostrando `La contraseña debe tener al menos 12 caracteres.` al trabajar con clientes IPTV; además, al editar un cliente el formulario aparentemente solo permite modificar el nombre y no la cuenta completa.
+
+**Causa identificada:** `server/auth.js` mantiene una política global de 12 caracteres dentro de `hashPassword()`, pero esa función también es utilizada por las credenciales IPTV. La política administrativa y la de clientes deben estar separadas. Además, el formulario de cliente tiene el campo `username` explícitamente deshabilitado.
+
+**Objetivo:** separar el hash de credenciales administrativas del hash de clientes IPTV, permitiendo contraseñas IPTV desde 1 carácter sin reducir la política de administradores; habilitar la edición de los campos de la cuenta IPTV que corresponden al cliente (usuario, nombre, estado, paquete, conexiones, vencimiento y contraseña opcional).
+
+**Archivos previstos:** `server/auth.js`, `server/user-service.js`, `src/modules/users/components/UserForm.jsx`.
+
+**Resultado esperado:** una contraseña IPTV de 1 carácter pueda crearse o cambiarse; las contraseñas administrativas continúen requiriendo 12 caracteres; al editar un cliente se puedan modificar los datos de la cuenta y guardar correctamente.
+
+**Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
+
 ### Pendiente de validación
 - Build.
 - Reinicio del servicio.
@@ -99,6 +114,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Creación de cliente asociado a paquete.
 - Creación/edición de cliente con contraseña de 1 carácter.
 - Mostrar/ocultar contraseña en el formulario.
+- Edición completa de cuenta IPTV.
 - Persistencia y edición.
 - Corrección de vencimiento futuro y guardado de cliente.
 
