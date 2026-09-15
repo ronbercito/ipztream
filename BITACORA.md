@@ -154,6 +154,19 @@ Se sustituyó la implementación de persistencia PostgreSQL por MariaDB sin camb
 
 **Estado:** corrección publicada en `main`, pendiente de validación real en el contenedor.
 
+## 2026-09-15 — Corrección Etapa 8.2 — Inicialización de esquema MariaDB — INICIO
+**Motivo:** la validación real en Debian 13 confirmó que MariaDB está activo y que las credenciales están configuradas, pero `ipztream-api` termina con `ER_PARSE_ERROR` porque `server/db.js` envía múltiples sentencias `CREATE TABLE IF NOT EXISTS ...;` dentro de una sola llamada a `mariaPool.query()`. El driver/servidor no ejecuta ese lote como múltiples sentencias y falla al llegar a `channels`.
+
+**Regla:** esta entrada se registra después de actualizar `CONTINUITY.md` y antes de modificar código.
+
+**Objetivo:** corregir únicamente la inicialización del esquema para ejecutar cada sentencia DDL por separado, conservar la migración desde JSON, la auditoría y los contratos actuales de la API, y evitar cambios innecesarios en frontend/backend restante.
+
+**Archivo principal previsto:** `server/db.js`.
+
+**Resultado esperado:** `initDatabase()` crea todas las tablas sin `ER_PARSE_ERROR`; `ipztream-api` inicia y escucha en `127.0.0.1:3100`; `/api/health` responde con `database: mariadb`; después se podrá validar CRUD y persistencia.
+
+**Respaldo:** `backup/pre-correccion-schema-mariadb-multistatements`.
+
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
 2. Registrar la intención/corrección en `BITACORA.md`.
