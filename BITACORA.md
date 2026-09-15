@@ -59,106 +59,44 @@ Se implementaron módulos independientes para VOD/Series, EPG y M3U con CRUD, b�
 
 **Regla:** esta entrada queda registrada después de actualizar `CONTINUITY.md` y antes de modificar código.
 
-**Objetivo:**
-- Crear `src/modules/packages/` independiente para planes comerciales.
-- Crear `src/modules/connections/` independiente para sesiones/conexiones administrativas.
-- Crear `src/modules/devices/` independiente para inventario y asociación de dispositivos.
-- Separar componentes, servicios/API y estilos por módulo.
-- Utilizar API compartida como fuente principal, evitando depender únicamente de `localStorage`.
-- Mantener `src/main.jsx` únicamente como punto de integración.
+**Objetivo:** crear los tres módulos independientes con servicios/API y estilos separados, persistencia compartida y `src/main.jsx` únicamente como punto de integración.
 
-**Alcance de Paquetes:** nombre, descripción, precio, duración, límite de conexiones, estado y cantidad de usuarios asociados; alta, edición, activación/desactivación, eliminación, búsqueda y filtros.
+**Alcance:** Paquetes (CRUD, estado, límites, búsqueda/filtros), Conexiones (consulta, búsqueda/filtros y cierre administrativo) y Dispositivos (consulta, búsqueda/filtros y desvinculación).
 
-**Alcance de Conexiones:** usuario, dispositivo, IP, nodo, canal/stream, inicio, última actividad y estado; listado, búsqueda, filtros y cierre administrativo de sesión.
+**Límites:** datos administrativos/demo; sin motor real de sesiones, facturación/pagos, RBAC completo ni PostgreSQL integral.
 
-**Alcance de Dispositivos:** usuario asociado, identificador, tipo, IP, nodo, última actividad y estado; listado, búsqueda, filtros y desvinculación.
-
-**Validaciones previstas:** duplicados relevantes, datos obligatorios, persistencia después de recarga, cambios de estado y comprobación de que los datos compartidos no dependan solamente de `localStorage`.
-
-**Límites:** conexiones y dispositivos serán inicialmente datos administrativos/de demostración; no se implementará todavía un motor real de sesiones de streaming. Tampoco facturación/pagos, RBAC completo ni PostgreSQL integral.
-
-**Respaldo:** `backup/pre-etapa-6-7-packages-connections-devices` creado antes del cambio estructural.
+**Respaldo:** `backup/pre-etapa-6-7-packages-connections-devices`.
 
 ## 2026-09-14 — Implementación Etapa 6/7 — Paquetes / Conexiones / Dispositivos — COMPLETADA Y VALIDADA
-Se implementaron los tres módulos independientes y se integraron en `src/main.jsx`.
+Se implementaron los tres módulos independientes, APIs, persistencia JSON e integración en `src/main.jsx`.
 
-**Paquetes:**
-- `src/modules/packages/Packages.jsx`
-- `src/modules/packages/services/packagesApi.js`
-- `src/modules/packages/styles/packages.css`
-- CRUD mediante `/api/packages`.
-- Validación de nombre duplicado, precio, duración y conexiones máximas.
-
-**Conexiones:**
-- `src/modules/connections/Connections.jsx`
-- `src/modules/connections/services/connectionsApi.js`
-- `src/modules/connections/styles/connections.css`
-- Consulta mediante `/api/connections`.
-- Cierre administrativo mediante `POST /api/connections/:id/close`.
-
-**Dispositivos:**
-- `src/modules/devices/Devices.jsx`
-- `src/modules/devices/services/devicesApi.js`
-- `src/modules/devices/styles/devices.css`
-- Consulta mediante `/api/devices`.
-- Desvinculación mediante `POST /api/devices/:id/unlink`.
-
-**Backend:** `server/index.js` fue ampliado con persistencia JSON para `data/packages.json`, `data/connections.json` y `data/devices.json`, manteniendo la misma API compartida usada en etapas anteriores.
-
-**Integración:** `src/main.jsx` ahora carga `PackagesPage`, `ConnectionsPage` y `DevicesPage` como módulos independientes; no se trasladó lógica de negocio al archivo principal.
-
-**Validación del usuario:** el usuario confirmó que creación/edición/activación/desactivación/eliminación y validaciones de Paquetes funcionan; búsqueda/filtros y cierre administrativo de Conexiones funcionan; Dispositivos, búsqueda/filtros y desvinculación funcionan; persistencia y operación general confirmadas como **todo funciona**.
+**Validación del usuario:** creación/edición/activación/desactivación/eliminación y validaciones de Paquetes; búsqueda/filtros y cierre de Conexiones; Dispositivos, búsqueda/filtros y desvinculación; persistencia y operación general: **todo funciona**.
 
 **Estado:** Etapa 6/7 cerrada y validada.
 
 ## 2026-09-14 — Etapa 7/7 — Logs / Auditoría / Estadísticas — INICIO
 **Motivo:** completar el último bloque de las siete subetapas actuales del panel, incorporando observabilidad administrativa sin mezclarla con la lógica de los módulos ya validados.
 
-**Regla:** esta entrada queda registrada después de actualizar `CONTINUITY.md` y antes de modificar código.
+**Objetivo:** Logs/Auditoría para consulta de eventos y filtros; Estadísticas para indicadores administrativos derivados de usuarios, conexiones, dispositivos, nodos y contenido; mantener módulos, estilos y lógica separados.
 
-**Objetivo:**
-- Crear `src/modules/logs/` independiente para consulta y filtrado de registros.
-- Separar la auditoría administrativa de la presentación de Logs para poder conectar posteriormente eventos reales del backend.
-- Crear `src/modules/statistics/` independiente para indicadores y resúmenes administrativos.
-- Mantener componentes, servicios/API y estilos separados por módulo cuando corresponda.
-- Mantener `src/main.jsx` únicamente como punto de integración.
-- Persistir inicialmente mediante archivos JSON del backend y endpoints `/api/` dedicados.
+**Límites:** sin telemetría real de bitrate/tráfico/reproducción, PostgreSQL, RBAC completo ni updater firmado.
 
-**Alcance de Logs:** listado de eventos, búsqueda, filtros por nivel/módulo/fecha y visualización del detalle disponible.
+**Respaldo:** `backup/pre-etapa-7-7-logs-auditoria-estadisticas`.
 
-**Alcance de Auditoría:** usuario, acción, módulo, fecha/hora, resultado y detalle; inicialmente orientado a acciones administrativas registradas por la aplicación.
+## 2026-09-14 — Implementación Etapa 7/7 — Logs / Auditoría / Estadísticas — COMPLETADA Y VALIDADA
+Se implementaron e integraron los módulos de Logs/Auditoría y Estadísticas.
 
-**Alcance de Estadísticas:** indicadores administrativos derivados de usuarios, conexiones, dispositivos, nodos y contenido disponible, con resúmenes claros para el panel.
+**Logs / Auditoría:** `src/modules/logs/Logs.jsx` y `src/modules/logs/styles/logs.css`; búsqueda, filtros por nivel y módulo, detalle y contadores de registros, errores y auditorías. Persistencia administrativa inicial local.
 
-**Límites:** no se implementará todavía telemetría real de bitrate/tráfico/reproducción, motor de métricas de streaming, PostgreSQL, RBAC completo ni updater firmado. No se modificarán módulos previos salvo lo estrictamente necesario para integrar eventos.
+**Estadísticas:** `src/modules/statistics/Statistics.jsx` y `src/modules/statistics/styles/statistics.css`; indicadores de usuarios, conexiones, dispositivos, nodos, canales, VOD y Series consultados mediante API.
 
-**Resultado esperado:** disponer de Logs, Auditoría y Estadísticas funcionales y persistentes a nivel administrativo, listas para una posterior migración a PostgreSQL y métricas reales.
+**Integración:** `src/main.jsx` carga `LogsPage` y `StatisticsPage` como módulos independientes.
 
-## 2026-09-14 — Implementación Etapa 7/7 — Logs / Auditoría / Estadísticas — IMPLEMENTADA, PENDIENTE DE VALIDACIÓN
-Se implementaron los módulos independientes de observabilidad y se integraron al panel.
+**Validación del usuario:** el usuario ejecutó la actualización en Debian 13, realizó build, reinició el servicio API, publicó el frontend y probó Logs/Auditoría/Estadísticas. Confirmó explícitamente: **“todo funciona”**.
 
-**Logs / Auditoría:**
-- `src/modules/logs/Logs.jsx`
-- `src/modules/logs/styles/logs.css`
-- listado de eventos administrativos
-- búsqueda por evento, usuario y detalle
-- filtros por nivel y módulo
-- contadores de registros, errores y auditorías
-- persistencia inicial de los registros administrativos mediante `localStorage`, como solución temporal hasta el backend integral
+**Estado:** Etapa 7/7 cerrada y validada.
 
-**Estadísticas:**
-- `src/modules/statistics/Statistics.jsx`
-- `src/modules/statistics/styles/statistics.css`
-- consulta de usuarios, conexiones, dispositivos, nodos, canales, VOD y Series mediante API
-- indicadores administrativos derivados de los datos actuales
-
-**Integración:** `src/main.jsx` carga `LogsPage` y `StatisticsPage` como módulos independientes. La lógica nueva no se concentra en el archivo principal.
-
-**Respaldo:** `backup/pre-etapa-7-7-logs-auditoria-estadisticas` creado antes de los cambios estructurales.
-
-**Verificación pendiente:** ejecutar en el contenedor Debian 13 `git pull`, `npm install`, `npm run build`, reiniciar `ipztream-api`, publicar `dist` y validar funcionalmente Logs/Auditoría/Estadísticas.
-
-**Límites:** la auditoría todavía no recibe automáticamente todos los eventos del backend; las estadísticas no representan todavía bitrate, tráfico real, horas de reproducción ni disponibilidad real de streaming. PostgreSQL, RBAC completo, telemetría real y updater firmado quedan para fases posteriores.
+**Límites:** la auditoría todavía no recibe automáticamente todos los eventos del backend; las estadísticas no representan bitrate, tráfico real, horas de reproducción ni disponibilidad real de streaming. PostgreSQL, RBAC completo, telemetría real y updater firmado quedan para fases posteriores.
 
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
