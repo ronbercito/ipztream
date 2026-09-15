@@ -98,6 +98,23 @@ Se implementaron e integraron los módulos de Logs/Auditoría y Estadísticas.
 
 **Límites:** la auditoría todavía no recibe automáticamente todos los eventos del backend; las estadísticas no representan bitrate, tráfico real, horas de reproducción ni disponibilidad real de streaming. PostgreSQL, RBAC completo, telemetría real y updater firmado quedan para fases posteriores.
 
+## 2026-09-14 — Etapa 8 — Backend real + PostgreSQL — INICIO
+**Motivo:** pasar de la persistencia JSON/local de las etapas iniciales a una base de datos real y una API backend preparada para que IPZStream pueda comenzar a operar como sistema funcional de pruebas.
+
+**Regla:** esta entrada se registra después de actualizar `CONTINUITY.md` y antes de modificar código.
+
+**Objetivo:** incorporar PostgreSQL como persistencia principal, definir el esquema inicial, crear una capa de acceso a datos modular, centralizar validaciones/errores y preparar la API para autenticación/RBAC sin romper los módulos actuales.
+
+**Alcance inicial:** infraestructura PostgreSQL, esquema/migraciones para entidades principales, conexión segura desde el backend, repositorio/servicios de datos, health check de base de datos y ruta de migración controlada desde JSON.
+
+**Límites:** esta etapa no incorpora todavía motor real de streaming, telemetría avanzada, licenciamiento ni updater firmado.
+
+**Archivos previstos:** `server/`, `db/` o `database/`, configuración de entorno, migraciones/esquema, documentación de instalación y pruebas. Se evitará concentrar nueva lógica en `src/main.jsx`.
+
+**Resultado esperado:** el contenedor Debian 13 podrá levantar IPZStream con PostgreSQL como almacenamiento principal y verificar conectividad API ↔ PostgreSQL antes de migrar progresivamente los módulos.
+
+**Respaldo:** se creará antes de modificar la estructura del backend.
+
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
 2. Registrar la intención/corrección en `BITACORA.md`.
