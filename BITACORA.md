@@ -187,16 +187,22 @@ El usuario confirmó:
 
 **Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
 
-### Corrección 10.4 — Fecha futura mostrada como vencida y fallo al guardar edición — EN PROGRESO
-**Motivo:** al editar un cliente IPTV y colocar una fecha de vencimiento posterior, el cliente puede seguir mostrándose como `Vencido` y al intentar guardar aparece `No se pudo guardar el cliente. Revisa los datos.`
+### Corrección 10.4 — Fecha futura mostrada como vencida y fallo al guardar edición — IMPLEMENTADA, PENDIENTE DE VALIDACIÓN
+**Motivo:** al editar un cliente IPTV y colocar una fecha de vencimiento posterior, el cliente podía seguir mostrándose como `Vencido` y al intentar guardar aparecía `No se pudo guardar el cliente. Revisa los datos.`
 
-**Hipótesis/corrección a aplicar:** el estado y la fecha deben tratarse como reglas de negocio relacionadas. Si la fecha de vencimiento pasa a ser futura, no debe quedar arrastrado un estado `Vencido`; el backend debe normalizarlo a `Activo` salvo `Suspendido`. La interfaz debe reflejar esa transición al cambiar la fecha y enviar un estado coherente.
+**Cambios realizados:**
+- `server/user-service.js`: se añadió `normalizeStatus()` para que una fecha pasada produzca `Vencido`, una fecha futura/presente produzca `Activo` y `Suspendido` tenga prioridad cuando el administrador lo selecciona.
+- `publicUser()` también normaliza el estado al devolver clientes, evitando que un estado `Vencido` antiguo quede almacenado visualmente después de renovar el vencimiento.
+- `src/modules/users/components/UserForm.jsx`: al cambiar el vencimiento se recalcula el estado inmediatamente; una fecha futura/presente pasa a `Activo`, salvo `Suspendido`.
+- `src/modules/users/Users.jsx`: cuando el backend devuelve un error, el formulario ahora muestra el mensaje real de la API en lugar de ocultarlo detrás del mensaje genérico.
 
-**Archivos previstos:** `server/user-service.js`, `src/modules/users/components/UserForm.jsx` y, si la verificación lo requiere, `src/modules/users/services/usersApi.js`.
+**Archivos afectados:** `server/user-service.js`, `src/modules/users/components/UserForm.jsx`, `src/modules/users/Users.jsx`.
 
 **Respaldo:** `backup/pre-etapa-10-usuarios-iptv`.
 
-**Resultado esperado:** cliente vencido + nueva fecha futura => estado `Activo`; cliente suspendido => se conserva `Suspendido`; fecha pasada => `Vencido`. El guardado debe devolver éxito y persistir en MariaDB.
+**Commits de implementación:** `fbd65812c4673a7e2f34137a13b6dc26cd2b72f5`, `d78cfd3198dc9eea5baff07fe85a054c5341ad4b`, `c76f0cac1dfb6394664cb0407b4a24e669ccfce3`.
+
+**Verificación:** se revisó el código publicado, pero no se pudo ejecutar el build en el entorno remoto desde esta sesión porque el repositorio no está montado localmente. Queda pendiente que el servidor ejecute `git pull`/`bash install.sh` y valide la edición de un cliente vencido con una nueva fecha futura.
 
 ## Protocolo de cierre
 1. Build correcto.
