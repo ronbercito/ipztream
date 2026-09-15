@@ -25,7 +25,8 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 6. Paquetes / Conexiones / Dispositivos — **COMPLETADA Y VALIDADA**.
 7. Logs / Auditoría / Estadísticas — **COMPLETADA Y VALIDADA**.
 8. Backend real + MariaDB — **COMPLETADA Y VALIDADA**.
-9. Autenticación real + RBAC — **IMPLEMENTADA, PENDIENTE DE VALIDACIÓN DEL USUARIO**.
+9. Autenticación real + RBAC — **COMPLETADA Y VALIDADA**.
+10. Usuarios IPTV / Panel Cliente — **PENDIENTE DE INICIO**.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
@@ -37,10 +38,10 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Código fuente: `/opt/ipztream`.
 - Servicio: `ipztream-api`.
 - MariaDB es la base principal y permanente.
-- Etapas 1–8 están validadas por el usuario.
+- Etapas 1–9 están validadas por el usuario.
 
-## Etapa 9 — Estado técnico implementado
-- `server/auth.js` contiene hashing `scrypt`, roles, permisos, sesiones y consultas de identidad.
+## Etapa 9 — Autenticación real + RBAC — CERRADA
+- `server/auth.js` contiene hashing de contraseñas con `scrypt`, roles, permisos, sesiones y consultas de identidad.
 - `server/secure-entry.js` funciona como gateway de autenticación delante de la API existente.
 - La API interna usa `127.0.0.1:3101`; el gateway ocupa `127.0.0.1:3100`.
 - `/api/health` queda público.
@@ -53,37 +54,16 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - `install.sh` integra el bootstrap inicial y comprueba que `/api/nodes` devuelve `401` sin sesión.
 - `src/auth-guard.js` impide cargar el panel hasta validar una sesión y ofrece cierre de sesión.
 - `index.html` carga `src/auth-guard.js` como punto de entrada.
+- La corrección del hash de sesión usa SHA-256 y mantiene `admin_sessions.token_hash` en `CHAR(64)`.
 
-## Corrección activa de Etapa 9 — Hash de sesión demasiado largo
-**Estado:** CORRECCIÓN EN PROCESO / PENDIENTE DE VALIDACIÓN.
+## Validación final de Etapa 9
+El usuario confirmó las pruebas finales de seguridad y sesión:
+1. Cierre de sesión correcto.
+2. Tras cerrar sesión, `/api/nodes` responde `{"message":"Autenticación requerida."}`, confirmando que el endpoint protegido no es accesible sin sesión.
+3. El inicio de sesión posterior funciona normalmente.
+4. `/api/auth/me` devuelve correctamente el administrador autenticado, rol `superadmin` y sus permisos.
 
-Durante el primer intento de login, MariaDB rechazó la creación de la sesión con `ER_DATA_TOO_LONG` en `admin_sessions.token_hash`. El código derivaba 64 bytes con `scrypt` y los convertía a hexadecimal, generando 128 caracteres, mientras la columna `token_hash` está definida como `CHAR(64)`.
-
-**Objetivo:** mantener `token_hash` en `CHAR(64)` y almacenar un digest hexadecimal de 64 caracteres, adecuado para el token aleatorio de sesión, evitando ampliar innecesariamente la columna.
-
-**Cambio previsto:** usar un hash SHA-256 del token de sesión para `token_hash`, centralizando la operación en la función de hashing de sesión para login, recuperación de sesión y logout.
-
-**Archivo afectado:** `server/auth.js`.
-
-**Respaldo:** `backup/pre-correccion-etapa-9-session-token-hash`.
-
-**Criterio de cierre:** build correcto, login crea la sesión sin error, `/api/auth/me` reconoce la sesión y logout la invalida.
-
-## Validación pendiente de Etapa 9
-En el contenedor se debe comprobar, como mínimo:
-1. `git pull origin main`.
-2. `bash install.sh`.
-3. Build sin errores.
-4. Servicio activo.
-5. MariaDB con las tablas RBAC.
-6. Credenciales iniciales mostradas por el instalador.
-7. `/api/health` responde `200`.
-8. `/api/nodes` sin sesión responde `401`.
-9. Login devuelve sesión.
-10. `/api/auth/me` devuelve usuario, rol y permisos.
-11. Logout invalida la sesión.
-12. El panel web muestra login y después permite entrar al panel.
-13. Un usuario con permisos limitados recibe `403` al intentar una operación no autorizada.
+**Conclusión:** la autenticación administrativa, la sesión, el logout y la protección de los endpoints quedaron validados. La comprobación específica de un rol restringido con `403` queda como prueba adicional futura, no bloqueante para el cierre de esta etapa.
 
 ## Respaldos
 - `backup/pre-etapa-1-13-configuracion`
@@ -103,7 +83,7 @@ En el contenedor se debe comprobar, como mínimo:
 - `backup/pre-correccion-etapa-9-session-token-hash`
 
 ## Próxima fase
-La siguiente etapa no se inicia hasta cerrar y validar la Etapa 9. Después se podrá avanzar a administración avanzada de usuarios/permisos, auditoría asociada a identidad, telemetría real, sesiones de streaming, licenciamiento y updater firmado.
+La **Etapa 10 — Usuarios IPTV / Panel Cliente** será la siguiente. Se diseñará teniendo desde el inicio en cuenta autenticación de clientes, paquetes, vencimientos, dispositivos y límites de conexiones para integrarla posteriormente con el streaming real y la aplicación cliente.
 
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
