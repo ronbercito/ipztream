@@ -167,6 +167,22 @@ Se sustituyó la implementación de persistencia PostgreSQL por MariaDB sin camb
 
 **Respaldo:** `backup/pre-correccion-schema-mariadb-multistatements`.
 
+## 2026-09-15 — Corrección Etapa 8.2 — Inicialización de esquema MariaDB — COMPLETADA Y VALIDADA
+Se corrigió `server/db.js` para ejecutar cada sentencia DDL de creación de tabla por separado, eliminando el `ER_PARSE_ERROR` producido por el envío de múltiples sentencias `CREATE TABLE` en una sola consulta.
+
+**Archivos afectados:** `server/db.js`; documentación de trazabilidad en `CONTINUITY.md` y `BITACORA.md`.
+
+**Respaldo:** `backup/pre-correccion-schema-mariadb-multistatements`.
+
+**Validación del usuario en Debian 13:** el build de producción terminó correctamente; `bash install.sh` completó correctamente; MariaDB quedó activo; se crearon correctamente las 11 tablas (`audit_logs`, `channels`, `connections`, `devices`, `epg`, `m3u`, `nodes`, `packages`, `series`, `users`, `vod`); `ipztream-api` quedó activo; `/api/health` respondió correctamente con `database: mariadb`; el puerto `127.0.0.1:3100` quedó escuchando; y después de reiniciar `ipztream-api` la API continuó respondiendo correctamente.
+
+**Estado:** Etapa 8 y corrección 8.2 cerradas y validadas. MariaDB queda confirmada como base de datos principal y permanente de IPZStream.
+
+## Próxima etapa preparada — Etapa 9 — Autenticación real y RBAC
+**Objetivo:** construir la base de seguridad de IPZStream sobre el backend/MariaDB ya validado: autenticación real, sesiones/tokens, roles y permisos RBAC, protección de endpoints y preparación de auditoría asociada a identidad.
+
+**Regla:** antes de comenzar la implementación de Etapa 9 se debe actualizar `CONTINUITY.md`, registrar la intención en esta bitácora y crear el respaldo correspondiente.
+
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
 2. Registrar la intención/corrección en `BITACORA.md`.
