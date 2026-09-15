@@ -135,6 +135,25 @@ Se migró la persistencia de la API actual desde archivos JSON a PostgreSQL medi
 
 **Respaldo requerido antes del código:** crear `backup/pre-correccion-etapa-8-mariadb`.
 
+## 2026-09-14 — Corrección Etapa 8.1 — PostgreSQL → MariaDB — IMPLEMENTACIÓN COMPLETADA, PENDIENTE DE VALIDACIÓN
+Se sustituyó la implementación de persistencia PostgreSQL por MariaDB sin cambiar deliberadamente los contratos de los endpoints del frontend.
+
+**Archivos modificados:** `server/db.js`, `server/index.js`, `database/schema.sql`, `package.json`, `deploy/ipztream-api.service`, `install.sh`, `INSTALL.md`, `CONTINUITY.md` y `BITACORA.md`.
+
+**Backend:** se utiliza el paquete `mariadb`, pool de conexiones, placeholders `?`, tipos y sintaxis compatibles con MariaDB, migración inicial desde `data/*.json` cuando cada tabla está vacía y auditoría en `audit_logs`. Se añadió una pequeña capa de compatibilidad para conservar el uso de `rows`/`rowCount` en la API.
+
+**Instalador:** instala y habilita MariaDB, crea base/usuario/credencial local, configura variables `IPZTREAM_DB_*`, espera el health check, exige que la respuesta indique `database: mariadb` y aborta con diagnóstico si la API no inicia. También verifica rutas básicas antes de mostrar éxito.
+
+**Servicio:** `ipztream-api` ahora depende de `mariadb.service`.
+
+**Documentación:** `INSTALL.md` deja MariaDB como base principal y PostgreSQL fuera de la arquitectura.
+
+**Respaldo:** `backup/pre-correccion-etapa-8-mariadb`.
+
+**Verificación realizada en repositorio:** se revisaron los archivos principales y no se encontró una referencia operativa adicional a PostgreSQL mediante la búsqueda disponible. El build en Debian 13 todavía debe ser ejecutado por el usuario.
+
+**Estado:** corrección publicada en `main`, pendiente de validación real en el contenedor.
+
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
 2. Registrar la intención/corrección en `BITACORA.md`.
