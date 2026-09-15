@@ -16,34 +16,29 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - La arquitectura debe mantenerse modular: cada menú principal tendrá su módulo y las opciones importantes se separarán en componentes, servicios/API y estilos cuando corresponda.
 - Evitar concentrar nuevas funcionalidades en `src/main.jsx`.
 
-## Dirección del producto
-Objetivo: construir una plataforma moderna, segura, modular y escalable para administración de streaming, usuarios, contenido, nodos, monitoreo, licencias y actualizaciones.
-
-## Plan actual de 7 subetapas del panel
-1. **Configuración** — **COMPLETADA.**
-2. **Usuarios** — **COMPLETADA Y VALIDADA.**
-3. **Servidores / Nodos** — **COMPLETADA Y VALIDADA.**
-4. **Canales / Fuentes** — **COMPLETADA Y VALIDADA.**
-5. **VOD / Series / EPG / M3U** — **COMPLETADA Y VALIDADA.**
-6. **Paquetes / Conexiones / Dispositivos** — **COMPLETADA Y VALIDADA.**
-7. **Logs / Auditoría / Estadísticas** — **COMPLETADA Y VALIDADA.**
+## Estado de las etapas del panel
+1. Configuración — **COMPLETADA**.
+2. Usuarios — **COMPLETADA Y VALIDADA**.
+3. Servidores / Nodos — **COMPLETADA Y VALIDADA**.
+4. Canales / Fuentes — **COMPLETADA Y VALIDADA**.
+5. VOD / Series / EPG / M3U — **COMPLETADA Y VALIDADA**.
+6. Paquetes / Conexiones / Dispositivos — **COMPLETADA Y VALIDADA**.
+7. Logs / Auditoría / Estadísticas — **COMPLETADA Y VALIDADA**.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama principal: `main`
-- Versión visible actual del panel: `0.1.0`
+- Versión visible actual: `0.1.0`
 - Entorno de prueba: Debian 13 en contenedor.
-- Node.js validado: `v22.23.2`.
-- npm validado: `10.9.8`.
+- Node.js: `v22.23.2`.
+- npm: `10.9.8`.
 - IP de prueba: `192.168.10.220`.
 - URL de prueba: `http://192.168.10.220`.
 - Nginx publica el panel desde `/var/www/ipztream`.
 - Código fuente: `/opt/ipztream`.
 - Servicio API: `ipztream-api`.
-- Dashboard y navegación principal funcionales.
-- Las siete subetapas del panel actual fueron implementadas y validadas por el usuario.
 - El backend completo con PostgreSQL, autenticación/RBAC y API integral todavía no está conectado.
-- El updater real todavía será implementado posteriormente mediante releases controlados y firmados.
+- El updater real se implementará posteriormente mediante releases controlados y firmados.
 
 ## Respaldos importantes
 - `backup/pre-etapa-1-13-configuracion`
@@ -58,28 +53,16 @@ Objetivo: construir una plataforma moderna, segura, modular y escalable para adm
 - `backup/pre-etapa-7-7-logs-auditoria-estadisticas`
 
 ## Referencia visual aprobada
-La interfaz debe seguir el concepto aprobado por el usuario: sidebar azul oscuro, barra superior, búsqueda global, dashboard claro, tarjetas KPI, gráficos, panel de estado de nodos, tablas administrativas, filtros, badges y acciones rápidas. No generar nuevos mockups salvo solicitud explícita.
+Sidebar azul oscuro, barra superior, búsqueda global, dashboard claro, tarjetas KPI, gráficos, estado de nodos, tablas administrativas, filtros, badges y acciones rápidas. No generar nuevos mockups salvo solicitud explícita.
 
-## Estado posterior a las 7 subetapas
-El bloque inicial de construcción del panel administrativo quedó cerrado. Las siete etapas fueron implementadas y validadas en el contenedor Debian 13.
-
-### Capacidades cerradas
-- Configuración.
-- Usuarios.
-- Servidores / Nodos.
-- Canales / Fuentes.
-- VOD / Series / EPG / M3U.
-- Paquetes / Conexiones / Dispositivos.
-- Logs / Auditoría / Estadísticas.
-
-### Pendientes de fases posteriores
+## Pendientes de fases posteriores
 - Backend integral con PostgreSQL.
 - Autenticación robusta y RBAC completo.
 - Auditoría centralizada real desde backend.
 - Telemetría y health checks reales de streams/nodos.
 - Motor real de sesiones y métricas de streaming.
 - Licenciamiento.
-- Sistema de releases/updater firmado para instalaciones de clientes.
+- Releases/updater firmado para instalaciones de clientes.
 - Endurecimiento de seguridad y protección del código en instalaciones de clientes.
 
 ## Protocolo obligatorio por etapa
@@ -93,5 +76,17 @@ El bloque inicial de construcción del panel administrativo quedó cerrado. Las 
 8. Publicar la actualización.
 9. Informar al usuario qué se cambió y cómo probarlo.
 
-## Próximo paso recomendado
-Antes de agregar más funciones visuales al panel, definir la siguiente fase arquitectónica: **Backend real + PostgreSQL + autenticación/RBAC + auditoría centralizada**, preservando los módulos actuales como capa de presentación y administración.
+## Próxima etapa en curso: Etapa 8 — Backend real + PostgreSQL
+**Objetivo:** iniciar la transición de la capa demo/local a una arquitectura operativa real, manteniendo los módulos actuales como frontend administrativo.
+
+### Alcance de Etapa 8
+- Incorporar PostgreSQL como persistencia principal.
+- Preparar esquema inicial para usuarios, paquetes, nodos, canales, fuentes, contenido, conexiones, dispositivos y auditoría.
+- Crear una capa backend modular sin depender de JSON como persistencia principal.
+- Mantener compatibilidad controlada con los datos actuales para facilitar la migración.
+- Exponer API REST preparada para autenticación y RBAC posteriores.
+- Centralizar errores y validaciones básicas.
+- Preparar migración segura de los datos actuales hacia PostgreSQL.
+- No introducir todavía motor real de streaming ni licenciamiento.
+
+**Resultado esperado:** IPZStream ejecutándose en el contenedor con PostgreSQL como base real y el panel operando progresivamente sobre una API persistente.
