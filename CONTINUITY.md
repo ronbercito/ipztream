@@ -33,79 +33,42 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión validada mediante actualización desde panel: `0.2.1`.
+- Versión instalada por panel: `0.3.0`.
 - Debian 13 / Node.js 22 / npm 10 en el entorno de prueba.
 - IP de prueba: `192.168.10.220`.
 - Nginx publica `/var/www/ipztream`.
 - Código fuente: `/opt/ipztream`.
 - Servicio: `ipztream-api`.
 - MariaDB es la base principal y permanente.
-- Etapas 1–11 están validadas por el usuario.
-- El Centro de actualización ya instala revisiones completas desde el panel.
+- El Centro de actualización instala revisiones completas desde el panel.
 
 ## Etapa 12 — Motor de streaming real + integración de fuentes
 **Estado técnico:** EN IMPLEMENTACIÓN.
 
-### Objetivo
-Iniciar el primer motor de streaming real de IPZStream. La etapa no debe crear una simulación de reproducción: debe preparar fuentes reales, procesos de ingesta controlados por el servidor y salida HLS reproducible por HTTP.
-
-### Correcciones implementadas
-- 12.1 — Servido HLS HTTP controlado en `server/secure-entry.js`.
-- 12.2 — Centro de actualización administrativo real.
-- 12.2.1 — Terminación del Centro de actualización con metadatos, changelog, estados, bloqueo, build, publicación, rollback y reinicio.
-- 12.2.2 — Flujo de actualización exclusivamente desde el panel validado en versión `0.2.1`.
-
 ### 12.3 — Canales reales: HTTP/M3U + Astra Cesbo
 **Estado:** EN IMPLEMENTACIÓN.
 
-**Objetivo:** habilitar el módulo `Canales / Fuentes` para trabajar con fuentes reales administradas desde el panel.
+Se habilitaron fuentes HTTP/HTTPS/HLS, origen Astra Cesbo por HTTP, tipo M3U/M3U8, prioridad/respaldo y controles del motor FFmpeg/HLS.
 
-Primera entrega:
-- Eliminar datos ficticios/fallback de ESPN, HBO y TUDN.
-- Crear canales con una o varias fuentes HTTP/HTTPS/HLS/MPEG-TS compatibles con el motor.
-- Identificar explícitamente el tipo de origen: URL directa, M3U/M3U8 o Astra Cesbo.
-- Permitir URL M3U/M3U8 para importar entradas de canales en una fase controlada.
-- Preparar integración de Astra Cesbo mediante URL de stream HTTP expuesta por Astra; IPZStream no dependerá de acceso directo a tuner/DVB para consumir esos canales.
-- Mantener prioridad y fuente de respaldo por canal.
-- Conectar las fuentes persistidas con el motor de streaming/HLS existente y añadir controles de emisión en el módulo.
-- No incluir credenciales sensibles en el frontend ni en el repositorio.
+### 12.3.1 — UX del editor + salud y tiempo activo
+**Estado:** EN IMPLEMENTACIÓN.
 
-**Respaldo:** `backup/pre-channels-real-sources-2026-09-16` desde IPZStream `0.2.1` / commit `3069700`.
+**Objetivo:** reemplazar el editor comprimido por un modal amplio, ordenado y amigable, manteniendo la geometría del panel. El editor separará Información del canal y Fuentes de transmisión, mostrará ayuda contextual y hará visible la prioridad de cada fuente.
 
-### No incluido todavía
-- Aplicación móvil/TV.
-- Control definitivo de conexiones simultáneas.
-- Balanceo entre nodos.
-- DRM.
-- CDN.
-- Transcodificación adaptativa multi-bitrate completa.
-- Motor de sesiones de reproducción del cliente.
-- Producción de todos los perfiles HLS.
+Al registrar un canal, la tabla debe mostrar una opción/estado operacional que permita comprobar si la emisión realmente está funcionando. Para una emisión activa se mostrará:
+- indicador verde `Funcionando`;
+- tiempo activo calculado desde `startedAt` del proceso real FFmpeg;
+- acceso al HLS cuando esté disponible;
+- estado `Iniciando`, `Detenido` o `Error` cuando corresponda;
+- actualización periódica del estado sin necesidad de recargar toda la página.
+
+El tiempo activo representa la sesión actual del proceso de streaming; al detener/reiniciar el canal vuelve a comenzar.
 
 ## Próxima fase
-Implementar y validar 12.3 empezando por fuente HTTP/HLS directa y fuente Astra Cesbo por HTTP; después añadir importación M3U/M3U8 y prueba de canal real extremo a extremo.
+Validar desde el panel un canal HTTP/HLS real y después un canal publicado por Astra Cesbo.
 
 ## Respaldos
-- `backup/pre-etapa-1-13-configuracion`
-- `backup/pre-etapa-2-13-usuarios`
-- `backup/pre-correccion-configuracion-completa`
-- `backup/pre-etapa-2-7-usuarios`
-- `backup/pre-etapa-3-7-nodes`
-- `backup/pre-correccion-nodos-persistencia`
-- `backup/pre-etapa-4-7-channels`
-- `backup/pre-etapa-5-7-vod-series-epg-m3u`
-- `backup/pre-etapa-6-7-packages-connections-devices`
-- `backup/pre-etapa-7-7-logs-auditoria-estadisticas`
-- `backup/pre-etapa-8-backend-postgres`
-- `backup/pre-correccion-etapa-8-mariadb`
-- `backup/pre-correccion-schema-mariadb-multistatements`
-- `backup/pre-etapa-9-auth-rbac`
-- `backup/pre-correccion-etapa-9-session-token-hash`
-- `backup/pre-etapa-10-usuarios-iptv`
-- `backup/pre-etapa-11-api-clientes-sesiones`
 - `backup/pre-etapa-12-streaming-real`
-- `backup/pre-update-center-2026-09-15`
-- `backup/pre-update-center-complete-2026-09-16`
 - `backup/pre-update-panel-only-2026-09-16`
 - `backup/pre-channels-real-sources-2026-09-16`
 
