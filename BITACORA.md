@@ -95,5 +95,27 @@ La validación debe comprobar:
 8. Una fuente inválida produce estado/error controlado.
 9. No se pueden iniciar dos procesos simultáneos para el mismo canal.
 
+### Corrección 12.1 — Servido HLS desde Secure Entry
+Durante la prueba real se comprobó que FFmpeg generaba correctamente la playlist y segmentos, pero `/streams/...` respondía `404` porque `secure-entry.js` no tenía una ruta para servir los archivos HLS.
+
+Se añadió una capa HTTP HLS limitada a `index.m3u8` y `segment_XXXXXX.ts`, con:
+- autenticación mediante la sesión administrativa existente;
+- validación estricta del `channelId` y nombre de archivo;
+- resolución confinada a `IPZTREAM_STREAM_ROOT`;
+- comprobación de que el stream esté en `starting` o `running`;
+- tipos MIME específicos para playlist y segmentos;
+- soporte `GET` y `HEAD`;
+- caché corta para segmentos y sin caché para la playlist.
+
+### Respaldo de la corrección
+Backup realizado en el servidor antes de la modificación:
+`/opt/ipztream/backups/etapa-12/secure-entry.js.pre-hls-http`
+
+### Resultado de implementación
+La corrección quedó publicada en `main` en el commit `dfd24c07c1007b19554a9330dfc6010dbe3d2b23`.
+
+### Pendiente de validación
+Debe actualizarse el servidor con este commit y comprobar `200 OK` para `index.m3u8` y segmentos, seguido de las pruebas de stop/restart y procesos huérfanos.
+
 ### Referencia técnica
-El muxer HLS de FFmpeg genera una playlist y segmentos, y permite controlar el tamaño de la ventana, duración de segmentos y eliminación de segmentos antiguos mediante sus opciones HLS. 
+El muxer HLS de FFmpeg genera una playlist y segmentos, y permite controlar el tamaño de la ventana, duración de segmentos y eliminación de segmentos antiguos mediante sus opciones HLS.
