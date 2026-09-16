@@ -67,78 +67,53 @@ Iniciar el primer motor de streaming real de IPZStream. No se utilizarán simula
 - Se genera HLS por canal con `index.m3u8` y segmentos `.ts`.
 - Se evita iniciar dos procesos simultáneos para el mismo canal.
 - El apagado del servicio intenta detener los procesos FFmpeg activos.
-- Se añadieron endpoints administrativos:
-  - `GET /api/streams`
-  - `GET /api/streams/:channelId`
-  - `POST /api/streams/:channelId/start`
-  - `POST /api/streams/:channelId/stop`
-  - `POST /api/streams/:channelId/restart`
-- Las consultas usan `channels.view` y las acciones usan `channels.update`.
-- Se registran las acciones de control en `audit_logs`.
-- El instalador instala FFmpeg y configura el directorio `/var/lib/ipztream/streams`.
-- Nginx queda preparado para publicar `/streams/`.
-
-### Respaldo
-`backup/pre-etapa-12-streaming-real`.
-
-### Estado de validación
-**IMPLEMENTACIÓN PUBLICADA — VALIDACIÓN EN EL CONTENEDOR PENDIENTE.**
-
-La validación debe comprobar:
-1. FFmpeg instalado y ejecutable.
-2. API `/api/streams` devuelve versión de FFmpeg.
-3. Un canal con fuente real inicia FFmpeg.
-4. El estado cambia a `running`.
-5. Aparece `index.m3u8` y segmentos HLS.
-6. La playlist responde por HTTP.
-7. El proceso puede detenerse y queda en `stopped`.
-8. Una fuente inválida produce estado/error controlado.
-9. No se pueden iniciar dos procesos simultáneos para el mismo canal.
+- Se añadieron endpoints administrativos de streams y auditoría.
 
 ### Corrección 12.1 — Servido HLS desde Secure Entry
-Durante la prueba real se comprobó que FFmpeg generaba correctamente la playlist y segmentos, pero `/streams/...` respondía `404` porque `secure-entry.js` no tenía una ruta para servir los archivos HLS.
-
-Se añadió una capa HTTP HLS limitada a `index.m3u8` y `segment_XXXXXX.ts`, con:
-- autenticación mediante la sesión administrativa existente;
-- validación estricta del `channelId` y nombre de archivo;
-- resolución confinada a `IPZTREAM_STREAM_ROOT`;
-- comprobación de que el stream esté en `starting` o `running`;
-- tipos MIME específicos para playlist y segmentos;
-- soporte `GET` y `HEAD`;
-- caché corta para segmentos y sin caché para la playlist.
-
-### Respaldo de la corrección
-Backup realizado en el servidor antes de la modificación:
-`/opt/ipztream/backups/etapa-12/secure-entry.js.pre-hls-http`
-
-### Resultado de implementación
-La corrección quedó publicada en `main` en el commit `dfd24c07c1007b19554a9330dfc6010dbe3d2b23`.
-
-### Pendiente de validación
-Debe actualizarse el servidor con este commit y comprobar `200 OK` para `index.m3u8` y segmentos, seguido de las pruebas de stop/restart y procesos huérfanos.
+Durante la prueba real se comprobó que FFmpeg generaba correctamente la playlist y segmentos, pero `/streams/...` respondía `404` porque `secure-entry.js` no tenía una ruta para servir los archivos HLS. Se añadió una capa HTTP HLS limitada y autenticada.
 
 ### Corrección 12.2 — Centro de actualización del panel
-**Motivo:** el botón `Actualizar` del panel era solamente visual: abría un modal y simulaba una comprobación mediante `setTimeout`, sin consultar el servidor ni instalar una versión real.
+**Motivo:** el botón `Actualizar` era solamente visual y no consultaba ni instalaba versiones reales.
 
-**Respaldo:** rama `backup/pre-update-center-2026-09-15` creada antes de los cambios.
+**Respaldo:** `backup/pre-update-center-2026-09-15`.
 
-**Implementación publicada:**
-- `server/update-service.js`: consulta de HEAD/origin, detección de cambios locales, listado de commits, actualización `git pull --ff-only`, instalación de dependencias, build y reinicio controlado del servicio.
-- `server/auth.js`: permiso RBAC `system.update`, disponible para superadmin/admin.
-- `server/secure-entry.js`: `GET /api/update/status` y `POST /api/update/install`, con autenticación, RBAC y auditoría.
-- `src/modules/system-update/UpdateCenter.jsx`: interfaz real de comprobación, cambios disponibles, bloqueo por cambios locales y acción de instalación.
-- `src/main.jsx`: el botón `Actualizar` ahora utiliza el módulo real en lugar del modal simulado.
+**Implementación inicial:** servicio Git controlado, permiso RBAC `system.update`, API autenticada y módulo React.
 
-**Protecciones:** no se reciben comandos desde el navegador; el servidor utiliza comandos fijos mediante `execFile`, bloquea la instalación si existen cambios locales y revierte el código si `npm install` o `npm run build` falla. La consulta no ejecuta `pull`, build ni reinicio más allá del `git fetch` necesario para conocer el origen.
+**Estado inicial:** implementación publicada; validación del contenedor pendiente.
 
-**Commits de implementación:**
-- `39461ab67126c648cd461b4538fc5b8508c1c21b` — servicio de actualización.
-- `076ae4d4f9a46d5e33e08b6aa2b630809d8df968` — permiso RBAC.
-- `0f7114b78a953f719b786502615fd29bc52a499b` — API segura.
-- `bcf284ebb1ea37dd237db97628eda3a78ce8920` — UI modular.
-- `fadb76e356c9782ec60f5596e8a85ffd96b65231` — integración del botón.
+### Corrección 12.2.1 — Centro de actualización completo
+**Motivo:** durante el uso del módulo se comprobó que la primera versión no presentaba suficiente información al administrador y no funcionaba como un centro de actualización terminado.
 
-**Estado:** IMPLEMENTACIÓN PUBLICADA — **VALIDACIÓN EN EL CONTENEDOR PENDIENTE**. No se declara build ni reinicio verificados hasta ejecutarlos realmente en el servidor.
+**Respaldo:** `backup/pre-update-center-complete-2026-09-16`.
+
+**Archivos modificados:**
+- `server/update-service.js`
+- `src/modules/system-update/UpdateCenter.jsx`
+- `src/modules/system-update/UpdateCenter.css`
+- `package.json`
+- `CONTINUITY.md`
+
+**Mejoras:**
+- Versión real de `package.json` visible en el panel.
+- Commit instalado y commit remoto.
+- Rama y remote configurados.
+- Servicio administrado mostrado.
+- Fecha/hora de comprobación.
+- Estado claro: actualizado o actualización disponible.
+- Changelog con commit, autor y fecha.
+- Bloqueo explícito por cambios locales.
+- Confirmación antes de instalar.
+- Mensajes de descarga, instalación, build y reinicio.
+- Recarga automática del panel después del reinicio.
+- Estilos propios del módulo.
+- Conservación del RBAC y de los comandos fijos del backend.
+- Versión de IPZStream elevada a `0.2.0` para que el panel deje de mostrar una versión estática anterior.
+
+**Protecciones:** no se reciben comandos desde el navegador; se utiliza `execFile`, `git pull --ff-only`, bloqueo por árbol sucio y rollback del commit si instalación/build falla.
+
+**Resultado esperado:** al pulsar `Actualizar`, el administrador debe ver siempre el estado real del servidor. Si no hay cambios, debe mostrar claramente que está actualizado. Si existen commits nuevos, debe mostrarlos y habilitar `Actualizar ahora`. Si hay cambios locales, debe bloquear la operación y explicar el motivo.
+
+**Estado:** IMPLEMENTACIÓN PUBLICADA — **VALIDACIÓN REAL EN EL CONTENEDOR PENDIENTE**.
 
 ### Referencia técnica
 El muxer HLS de FFmpeg genera una playlist y segmentos, y permite controlar el tamaño de la ventana, duración de segmentos y eliminación de segmentos antiguos mediante sus opciones HLS.
