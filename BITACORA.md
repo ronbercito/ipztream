@@ -8,21 +8,17 @@ Completadas y validadas.
 
 ## Etapa 12 — Motor de streaming real + integración de fuentes — EN IMPLEMENTACIÓN
 
-### Mejora 12.3.5 — Autoarranque y monitoreo operativo
-Implementado en 0.3.6.
-
 ### Mejora 12.3.6 — Historial operativo
-Implementado en 0.3.7: registro de Inicio/Reinicio y limpieza manual del contador sin detener el canal.
+Implementado en 0.3.7.
 
 ### Mejora 12.3.7 — Recuperación automática del stream
-**Motivo:** prueba real con Astra: al cortar la señal, FFmpeg/IPZStream se detiene; al restaurar Astra, IPZStream no vuelve a levantar el canal por sí solo.
+Implementado en 0.3.8. Validación real confirmada: al cortar la fuente y devolverla, IPZStream reanuda el canal automáticamente y registra el reinicio.
 
-**Respaldo:** `backup/pre-stream-auto-recovery-2026-09-17`.
+### Corrección 12.3.8 — Restaurar diseño del editor de canales
+**Motivo:** después de las últimas actualizaciones el modal ancho sigue presente, pero los controles de Información general/Logo aparecen con estilos nativos y dimensiones incorrectas, generando amontonamiento y scroll horizontal.
 
-**Implementación:** el gestor mantendrá intención de ejecución por canal. Ante salida inesperada de FFmpeg programará reintentos con retardo. Cada nuevo lanzamiento automático contará como Reinicio. Detención manual/desactivación cancelará la recuperación.
+**Alcance:** corregir exclusivamente presentación CSS del editor: layout ancho, campos, selects, tarjetas, logo y comportamiento responsive. No modificar el motor FFmpeg, recuperación automática ni historial operativo.
 
-**Resultado esperado:** cortar Astra provoca caída/error temporal; al volver la fuente, IPZStream recupera automáticamente el canal sin pulsar iniciar.
-
-**Versión prevista:** 0.3.8.
+**Versión prevista:** 0.3.9.
 
 **Estado:** EN IMPLEMENTACIÓN.
