@@ -11,24 +11,22 @@ Completadas y validadas.
 ### Mejora 12.3.6 — Historial operativo
 Implementado en 0.3.7.
 
-### Mejora 12.3.7 — Recuperación automática del stream
+### Mejora 12.3.7 — Recuperación automática
 Implementado en 0.3.8 y validado.
 
-### Corrección 12.3.8 — Editor de canales
-Implementado en 0.3.9.
+### Correcciones visuales 12.3.8 / 12.3.9
+Editor y Fuentes implementados en 0.3.9/0.3.10.
 
-### Corrección 12.3.9 — Fuentes de transmisión
-Implementado en 0.3.10.
+### Mejora 12.3.10 — Persistencia del estado
+Implementado en 0.3.11: running/stopped persistente y restauración automática.
 
-### Mejora 12.3.10 — Persistencia y restauración del estado de emisión
-**Motivo:** el estado deseado estaba únicamente en memoria. Al actualizar IPZStream o reiniciar el servicio/contenedor, FFmpeg se cerraba y todos los canales aparecían detenidos.
+### Mejora 12.3.11 — Remux/Copy de bajo consumo
+**Motivo:** FFmpeg estaba transcodificando todos los canales a H.264/AAC. Para señales MPEG-2/MPEG-TS esto añade CPU y puede introducir comportamiento peor que la reproducción directa observada en VLC.
 
-**Respaldo:** `backup/pre-persistent-stream-state-2026-09-16`.
+**Implementación:** usar stream copy para video/audio, conservar códecs de origen, reparar/generar timestamps necesarios para HLS, mantener reconexión y recuperación automática. No habrá fallback silencioso a transcodificación.
 
-**Implementación prevista:** persistir `running/stopped` por canal; distinguir parada manual de apagado del servicio; restaurar automáticamente al arranque los canales activos que estaban configurados para emitir; conservar recuperación automática cuando el proveedor aún no responda.
+**Prueba:** canal MPEG-2 problemático + canal H.264, observando continuidad, CPU y recuperación Astra.
 
-**Prueba requerida:** iniciar un canal, dejar otro detenido, actualizar IPZStream desde el panel y comprobar tras el reinicio que el primero vuelve a emitir solo y el segundo continúa detenido.
-
-**Versión:** 0.3.11.
+**Versión:** 0.3.12.
 
 **Estado:** EN IMPLEMENTACIÓN.
