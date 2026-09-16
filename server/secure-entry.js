@@ -1,6 +1,10 @@
+// IPZStream secure entry — 2026-09-15
+// Update: adds the authenticated update-center API while preserving existing auth, HLS and stream routes.
+// Receives browser requests, validates RBAC, and delegates fixed update operations to update-service.js.
+
 import http from 'node:http';
 import { createReadStream } from 'node:fs';
-import { access, stat } from 'node:fs/promises';
+import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { URL } from 'node:url';
 import { ensureAuthSchema, authenticate, getSessionUser, destroySession, serializeSessionCookie, clearSessionCookie, hasPermission, permissionForRequest } from './auth.js';
@@ -8,6 +12,7 @@ import { addAudit } from './db.js';
 import { ensureUserSchema, listUsers, createUser, updateUser, deleteUser } from './user-service.js';
 import { ensureClientSessionSchema, authenticateClient, createClientSession, getClientSession, destroyClientSession, clientSessionCookie, clearClientSessionCookie, getClientToken, publicClient } from './client-auth.js';
 import { assertFfmpeg, getStream, listStreams, startStream, stopStream, restartStream } from './stream-manager.js';
+import { getUpdateStatus, installUpdate } from './update-service.js';
 
 const PUBLIC_PORT = Number(process.env.IPZTREAM_API_PORT || 3100);
 const INTERNAL_PORT = Number(process.env.IPZTREAM_INTERNAL_API_PORT || 3101);
@@ -188,6 +193,24 @@ async function handleStreamApi(req, res, pathname, user) {
   }
 }
 
+async function handleUpdateApi(req, res, pathname, user) {
+  if (!pathname.startsWith('/api/update')) return false;
+  try {
+    if (pathname === '/api/update/status' && req.method === 'GET') {
+      return send(res, 200, await getUpdateStatus());
+    }
+    if (pathname === '/api/update/install' && req.method === 'POST') {
+      const result = await installUpdate();
+      await addAudit({ action: result.installed ? 'SYSTEM_UPDATE' : 'SYSTEM_UPDATE_CHECK', module: 'system-update', actor: user.username, detail: result.message, metadata: { previousRevision: result.previousRevision || null, installedRevision: result.installedRevision || null } });
+      return send(res, result.installed ? 202 : 200, result);
+    }
+    return send(res, 404, { message: 'Ruta de actualización no encontrada.' });
+  } catch (error) {
+    await addAudit({ action: 'SYSTEM_UPDATE_FAILED', module: 'system-update', actor: user.username, detail: error.message || 'Error de actualización', metadata: { status: error.status || 500 } });
+    return send(res, error.status || 500, { message: error.message || 'No se pudo actualizar IPZStream.', details: error.details || null });
+  }
+}
+
 async function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
@@ -238,6 +261,12 @@ async function handle(req, res) {
 
   const user = await getSessionUser(sessionToken(req));
   if (!user) return send(res, 401, { message: 'Autenticación requerida.' });
+
+  if (pathname.startsWith('/api/update')) {
+    if (!hasPermission(user, 'system.update')) return send(res, 403, { message: 'No tienes permiso para actualizar IPZStream.', permission: 'system.update' });
+    const handled = await handleUpdateApi(req, res, pathname, user);
+    if (handled !== false) return;
+  }
 
   if (pathname.startsWith('/streams/')) {
     const handled = await handleHls(req, res, pathname);
