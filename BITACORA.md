@@ -14,16 +14,21 @@ Completadas y validadas.
 - Estado real y uptime de emisión.
 
 ### Mejora 12.3.2 — Editor definitivo ancho con pestañas
-**Motivo:** el editor 0.3.1 mejoró la presentación, pero en la resolución real del usuario continúa demasiado angosto y los campos se comprimen. El usuario aprobó una referencia visual concreta y pidió implementarla, sin más mockups.
+Editor ancho y pestañas implementados. La corrección 0.3.3 fuerza el ancho del modal para evitar interferencia de estilos globales.
 
-**Respaldo:** `backup/pre-channel-editor-tabs-2026-09-16`.
+### Mejora 12.3.3 — Probar fuente antes de guardar
+**Motivo:** la referencia aprobada incluye controles por fuente para comprobar la señal antes de guardar. La implementación actual todavía no realiza esa comprobación.
 
-**Archivos a modificar:**
-- `src/modules/channels/components/ChannelForm.jsx`
+**Respaldo:** `backup/pre-source-probe-2026-09-16`.
+
+**Archivos previstos:**
+- `server/source-probe.js`
+- `server/secure-entry.js`
+- `src/modules/channels/services/channelsApi.js`
 - `src/modules/channels/components/SourceEditor.jsx`
 - `src/modules/channels/styles/channels.css`
 - `package.json`
 
-**Resultado esperado:** modal ancho, pestañas superiores, campos cómodos, fuentes sin amontonamiento, mismo lenguaje azul/blanco del panel, monitoreo real separado y footer fijo. No se eliminan opciones existentes.
+**Resultado esperado:** `Probar` ejecuta una comprobación temporal real mediante ffprobe, devuelve estado y latencia sin guardar el canal; la tarjeta muestra Activa/Error/Sin señal y tiempo de respuesta. `Editar` y `Eliminar` quedan disponibles por fuente.
 
 **Estado:** EN IMPLEMENTACIÓN.
