@@ -17,7 +17,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión actual publicada: `0.3.3`.
+- Versión actual publicada: `0.3.4`.
 - Centro de actualización validado desde panel.
 - Etapa 12 — Motor de streaming real + integración de fuentes: **EN IMPLEMENTACIÓN**.
 
@@ -28,25 +28,25 @@ Fuentes HTTP/HTTPS/HLS, Astra Cesbo por HTTP, M3U/M3U8, prioridad/respaldo y con
 Editor ancho con pestañas, información general, fuentes, estado/monitoreo y opciones avanzadas implementado.
 
 ## 12.3.3 — Prueba real de fuente antes de guardar
+Implementada y validada con una fuente real: estado Activa y tiempo de respuesta devueltos por ffprobe sin guardar el canal.
+
+## 12.3.4 — Diagnóstico multimedia al probar una fuente
 **Estado:** EN IMPLEMENTACIÓN.
 
-Objetivo aprobado: cada tarjeta de fuente debe permitir comprobar la señal antes de guardar el canal.
+Objetivo aprobado: al pulsar `Probar`, además de estado y latencia, mostrar información técnica real de la señal obtenida por ffprobe.
 
-### Comportamiento
-- Botón `Probar` en cada fuente.
-- La prueba no crea ni modifica el canal en MariaDB.
-- El backend recibe únicamente los datos temporales necesarios para comprobar la fuente.
-- HTTP/HLS y Astra Cesbo HTTP se validan con `ffprobe` con tiempo límite.
-- El resultado indica `Activa`, `Sin señal` o `Error` y muestra el tiempo de respuesta en milisegundos.
-- Para M3U/M3U8 se identifica si la URL corresponde a una lista/playlist importable o a una fuente multimedia reconocible.
-- `Editar` mantiene la tarjeta editable y `Eliminar` conserva su función actual.
-- La comprobación no debe dejar procesos FFmpeg persistentes.
-
-### Respaldo
-`backup/pre-source-probe-2026-09-16` creado antes de esta corrección.
+### Datos a mostrar
+- Bitrate total cuando la fuente lo reporte.
+- Resolución del video, por ejemplo `1920 × 1080`.
+- Códec de video, por ejemplo `H.264`.
+- Códec de audio, por ejemplo `MP2`, `AAC` o el valor real recibido.
+- Cantidad/configuración de canales de audio cuando esté disponible.
+- FPS calculado desde la tasa de cuadros reportada por ffprobe.
+- Los campos no disponibles deben mostrar `—`; nunca se deben inventar valores.
+- La información se muestra dentro de la misma tarjeta de fuente, debajo del resultado de la prueba, sin modificar ni guardar el canal.
 
 ## Próxima fase
-Publicar la corrección, actualizar exclusivamente desde Centro de actualización y validar una fuente real antes de guardar.
+Publicar la mejora, actualizar desde Centro de actualización y validar los metadatos contra una fuente real de Astra/HTTP-HLS.
 
 ## Protocolo obligatorio
 1. Actualizar `CONTINUITY.md`.
