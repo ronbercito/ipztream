@@ -17,18 +17,17 @@ Completadas y validadas.
 Editor ancho y pestañas implementados. La corrección 0.3.3 fuerza el ancho del modal para evitar interferencia de estilos globales.
 
 ### Mejora 12.3.3 — Probar fuente antes de guardar
-**Motivo:** la referencia aprobada incluye controles por fuente para comprobar la señal antes de guardar. La implementación actual todavía no realiza esa comprobación.
+Implementada en 0.3.4. La prueba temporal usa ffprobe, no guarda el canal y devuelve estado real y latencia. Validada por el usuario con una fuente real activa.
 
-**Respaldo:** `backup/pre-source-probe-2026-09-16`.
+### Mejora 12.3.4 — Metadatos técnicos de la señal
+**Motivo:** al probar una fuente activa, el usuario necesita ver no solo la latencia sino también las características reales del contenido recibido, tomando como referencia bitrate, resolución, video, audio, canales y FPS.
 
-**Archivos previstos:**
+**Archivos a modificar:**
 - `server/source-probe.js`
-- `server/secure-entry.js`
-- `src/modules/channels/services/channelsApi.js`
 - `src/modules/channels/components/SourceEditor.jsx`
 - `src/modules/channels/styles/channels.css`
 - `package.json`
 
-**Resultado esperado:** `Probar` ejecuta una comprobación temporal real mediante ffprobe, devuelve estado y latencia sin guardar el canal; la tarjeta muestra Activa/Error/Sin señal y tiempo de respuesta. `Editar` y `Eliminar` quedan disponibles por fuente.
+**Resultado esperado:** la misma prueba ffprobe devuelve y presenta bitrate, resolución, códec de video, códec de audio, canales de audio y FPS. Los valores ausentes se representan con `—`. No se persisten estos datos al probar.
 
 **Estado:** EN IMPLEMENTACIÓN.
