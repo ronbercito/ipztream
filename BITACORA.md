@@ -12,16 +12,23 @@ Completadas y validadas.
 Implementado en 0.3.7.
 
 ### Mejora 12.3.7 — Recuperación automática del stream
-Implementado en 0.3.8. Validación real confirmada.
+Implementado en 0.3.8 y validado.
 
-### Corrección 12.3.8 — Restaurar diseño del editor de canales
-Implementado en 0.3.9 para Información general y logo.
+### Corrección 12.3.8 — Editor de canales
+Implementado en 0.3.9.
 
-### Corrección 12.3.9 — Restaurar diseño de Fuentes de transmisión
-**Motivo:** la funcionalidad está presente, pero la pestaña aparece visualmente desarmada: acciones con estilo nativo, tarjeta demasiado angosta y ejemplos pegados.
+### Corrección 12.3.9 — Fuentes de transmisión
+Implementado en 0.3.10.
 
-**Alcance:** presentación CSS de SourceEditor: encabezado, aviso, tarjeta horizontal, botones, campos, estado de prueba, métricas multimedia y ejemplos. No modificar la lógica de Probar ni recuperación FFmpeg.
+### Mejora 12.3.10 — Persistencia y restauración del estado de emisión
+**Motivo:** el estado deseado estaba únicamente en memoria. Al actualizar IPZStream o reiniciar el servicio/contenedor, FFmpeg se cerraba y todos los canales aparecían detenidos.
 
-**Versión prevista:** 0.3.10.
+**Respaldo:** `backup/pre-persistent-stream-state-2026-09-16`.
+
+**Implementación prevista:** persistir `running/stopped` por canal; distinguir parada manual de apagado del servicio; restaurar automáticamente al arranque los canales activos que estaban configurados para emitir; conservar recuperación automática cuando el proveedor aún no responda.
+
+**Prueba requerida:** iniciar un canal, dejar otro detenido, actualizar IPZStream desde el panel y comprobar tras el reinicio que el primero vuelve a emitir solo y el segundo continúa detenido.
+
+**Versión:** 0.3.11.
 
 **Estado:** EN IMPLEMENTACIÓN.
