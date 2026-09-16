@@ -17,31 +17,33 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión en preparación: `0.3.9`.
+- Versión en preparación: `0.3.10`.
 - Centro de actualización validado desde panel.
 - Etapa 12 — Motor de streaming real + integración de fuentes: **EN IMPLEMENTACIÓN**.
 
-## 12.3.6 — Historial operativo
-Implementado en 0.3.7.
-
 ## 12.3.7 — Recuperación automática ante caída del proveedor
-Implementado en 0.3.8 y validado en prueba real: el canal vuelve cuando retorna la señal del proveedor.
+Implementado en 0.3.8 y validado en prueba real.
 
 ## 12.3.8 — Corrección visual del editor ancho
+Implementado en 0.3.9 para Información general.
+
+## 12.3.9 — Corrección visual de Fuentes de transmisión
 **Estado:** EN IMPLEMENTACIÓN.
 
-Tras 0.3.8 el editor conserva las pestañas pero perdió estilos de campos internos: inputs/selects quedaron con estilo nativo, la columna general se estrechó visualmente y la vista previa del logo se expandió de forma incorrecta. Se debe restaurar el diseño ancho aprobado sin alterar recuperación automática, historial ni controles de streaming.
+La pestaña Fuentes conserva toda la funcionalidad pero sus elementos no tienen el acabado visual aprobado: encabezado, acciones, tarjeta de fuente, campos y ejemplos aparecen desalineados/compactados. Se restaurará una composición amplia y ordenada sin modificar la lógica de prueba de señal ni el motor de streaming.
 
 ### Objetivo visual
-- Mantener modal ancho y cuatro pestañas.
-- Información general ordenada, con Nombre en una fila y Número/Categoría/Estado en tres columnas.
-- Logo en tarjeta independiente con URL y vista previa contenida, sin expandirse verticalmente.
-- Inputs/selects uniformes, modernos y al 100% del espacio disponible.
-- Sin scroll horizontal en escritorio.
-- Mantener colores, contraste y temática ya aprobados.
+- Encabezado claro con título/ayuda y botón Agregar fuente alineado a la derecha.
+- Aviso de prioridad en una banda informativa independiente.
+- Cada fuente ocupa una tarjeta horizontal amplia; número, Principal/Respaldo, estado y acciones en una cabecera limpia.
+- Tipo, URL, protocolo, prioridad y tiempo de respuesta alineados en una sola grilla en escritorio.
+- Botones Probar, Editar y Eliminar con estilo consistente.
+- Resultados multimedia de Probar conservan bitrate, resolución, video, audio, canales y FPS.
+- Ejemplos de URL en bloque inferior legible y separado.
+- Sin scroll horizontal ni controles nativos desalineados.
 
 ## Próxima fase
-Publicar 0.3.9 y validar visualmente el editor desde Centro de actualización.
+Publicar 0.3.10 y validar visualmente Fuentes de transmisión desde Centro de actualización.
 
 ## Protocolo obligatorio
 1. Actualizar `CONTINUITY.md`.
