@@ -117,5 +117,20 @@ La corrección quedó publicada en `main` en el commit `dfd24c07c1007b19554a9330
 ### Pendiente de validación
 Debe actualizarse el servidor con este commit y comprobar `200 OK` para `index.m3u8` y segmentos, seguido de las pruebas de stop/restart y procesos huérfanos.
 
+### Corrección 12.2 — Centro de actualización del panel
+**Motivo:** el botón `Actualizar` del panel era solamente visual: abría un modal y simulaba una comprobación mediante `setTimeout`, sin consultar el servidor ni instalar una versión real.
+
+**Archivos afectados previstos:**
+- `src/main.jsx` (integración mínima del centro de actualización)
+- nuevo módulo de actualización para separar UI y servicio
+- `server/secure-entry.js` (endpoints administrativos)
+- `server/update-service.js` (gestión controlada de versión/origen/actualización)
+
+**Respaldo:** rama `backup/pre-update-center-2026-09-15` creada antes de los cambios.
+
+**Resultado esperado:** el botón debe consultar el estado real, mostrar la revisión disponible y permitir una instalación administrativa controlada. Una consulta no debe ejecutar `pull`, build ni reinicio. La instalación debe informar errores reales y reiniciar el servicio únicamente después de una actualización confirmada.
+
+**Estado:** EN IMPLEMENTACIÓN — falta verificación en el contenedor antes de marcarlo como validado.
+
 ### Referencia técnica
 El muxer HLS de FFmpeg genera una playlist y segmentos, y permite controlar el tamaño de la ventana, duración de segmentos y eliminación de segmentos antiguos mediante sus opciones HLS.
