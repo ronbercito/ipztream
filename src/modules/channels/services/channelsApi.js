@@ -8,11 +8,14 @@ async function request(url,options={}){
   return payload;
 }
 
-export async function loadChannels(fallback=[]){
+export async function loadChannels(){
   const payload=await request(API_BASE);
-  return Array.isArray(payload?.channels)?payload.channels:fallback;
+  return Array.isArray(payload?.channels)?payload.channels:[];
 }
 
 export async function createChannel(data){return request(API_BASE,{method:'POST',body:JSON.stringify(data)});}
 export async function updateChannel(id,data){return request(`${API_BASE}/${encodeURIComponent(id)}`,{method:'PUT',body:JSON.stringify(data)});}
 export async function deleteChannel(id){return request(`${API_BASE}/${encodeURIComponent(id)}`,{method:'DELETE'});}
+export async function loadStream(id){const payload=await request(`/api/streams/${encodeURIComponent(id)}`);return payload.stream;}
+export async function startChannelStream(id){const payload=await request(`/api/streams/${encodeURIComponent(id)}/start`,{method:'POST'});return payload.stream;}
+export async function stopChannelStream(id){const payload=await request(`/api/streams/${encodeURIComponent(id)}/stop`,{method:'POST'});return payload.stream;}
