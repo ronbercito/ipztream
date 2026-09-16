@@ -17,7 +17,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión actual publicada: `0.3.4`.
+- Versión actual publicada: `0.3.5`.
 - Centro de actualización validado desde panel.
 - Etapa 12 — Motor de streaming real + integración de fuentes: **EN IMPLEMENTACIÓN**.
 
@@ -31,22 +31,28 @@ Editor ancho con pestañas, información general, fuentes, estado/monitoreo y op
 Implementada y validada con una fuente real: estado Activa y tiempo de respuesta devueltos por ffprobe sin guardar el canal.
 
 ## 12.3.4 — Diagnóstico multimedia al probar una fuente
+Implementado en 0.3.5: bitrate, resolución, códecs, audio y FPS reales cuando ffprobe los reporta.
+
+## 12.3.5 — Autoarranque y monitoreo operativo del canal
 **Estado:** EN IMPLEMENTACIÓN.
 
-Objetivo aprobado: al pulsar `Probar`, además de estado y latencia, mostrar información técnica real de la señal obtenida por ffprobe.
+Objetivo aprobado: un canal guardado como `Activo` y con una fuente válida debe iniciar automáticamente su emisión. La tabla debe reflejar el estado operativo real del motor.
 
-### Datos a mostrar
-- Bitrate total cuando la fuente lo reporte.
-- Resolución del video, por ejemplo `1920 × 1080`.
-- Códec de video, por ejemplo `H.264`.
-- Códec de audio, por ejemplo `MP2`, `AAC` o el valor real recibido.
-- Cantidad/configuración de canales de audio cuando esté disponible.
-- FPS calculado desde la tasa de cuadros reportada por ffprobe.
-- Los campos no disponibles deben mostrar `—`; nunca se deben inventar valores.
-- La información se muestra dentro de la misma tarjeta de fuente, debajo del resultado de la prueba, sin modificar ni guardar el canal.
+### Comportamiento
+- Al crear un canal activo, iniciar FFmpeg automáticamente después de guardarlo.
+- Al editar un canal activo, reiniciar su emisión para aplicar la fuente/configuración nueva.
+- Al desactivar un canal, detener la emisión; al volver a activarlo, iniciarla.
+- Mostrar `Funcionando`, `Iniciando`, `Detenido` o `Error` según el proceso real.
+- Mostrar tiempo activo desde el último inicio exitoso.
+- Contabilizar reinicios del proceso por canal durante la vida del servicio y exponer el contador en la tabla.
+- Conservar el control manual iniciar/detener.
+- No marcar un canal como funcionando si FFmpeg no está realmente activo.
+
+### Respaldo
+`backup/pre-channel-autostart-monitoring-2026-09-16`.
 
 ## Próxima fase
-Publicar la mejora, actualizar desde Centro de actualización y validar los metadatos contra una fuente real de Astra/HTTP-HLS.
+Publicar la mejora, actualizar desde Centro de actualización y validar creación, edición, desactivación, autoarranque, uptime y contador de reinicios con canales reales.
 
 ## Protocolo obligatorio
 1. Actualizar `CONTINUITY.md`.
