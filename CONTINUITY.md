@@ -17,40 +17,35 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión actual publicada: `0.3.6`.
+- Versión en preparación: `0.3.8`.
 - Centro de actualización validado desde panel.
 - Etapa 12 — Motor de streaming real + integración de fuentes: **EN IMPLEMENTACIÓN**.
 
-## 12.3 — Canales reales HTTP/M3U + Astra Cesbo
-Fuentes HTTP/HTTPS/HLS, Astra Cesbo por HTTP, M3U/M3U8, prioridad/respaldo y controles FFmpeg/HLS habilitados.
+## 12.3.5 — Autoarranque y monitoreo operativo
+Implementado: guardado activo inicia FFmpeg, estado real y uptime visibles.
 
-## 12.3.2 — Editor definitivo ancho y organizado por pestañas
-Editor ancho con pestañas, información general, fuentes, estado/monitoreo y opciones avanzadas implementado.
+## 12.3.6 — Historial operativo
+Implementado en 0.3.7: historial de inicio/reinicio y borrado manual sin detener la emisión.
 
-## 12.3.3 — Prueba real de fuente antes de guardar
-Implementada y validada con una fuente real.
-
-## 12.3.4 — Diagnóstico multimedia al probar una fuente
-Implementado en 0.3.5.
-
-## 12.3.5 — Autoarranque y monitoreo operativo del canal
-Implementado y validado en 0.3.6: guardado activo inicia FFmpeg, estado real y uptime visibles.
-
-## 12.3.6 — Historial y reinicio del contador operativo
+## 12.3.7 — Recuperación automática ante caída del proveedor
 **Estado:** EN IMPLEMENTACIÓN.
 
-Objetivo aprobado: la columna de reinicios debe permitir consultar cuándo inició/reinició el canal y reiniciar manualmente ese historial para comenzar una medición nueva.
+Objetivo: si Astra/HTTP/proveedor deja de entregar señal y FFmpeg termina, IPZStream no debe requerir intervención manual. Debe conservar el canal activo, esperar y reintentar automáticamente hasta que la fuente vuelva a responder.
 
 ### Comportamiento
-- Registrar cada inicio con fecha/hora y tipo (`Inicio` o `Reinicio`).
-- El contador debe representar los reinicios registrados desde el último borrado manual.
-- Añadir acción visible para abrir el historial del canal.
-- Mostrar un registro ordenado con fecha/hora de cada evento.
-- Añadir botón `Borrar historial` con confirmación; al borrarlo contador e historial vuelven a cero sin detener el canal.
-- El canal que ya está funcionando debe continuar funcionando después de limpiar el historial.
+- Una salida inesperada de FFmpeg deja el canal en estado de recuperación, no abandonado definitivamente.
+- Reintento automático periódico mientras el canal administrativo siga `Activo`.
+- Al recuperar respuesta de la fuente, levantar FFmpeg automáticamente.
+- Cada intento que realmente vuelva a lanzar FFmpeg se registra como `Reinicio` con fecha/hora y aumenta el contador.
+- Un `Detener` manual o desactivar el canal cancela los reintentos automáticos.
+- Evitar bucles agresivos: usar retardo entre intentos.
+- Mantener el último error visible mientras se espera recuperación.
+
+### Respaldo
+`backup/pre-stream-auto-recovery-2026-09-17`.
 
 ## Próxima fase
-Publicar la mejora y validarla desde Centro de actualización con un canal real.
+Actualizar desde el panel y validar cortando temporalmente una señal de Astra y restaurándola sin tocar IPZStream.
 
 ## Protocolo obligatorio
 1. Actualizar `CONTINUITY.md`.
