@@ -1,5 +1,5 @@
 {
-  "name":"ipztream-panel","private":true,"version":"0.3.6","type":"module",
+  "name":"ipztream-panel","private":true,"version":"0.3.7","type":"module",
   "scripts":{"dev":"vite --host 0.0.0.0","build":"vite build","preview":"vite preview --host 0.0.0.0","api":"node server/secure-entry.js","bootstrap-admin":"node server/bootstrap-admin.js"},
   "dependencies":{"@vitejs/plugin-react":"latest","vite":"latest","react":"latest","react-dom":"latest","lucide-react":"latest","mariadb":"^3.4.5"},"devDependencies":{}
 }
