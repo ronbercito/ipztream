@@ -33,7 +33,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión visible: `0.2.0`.
+- Versión visible instalada antes de la prueba: `0.2.0`.
 - Debian 13 / Node.js 22 / npm 10 en el entorno de prueba.
 - IP de prueba: `192.168.10.220`.
 - Nginx publica `/var/www/ipztream`.
@@ -52,34 +52,28 @@ Iniciar el primer motor de streaming real de IPZStream. La etapa no debe crear u
 - 12.1 — Servido HLS HTTP controlado en `server/secure-entry.js`.
 - 12.2 — Centro de actualización administrativo real.
 - 12.2.1 — Terminación del Centro de actualización con metadatos de versión, changelog, estados, bloqueo por cambios locales, confirmación, feedback de instalación y estilos propios.
+- 12.2.2 — Validación real del flujo de actualización exclusivamente desde el panel, incluida autenticación de lectura del repositorio privado mediante Deploy Key del servicio.
 
 ### Corrección 12.2.1 — Centro de actualización completo
-**Objetivo:** que el botón `Actualizar` funcione como un centro administrativo completo y no como un modal visual.
+El centro administrativo consulta versión/commit, lista cambios, bloquea árboles Git modificados, instala con `git pull --ff-only`, ejecuta dependencias/build, publica `dist` en `/var/www/ipztream`, revierte ante fallo y reinicia el servicio mediante el supervisor de systemd.
 
-**Backend:**
-- `server/update-service.js` ahora devuelve versión de aplicación, commit instalado, commit remoto, rama, remote, servicio, fecha de comprobación, cambios disponibles, archivos locales modificados y si la instalación está permitida.
-- Mantiene comandos fijos mediante `execFile`.
-- Bloquea instalaciones sobre un árbol Git modificado.
-- Usa `git pull --ff-only`.
-- Ejecuta `npm install` y `npm run build` antes del reinicio.
-- Revierte el commit si instalación/build falla.
-- Reinicia `ipztream-api` únicamente después de una instalación exitosa.
+**Seguridad:** el navegador no puede enviar comandos arbitrarios; el backend mantiene la autorización RBAC `system.update`. El mecanismo Git actual está destinado al entorno de desarrollo/pruebas. Para clientes finales se sustituirá por releases/builds firmados y un canal controlado por IPZStream/PVS.
 
-**Panel:**
-- `src/modules/system-update/UpdateCenter.jsx` muestra estado actual/disponible, versión, commits, rama, última comprobación y servicio.
-- Lista los cambios antes de instalar.
-- Muestra errores reales del API.
-- Pide confirmación antes de actualizar.
-- Muestra estado de instalación y recarga el panel después del reinicio.
-- Informa y bloquea cuando existen cambios locales.
-- `src/modules/system-update/UpdateCenter.css` contiene los estilos específicos del módulo.
-- `package.json` pasa a versión visible `0.2.0`.
+### Corrección 12.2.2 — Prueba real del actualizador desde el panel
+**Objetivo:** demostrar que, después del bootstrap inicial, una nueva revisión puede detectarse e instalarse desde `Centro de actualización` sin ejecutar `git pull`, `npm install`, `npm run build`, copia de `dist` ni reinicio manual desde terminal.
 
-**Seguridad:** el navegador no puede enviar comandos arbitrarios; el backend mantiene la autorización RBAC `system.update`. El mecanismo actual está destinado a desarrollo/pruebas. Para clientes finales se deberá sustituir Git por releases/builds firmados y un canal de actualización controlado por IPZStream/PVS.
+**Estado previo validado:**
+- Panel instalado en versión `0.2.0`.
+- Commit instalado y remoto coinciden en `1321a1621e8c`.
+- Consulta del actualizador responde `IPZStream está actualizado`.
+- El servicio `www-data` autentica contra el repositorio privado mediante una Deploy Key de solo lectura.
+- El error previo `Host key verification failed` / `Permission denied (publickey)` quedó resuelto en el servidor de prueba.
 
-**Respaldo:** `backup/pre-update-center-complete-2026-09-16`, creado antes de esta corrección.
+**Prueba pendiente:** publicar una revisión posterior a `1321a16`, detectarla desde el panel e instalarla únicamente mediante el botón `Actualizar`.
 
-**Estado:** IMPLEMENTACIÓN PUBLICADA — **VALIDACIÓN REAL EN EL CONTENEDOR PENDIENTE**. No se declara el módulo validado hasta comprobar build, servicio, API y una actualización real de prueba.
+**Respaldos:**
+- `backup/pre-update-center-complete-2026-09-16`.
+- `backup/pre-update-panel-only-2026-09-16`.
 
 ### No incluido todavía
 - Aplicación móvil/TV.
@@ -92,7 +86,7 @@ Iniciar el primer motor de streaming real de IPZStream. La etapa no debe crear u
 - Producción de todos los perfiles HLS.
 
 ## Próxima fase
-Después de cerrar Etapa 12, la siguiente fase continuará con HLS/reproducción y el primer flujo de canal real de extremo a extremo.
+Cerrar la validación 12.2.2 mediante una actualización real desde el panel y continuar con HLS/reproducción y el primer flujo de canal real de extremo a extremo.
 
 ## Respaldos
 - `backup/pre-etapa-1-13-configuracion`
@@ -115,6 +109,7 @@ Después de cerrar Etapa 12, la siguiente fase continuará con HLS/reproducción
 - `backup/pre-etapa-12-streaming-real`
 - `backup/pre-update-center-2026-09-15`
 - `backup/pre-update-center-complete-2026-09-16`
+- `backup/pre-update-panel-only-2026-09-16`
 
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
