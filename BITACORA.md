@@ -56,39 +56,34 @@ Se implementó login IPTV, sesiones en MariaDB, `/api/client/me`, logout, expira
 Se añadió una capa HTTP HLS limitada y autenticada para servir playlists y segmentos generados por FFmpeg.
 
 ### Corrección 12.2 — Centro de actualización del panel
-**Motivo:** el botón `Actualizar` era solamente visual y no consultaba ni instalaba versiones reales.
-
-**Respaldo:** `backup/pre-update-center-2026-09-15`.
-
-### Corrección 12.2.1 — Centro de actualización completo
-**Respaldo:** `backup/pre-update-center-complete-2026-09-16`.
-
-**Archivos principales:**
-- `server/update-service.js`
-- `src/modules/system-update/UpdateCenter.jsx`
-- `src/modules/system-update/UpdateCenter.css`
-- `package.json`
-- `CONTINUITY.md`
-
-**Mejoras:** versión/commit real, rama, remote, servicio, fecha de comprobación, changelog, bloqueo por cambios locales, confirmación, feedback de instalación, build, publicación web, rollback y reinicio controlado.
+El Centro de actualización fue convertido en un instalador real controlado desde el panel.
 
 ### Corrección 12.2.2 — Validación real de actualización solo desde el panel
-**Motivo:** cerrar la prueba pendiente del centro de actualización y comprobar que las futuras revisiones de código del entorno de prueba se instalan desde el panel, sin usar terminal para hacer pull/build/publicación/reinicio.
+**Resultado:** VALIDADA. El servidor pasó de `0.2.0` a `0.2.1`, commit `3069700c8c57`, usando el botón del Centro de actualización. Se corrigieron previamente permisos de `www-data` sobre código, `dist`, web root y cache npm.
 
-**Estado previo comprobado por el usuario:**
-- `Centro de actualización` abre correctamente.
-- Versión instalada: `0.2.0`.
-- Revisión instalada y disponible: `1321a1621e8c`.
-- Rama: `main`; remote: `origin`; servicio: `ipztream-api`.
-- El panel informa `IPZStream está actualizado`.
-- Se corrigió la verificación del host SSH de GitHub para `www-data`.
-- Se creó una clave Ed25519 dedicada `ipztream_update` y se registró como Deploy Key de solo lectura del repositorio privado.
-- La prueba `ssh -T git@github.com` ejecutada como `www-data` autentica correctamente contra `ronbercito/ipztream`.
+### Implementación 12.3 — Canales reales HTTP/M3U + Astra Cesbo
+**Motivo:** convertir `Canales / Fuentes` de CRUD genérico con fallback ficticio a administración de entradas reales para el motor de streaming.
 
-**Archivos afectados en esta preparación:** `CONTINUITY.md`, `BITACORA.md`; a continuación se publicará una revisión de aplicación que permita probar detección e instalación real desde el panel.
+**Respaldo:** `backup/pre-channels-real-sources-2026-09-16`, basado en `0.2.1` / `3069700`.
 
-**Resultado esperado:** el panel debe detectar una revisión posterior a `1321a16`, mostrarla como disponible y, al pulsar `Actualizar`, descargarla, compilarla, publicarla y reiniciar `ipztream-api` sin intervención de terminal.
+**Archivos previstos:**
+- `src/modules/channels/Channels.jsx`
+- `src/modules/channels/components/ChannelForm.jsx`
+- `src/modules/channels/components/ChannelTable.jsx`
+- `src/modules/channels/components/SourceEditor.jsx`
+- `src/modules/channels/services/channelsApi.js`
+- `src/modules/channels/styles/channels.css`
+- backend/API de canales y streaming que resulte necesario.
 
-**Respaldo:** `backup/pre-update-panel-only-2026-09-16`.
+**Primera entrega:**
+- quitar seed/fallback ficticio;
+- fuente URL directa HTTP/HTTPS/HLS;
+- tipo de origen Astra Cesbo consumido mediante stream HTTP;
+- tipo M3U/M3U8 preparado para importación;
+- prioridad y respaldo por fuente;
+- controles reales de streaming/HLS por canal;
+- persistencia MariaDB y validación del backend.
 
-**Estado:** PRUEBA REAL EN CURSO.
+**Resultado esperado:** crear desde el panel un canal con URL HTTP/HLS o una URL de stream publicada por Astra Cesbo, guardarlo en MariaDB y utilizarlo como entrada real del motor de streaming de IPZStream.
+
+**Estado:** EN IMPLEMENTACIÓN.
