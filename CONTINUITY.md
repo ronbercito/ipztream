@@ -12,13 +12,12 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Los cambios se implementan por etapas, probando cada etapa antes de continuar.
 - No generar nuevos mockups salvo que el usuario los solicite explícitamente.
 - **BITÁCORA PRIMERO:** después de actualizar Continuidad, toda mejora, corrección o cambio debe registrarse en `BITACORA.md`; después se modifica el código y se publica la actualización.
-- Cada entrada de bitácora debe indicar etapa, motivo, archivos afectados y resultado esperado.
 - La arquitectura debe mantenerse modular.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión actual: `0.3.1`.
+- Versión actual publicada: `0.3.3`.
 - Centro de actualización validado desde panel.
 - Etapa 12 — Motor de streaming real + integración de fuentes: **EN IMPLEMENTACIÓN**.
 
@@ -26,27 +25,28 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 Fuentes HTTP/HTTPS/HLS, Astra Cesbo por HTTP, M3U/M3U8, prioridad/respaldo y controles FFmpeg/HLS habilitados.
 
 ## 12.3.2 — Editor definitivo ancho y organizado por pestañas
+Editor ancho con pestañas, información general, fuentes, estado/monitoreo y opciones avanzadas implementado.
+
+## 12.3.3 — Prueba real de fuente antes de guardar
 **Estado:** EN IMPLEMENTACIÓN.
 
-El usuario aprobó explícitamente el diseño visual ancho mostrado como referencia y pidió implementarlo con los mismos colores, contraste, temática, opciones y orden general, sin generar más imágenes.
+Objetivo aprobado: cada tarjeta de fuente debe permitir comprobar la señal antes de guardar el canal.
 
-### Diseño aprobado
-- Modal significativamente más ancho y aprovechando el espacio horizontal disponible.
-- Cabecera limpia `Editar canal / Agregar canal`.
-- Navegación superior por pestañas: `Información general`, `Fuentes de transmisión`, `Estado y monitoreo` y `Opciones avanzadas`.
-- Información general: nombre, número, categoría, estado y logo, con campos grandes y legibles.
-- Fuentes: tarjetas amplias, URL sin compresión, tipo, protocolo, prioridad y estado.
-- Mantener fuente principal y respaldos.
-- Estado/monitoreo: estado real del proceso, tiempo activo, HLS y error cuando exista.
-- Opciones avanzadas: espacio preparado para comportamiento futuro sin inventar parámetros de streaming no implementados.
-- Footer fijo y claro con Cancelar/Guardar.
-- Responsive: en pantallas medianas las pestañas siguen siendo utilizables y el contenido pasa a una sola columna cuando sea necesario.
+### Comportamiento
+- Botón `Probar` en cada fuente.
+- La prueba no crea ni modifica el canal en MariaDB.
+- El backend recibe únicamente los datos temporales necesarios para comprobar la fuente.
+- HTTP/HLS y Astra Cesbo HTTP se validan con `ffprobe` con tiempo límite.
+- El resultado indica `Activa`, `Sin señal` o `Error` y muestra el tiempo de respuesta en milisegundos.
+- Para M3U/M3U8 se identifica si la URL corresponde a una lista/playlist importable o a una fuente multimedia reconocible.
+- `Editar` mantiene la tarjeta editable y `Eliminar` conserva su función actual.
+- La comprobación no debe dejar procesos FFmpeg persistentes.
 
 ### Respaldo
-`backup/pre-channel-editor-tabs-2026-09-16` creado antes de esta corrección.
+`backup/pre-source-probe-2026-09-16` creado antes de esta corrección.
 
 ## Próxima fase
-Actualizar por panel, validar visualmente el editor definitivo y luego probar un canal HTTP/HLS real y Astra Cesbo.
+Publicar la corrección, actualizar exclusivamente desde Centro de actualización y validar una fuente real antes de guardar.
 
 ## Protocolo obligatorio
 1. Actualizar `CONTINUITY.md`.
