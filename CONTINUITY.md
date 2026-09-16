@@ -33,7 +33,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión visible instalada antes de la prueba: `0.2.0`.
+- Versión validada mediante actualización desde panel: `0.2.1`.
 - Debian 13 / Node.js 22 / npm 10 en el entorno de prueba.
 - IP de prueba: `192.168.10.220`.
 - Nginx publica `/var/www/ipztream`.
@@ -41,39 +41,36 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 - Servicio: `ipztream-api`.
 - MariaDB es la base principal y permanente.
 - Etapas 1–11 están validadas por el usuario.
+- El Centro de actualización ya instala revisiones completas desde el panel.
 
 ## Etapa 12 — Motor de streaming real + integración de fuentes
 **Estado técnico:** EN IMPLEMENTACIÓN.
 
 ### Objetivo
-Iniciar el primer motor de streaming real de IPZStream. La etapa no debe crear una simulación de reproducción: debe preparar una fuente real, un proceso de ingesta/transcodificación controlado por el servidor y una salida HLS reproducible por HTTP.
+Iniciar el primer motor de streaming real de IPZStream. La etapa no debe crear una simulación de reproducción: debe preparar fuentes reales, procesos de ingesta controlados por el servidor y salida HLS reproducible por HTTP.
 
 ### Correcciones implementadas
 - 12.1 — Servido HLS HTTP controlado en `server/secure-entry.js`.
 - 12.2 — Centro de actualización administrativo real.
-- 12.2.1 — Terminación del Centro de actualización con metadatos de versión, changelog, estados, bloqueo por cambios locales, confirmación, feedback de instalación y estilos propios.
-- 12.2.2 — Validación real del flujo de actualización exclusivamente desde el panel, incluida autenticación de lectura del repositorio privado mediante Deploy Key del servicio.
+- 12.2.1 — Terminación del Centro de actualización con metadatos, changelog, estados, bloqueo, build, publicación, rollback y reinicio.
+- 12.2.2 — Flujo de actualización exclusivamente desde el panel validado en versión `0.2.1`.
 
-### Corrección 12.2.1 — Centro de actualización completo
-El centro administrativo consulta versión/commit, lista cambios, bloquea árboles Git modificados, instala con `git pull --ff-only`, ejecuta dependencias/build, publica `dist` en `/var/www/ipztream`, revierte ante fallo y reinicia el servicio mediante el supervisor de systemd.
+### 12.3 — Canales reales: HTTP/M3U + Astra Cesbo
+**Estado:** EN IMPLEMENTACIÓN.
 
-**Seguridad:** el navegador no puede enviar comandos arbitrarios; el backend mantiene la autorización RBAC `system.update`. El mecanismo Git actual está destinado al entorno de desarrollo/pruebas. Para clientes finales se sustituirá por releases/builds firmados y un canal controlado por IPZStream/PVS.
+**Objetivo:** habilitar el módulo `Canales / Fuentes` para trabajar con fuentes reales administradas desde el panel.
 
-### Corrección 12.2.2 — Prueba real del actualizador desde el panel
-**Objetivo:** demostrar que, después del bootstrap inicial, una nueva revisión puede detectarse e instalarse desde `Centro de actualización` sin ejecutar `git pull`, `npm install`, `npm run build`, copia de `dist` ni reinicio manual desde terminal.
+Primera entrega:
+- Eliminar datos ficticios/fallback de ESPN, HBO y TUDN.
+- Crear canales con una o varias fuentes HTTP/HTTPS/HLS/MPEG-TS compatibles con el motor.
+- Identificar explícitamente el tipo de origen: URL directa, M3U/M3U8 o Astra Cesbo.
+- Permitir URL M3U/M3U8 para importar entradas de canales en una fase controlada.
+- Preparar integración de Astra Cesbo mediante URL de stream HTTP expuesta por Astra; IPZStream no dependerá de acceso directo a tuner/DVB para consumir esos canales.
+- Mantener prioridad y fuente de respaldo por canal.
+- Conectar las fuentes persistidas con el motor de streaming/HLS existente y añadir controles de emisión en el módulo.
+- No incluir credenciales sensibles en el frontend ni en el repositorio.
 
-**Estado previo validado:**
-- Panel instalado en versión `0.2.0`.
-- Commit instalado y remoto coinciden en `1321a1621e8c`.
-- Consulta del actualizador responde `IPZStream está actualizado`.
-- El servicio `www-data` autentica contra el repositorio privado mediante una Deploy Key de solo lectura.
-- El error previo `Host key verification failed` / `Permission denied (publickey)` quedó resuelto en el servidor de prueba.
-
-**Prueba pendiente:** publicar una revisión posterior a `1321a16`, detectarla desde el panel e instalarla únicamente mediante el botón `Actualizar`.
-
-**Respaldos:**
-- `backup/pre-update-center-complete-2026-09-16`.
-- `backup/pre-update-panel-only-2026-09-16`.
+**Respaldo:** `backup/pre-channels-real-sources-2026-09-16` desde IPZStream `0.2.1` / commit `3069700`.
 
 ### No incluido todavía
 - Aplicación móvil/TV.
@@ -86,7 +83,7 @@ El centro administrativo consulta versión/commit, lista cambios, bloquea árbol
 - Producción de todos los perfiles HLS.
 
 ## Próxima fase
-Cerrar la validación 12.2.2 mediante una actualización real desde el panel y continuar con HLS/reproducción y el primer flujo de canal real de extremo a extremo.
+Implementar y validar 12.3 empezando por fuente HTTP/HLS directa y fuente Astra Cesbo por HTTP; después añadir importación M3U/M3U8 y prueba de canal real extremo a extremo.
 
 ## Respaldos
 - `backup/pre-etapa-1-13-configuracion`
@@ -110,6 +107,7 @@ Cerrar la validación 12.2.2 mediante una actualización real desde el panel y c
 - `backup/pre-update-center-2026-09-15`
 - `backup/pre-update-center-complete-2026-09-16`
 - `backup/pre-update-panel-only-2026-09-16`
+- `backup/pre-channels-real-sources-2026-09-16`
 
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
