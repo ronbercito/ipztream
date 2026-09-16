@@ -1,63 +1,50 @@
 # IPZStream — Continuidad del proyecto
 
 ## Propósito
-IPZStream es una plataforma propia de gestión y distribución de streaming, inspirada en capacidades de paneles IPTV existentes, pero desarrollada con arquitectura, código e interfaz propios.
+IPZStream es una plataforma propia de gestión y distribución de streaming, desarrollada con arquitectura, código e interfaz propios.
 
 ## Reglas de trabajo obligatorias
 - Este repositorio es independiente de Z-Hub.
 - GitHub se utilizará para desarrollo, pruebas, control de versiones y releases.
-- Las instalaciones de clientes deberán recibir builds/releases controlados mediante un sistema propio de actualización; los clientes no deberán depender del repositorio fuente.
-- **ANTES DE CADA ETAPA:** actualizar primero este documento `CONTINUITY.md` con el estado y objetivo de la siguiente etapa.
-- Antes de cambios estructurales importantes se debe crear un respaldo o punto de restauración.
-- Los cambios se implementan por etapas, probando cada etapa antes de continuar.
-- No generar nuevos mockups salvo que el usuario los solicite explícitamente.
-- **BITÁCORA PRIMERO:** después de actualizar Continuidad, toda mejora, corrección o cambio debe registrarse en `BITACORA.md`; después se modifica el código y se publica la actualización.
-- La arquitectura debe mantenerse modular.
+- Las instalaciones reciben builds/releases controlados mediante el actualizador propio.
+- **ANTES DE CADA ETAPA:** actualizar primero `CONTINUITY.md`.
+- Antes de cambios estructurales importantes crear respaldo.
+- Implementar y probar por etapas.
+- No generar mockups salvo solicitud explícita.
+- **BITÁCORA PRIMERO:** después de Continuidad registrar en `BITACORA.md`; después modificar código y publicar.
+- Mantener arquitectura modular.
 
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión en preparación: `0.3.11`.
+- Versión publicada anterior: `0.3.11`.
+- Versión en preparación: `0.3.12`.
 - Centro de actualización validado desde panel.
 - Etapa 12 — Motor de streaming real + integración de fuentes: **EN IMPLEMENTACIÓN**.
 
-## 12.3.7 — Recuperación automática
-Implementado en 0.3.8 y validado en prueba real.
-
-## 12.3.8 — Editor ancho
-Implementado en 0.3.9.
-
-## 12.3.9 — Fuentes de transmisión
-Implementado en 0.3.10.
-
 ## 12.3.10 — Persistencia del estado de emisión
+Implementado en 0.3.11. Persiste intención running/stopped y restaura canales al reinicio.
+
+## 12.3.11 — Perfil Remux/Copy de bajo consumo
 **Estado:** EN IMPLEMENTACIÓN.
 
-Objetivo: una actualización del panel, reinicio del servicio, reinicio del contenedor o reinicio del servidor no debe olvidar qué canales estaban encendidos o detenidos.
+### Problema
+El motor actual transcodifica siempre video con libx264 y audio AAC. Esto consume CPU y puede empeorar fuentes MPEG-2/MPEG-TS que Astra Cesbo y VLC reproducen correctamente.
 
-### Comportamiento requerido
-- Persistir por canal la intención operativa `running/stopped` en almacenamiento duradero.
-- Pulsar Iniciar guarda `running` antes de lanzar FFmpeg.
-- Pulsar Detener guarda `stopped` y cancela recuperación automática.
-- Una caída del proveedor no cambia `running`; IPZStream sigue intentando recuperar.
-- SIGTERM/SIGINT por actualización o apagado cierra FFmpeg sin convertir los canales a `stopped`.
-- Al iniciar la API, restaurar automáticamente los canales guardados como `running` y administrativamente Activos.
-- Si la fuente todavía no está disponible al arrancar, mantener intención `running` y entrar al ciclo de recuperación automática.
-- Mantener canales detenidos manualmente apagados.
+### Objetivo
+- Cambiar el perfil predeterminado a **Remux/Copy**, sin recodificar video ni audio.
+- Conservar códec original mediante `-c:v copy -c:a copy`.
+- Mantener salida HLS/MPEG-TS y recuperación automática.
+- Añadir tolerancia para timestamps/discontinuidades habituales en streams MPEG-TS usando generación/corrección de timestamps y evitando timestamps negativos.
+- Mantener reconexión HTTP.
+- No introducir transcodificación automática ni elevar CPU de forma innecesaria.
+- Exponer en estado del stream el perfil `remux-copy` para diagnóstico.
 
-### Respaldo
-`backup/pre-persistent-stream-state-2026-09-16`.
+### Compatibilidad esperada
+MPEG-2 Video, H.264/AVC, H.265/HEVC y audio MP2/MP3/AAC/AC3/E-AC3 podrán atravesar el motor sin recodificación cuando FFmpeg/HLS admita el flujo recibido. Casos incompatibles deberán reportar error y recuperación, no activar transcodificación silenciosa.
+
+## Prueba requerida
+Actualizar desde panel, iniciar primero un canal MPEG-2 que presentaba intermitencia, comparar reproducción y CPU, luego verificar un canal H.264. Confirmar también recuperación al cortar/restablecer Astra.
 
 ## Próxima fase
-Publicar 0.3.11, actualizar exclusivamente desde el Centro de actualización y comprobar que los canales previamente iniciados vuelvan solos después del reinicio provocado por la actualización.
-
-## Protocolo obligatorio
-1. Actualizar `CONTINUITY.md`.
-2. Registrar en `BITACORA.md`.
-3. Crear respaldo si corresponde.
-4. Implementar.
-5. Verificar/build.
-6. Probar.
-7. Registrar resultado.
-8. Publicar.
-9. Probar mediante Centro de actualización.
+Validar 0.3.12 en el contenedor de pruebas antes de agregar perfiles opcionales adicionales.
