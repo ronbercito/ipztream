@@ -72,6 +72,13 @@ Iniciar el primer motor de streaming real de IPZStream. La etapa no debe crear u
 ### Resultado esperado
 Un canal con una fuente real podrá ser iniciado desde IPZStream, FFmpeg procesará la fuente, se generará un `index.m3u8` y segmentos HLS, el API podrá informar el estado real del proceso y el stream podrá comprobarse mediante HTTP. Si la fuente falla, IPZStream deberá detectar la terminación/error y reflejarlo como tal.
 
+### Corrección 12.1 — Servido HLS HTTP
+Se detectó durante la validación que FFmpeg generaba correctamente HLS en almacenamiento local, pero la entrada segura no tenía una ruta HTTP `/streams/...`. Se añadió el servido HLS controlado en `server/secure-entry.js`.
+
+La ruta acepta únicamente `index.m3u8` y segmentos `segment_XXXXXX.ts`, valida el identificador de canal, confina las rutas al directorio `IPZTREAM_STREAM_ROOT`, exige una sesión administrativa válida y comprueba que el stream esté `starting` o `running`. También establece tipos MIME y políticas de caché apropiadas.
+
+**Estado:** implementación publicada; validación HTTP en el contenedor pendiente.
+
 ### No incluido todavía
 - Aplicación móvil/TV.
 - Control definitivo de conexiones simultáneas.
