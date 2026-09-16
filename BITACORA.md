@@ -12,13 +12,16 @@ Completadas y validadas.
 Implementado en 0.3.7.
 
 ### Mejora 12.3.7 — Recuperación automática del stream
-Implementado en 0.3.8. Validación real confirmada: al cortar la fuente y devolverla, IPZStream reanuda el canal automáticamente y registra el reinicio.
+Implementado en 0.3.8. Validación real confirmada.
 
 ### Corrección 12.3.8 — Restaurar diseño del editor de canales
-**Motivo:** después de las últimas actualizaciones el modal ancho sigue presente, pero los controles de Información general/Logo aparecen con estilos nativos y dimensiones incorrectas, generando amontonamiento y scroll horizontal.
+Implementado en 0.3.9 para Información general y logo.
 
-**Alcance:** corregir exclusivamente presentación CSS del editor: layout ancho, campos, selects, tarjetas, logo y comportamiento responsive. No modificar el motor FFmpeg, recuperación automática ni historial operativo.
+### Corrección 12.3.9 — Restaurar diseño de Fuentes de transmisión
+**Motivo:** la funcionalidad está presente, pero la pestaña aparece visualmente desarmada: acciones con estilo nativo, tarjeta demasiado angosta y ejemplos pegados.
 
-**Versión prevista:** 0.3.9.
+**Alcance:** presentación CSS de SourceEditor: encabezado, aviso, tarjeta horizontal, botones, campos, estado de prueba, métricas multimedia y ejemplos. No modificar la lógica de Probar ni recuperación FFmpeg.
+
+**Versión prevista:** 0.3.10.
 
 **Estado:** EN IMPLEMENTACIÓN.
