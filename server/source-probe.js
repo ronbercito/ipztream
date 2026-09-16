@@ -19,6 +19,20 @@ function compactError(error) {
   return text.slice(0, 300);
 }
 
+function numberOrNull(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
+function fpsFromRate(value) {
+  const raw = String(value || '');
+  if (!raw || raw === '0/0') return null;
+  const [a, b = '1'] = raw.split('/').map(Number);
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b === 0) return null;
+  const fps = a / b;
+  return Number.isFinite(fps) && fps > 0 ? Math.round(fps * 100) / 100 : null;
+}
+
 export async function probeSource(input = {}) {
   const url = safeUrl(input.url);
   const started = Date.now();
@@ -26,7 +40,7 @@ export async function probeSource(input = {}) {
     const { stdout } = await exec(FFPROBE, [
       '-v', 'error',
       '-rw_timeout', String(TIMEOUT_MS * 1000),
-      '-show_entries', 'format=format_name,duration:stream=index,codec_type,codec_name,width,height',
+      '-show_entries', 'format=format_name,duration,bit_rate:stream=index,codec_type,codec_name,width,height,bit_rate,channels,channel_layout,r_frame_rate,avg_frame_rate',
       '-of', 'json',
       url
     ], { timeout: TIMEOUT_MS + 2000, maxBuffer: 1024 * 1024 * 2, windowsHide: true });
@@ -38,6 +52,13 @@ export async function probeSource(input = {}) {
     if (!streams.length && !playlist) {
       return { ok: false, status: 'no_signal', label: 'Sin señal', responseMs: elapsedMs, message: 'La URL respondió, pero ffprobe no detectó audio, video ni playlist reproducible.' };
     }
+
+    const video = streams.find(stream => stream.codec_type === 'video') || null;
+    const audio = streams.find(stream => stream.codec_type === 'audio') || null;
+    const streamBitrate = streams.reduce((sum, stream) => sum + (numberOrNull(stream.bit_rate) || 0), 0) || null;
+    const bitrate = numberOrNull(parsed.format?.bit_rate) || streamBitrate;
+    const fps = fpsFromRate(video?.avg_frame_rate) || fpsFromRate(video?.r_frame_rate);
+
     return {
       ok: true,
       status: 'active',
@@ -46,7 +67,27 @@ export async function probeSource(input = {}) {
       message: playlist && !streams.length ? 'Playlist M3U/M3U8 accesible.' : 'Fuente multimedia reconocida correctamente.',
       format: formatName || null,
       playlist,
-      streams: streams.map(s => ({ type: s.codec_type || null, codec: s.codec_name || null, width: s.width || null, height: s.height || null })).slice(0, 8)
+      media: {
+        bitrateBps: bitrate,
+        bitrateKbps: bitrate ? Math.round(bitrate / 1000) : null,
+        width: numberOrNull(video?.width),
+        height: numberOrNull(video?.height),
+        videoCodec: video?.codec_name || null,
+        audioCodec: audio?.codec_name || null,
+        audioChannels: numberOrNull(audio?.channels),
+        audioLayout: audio?.channel_layout || null,
+        fps
+      },
+      streams: streams.map(s => ({
+        type: s.codec_type || null,
+        codec: s.codec_name || null,
+        width: s.width || null,
+        height: s.height || null,
+        bitRate: numberOrNull(s.bit_rate),
+        channels: numberOrNull(s.channels),
+        channelLayout: s.channel_layout || null,
+        fps: s.codec_type === 'video' ? (fpsFromRate(s.avg_frame_rate) || fpsFromRate(s.r_frame_rate)) : null
+      })).slice(0, 8)
     };
   } catch (error) {
     const elapsedMs = Date.now() - started;
