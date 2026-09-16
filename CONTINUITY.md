@@ -33,7 +33,7 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión visible: `0.1.0`.
+- Versión visible: `0.2.0`.
 - Debian 13 / Node.js 22 / npm 10 en el entorno de prueba.
 - IP de prueba: `192.168.10.220`.
 - Nginx publica `/var/www/ipztream`.
@@ -48,54 +48,38 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 ### Objetivo
 Iniciar el primer motor de streaming real de IPZStream. La etapa no debe crear una simulación de reproducción: debe preparar una fuente real, un proceso de ingesta/transcodificación controlado por el servidor y una salida HLS reproducible por HTTP.
 
-### Alcance de esta etapa
-- Integrar FFmpeg como motor de procesamiento de fuentes.
-- Crear un servicio modular de gestión de procesos de stream, separado de `server/index.js`.
-- Tomar una fuente real configurada en un canal existente.
-- Generar una salida HLS por canal en almacenamiento local controlado por IPZStream.
-- Exponer estado real del proceso: detenido, iniciando, ejecutando, error.
-- Detectar salida del proceso y registrar errores básicos.
-- Evitar procesos duplicados para el mismo canal.
-- Permitir iniciar/detener/reiniciar un stream desde API administrativa.
-- Preparar un endpoint de estado para comprobar si el stream realmente está procesándose.
-- Registrar acciones de inicio/detención/reinicio en `audit_logs`.
-- Mantener la arquitectura preparada para múltiples nodos en etapas posteriores.
-- Mantener separado el motor de streaming de la autenticación, catálogo y UI.
+### Correcciones implementadas
+- 12.1 — Servido HLS HTTP controlado en `server/secure-entry.js`.
+- 12.2 — Centro de actualización administrativo real.
+- 12.2.1 — Terminación del Centro de actualización con metadatos de versión, changelog, estados, bloqueo por cambios locales, confirmación, feedback de instalación y estilos propios.
 
-### Seguridad y operación
-- FFmpeg se ejecutará como proceso hijo controlado por IPZStream, sin ejecutar comandos recibidos directamente desde el navegador.
-- Las URLs de fuente deberán validarse antes de construir argumentos.
-- Los identificadores de canal se tratarán como datos, no como fragmentos de shell.
-- El API administrativo continuará protegido por la autenticación/RBAC existente.
-- La salida HLS no deberá exponer archivos arbitrarios del sistema.
+### Corrección 12.2.1 — Centro de actualización completo
+**Objetivo:** que el botón `Actualizar` funcione como un centro administrativo completo y no como un modal visual.
 
-### Resultado esperado
-Un canal con una fuente real podrá ser iniciado desde IPZStream, FFmpeg procesará la fuente, se generará un `index.m3u8` y segmentos HLS, el API podrá informar el estado real del proceso y el stream podrá comprobarse mediante HTTP. Si la fuente falla, IPZStream deberá detectar la terminación/error y reflejarlo como tal.
+**Backend:**
+- `server/update-service.js` ahora devuelve versión de aplicación, commit instalado, commit remoto, rama, remote, servicio, fecha de comprobación, cambios disponibles, archivos locales modificados y si la instalación está permitida.
+- Mantiene comandos fijos mediante `execFile`.
+- Bloquea instalaciones sobre un árbol Git modificado.
+- Usa `git pull --ff-only`.
+- Ejecuta `npm install` y `npm run build` antes del reinicio.
+- Revierte el commit si instalación/build falla.
+- Reinicia `ipztream-api` únicamente después de una instalación exitosa.
 
-### Corrección 12.1 — Servido HLS HTTP
-Se detectó durante la validación que FFmpeg generaba correctamente HLS en almacenamiento local, pero la entrada segura no tenía una ruta HTTP `/streams/...`. Se añadió el servido HLS controlado en `server/secure-entry.js`.
+**Panel:**
+- `src/modules/system-update/UpdateCenter.jsx` muestra estado actual/disponible, versión, commits, rama, última comprobación y servicio.
+- Lista los cambios antes de instalar.
+- Muestra errores reales del API.
+- Pide confirmación antes de actualizar.
+- Muestra estado de instalación y recarga el panel después del reinicio.
+- Informa y bloquea cuando existen cambios locales.
+- `src/modules/system-update/UpdateCenter.css` contiene los estilos específicos del módulo.
+- `package.json` pasa a versión visible `0.2.0`.
 
-La ruta acepta únicamente `index.m3u8` y segmentos `segment_XXXXXX.ts`, valida el identificador de canal, confina las rutas al directorio `IPZTREAM_STREAM_ROOT`, exige una sesión administrativa válida y comprueba que el stream esté `starting` o `running`. También establece tipos MIME y políticas de caché apropiadas.
+**Seguridad:** el navegador no puede enviar comandos arbitrarios; el backend mantiene la autorización RBAC `system.update`. El mecanismo actual está destinado a desarrollo/pruebas. Para clientes finales se deberá sustituir Git por releases/builds firmados y un canal de actualización controlado por IPZStream/PVS.
 
-**Estado:** implementación publicada; validación HTTP en el contenedor pendiente.
+**Respaldo:** `backup/pre-update-center-complete-2026-09-16`, creado antes de esta corrección.
 
-### Corrección 12.2 — Centro de actualización del panel
-**Objetivo:** sustituir el botón visual de `Actualizar`, que actualmente solo abre un modal simulado, por un flujo real y seguro de actualización para el entorno de desarrollo/pruebas.
-
-El centro de actualización deberá:
-- consultar la versión/commit instalado;
-- comprobar si existe una revisión más reciente en el origen configurado;
-- mostrar cambios antes de instalar;
-- ejecutar la actualización solo mediante una acción administrativa autenticada;
-- ejecutar `npm install`/build cuando corresponda;
-- reiniciar `ipztream-api` de forma controlada tras una instalación confirmada;
-- devolver al panel el resultado y los errores reales;
-- evitar actualizar automáticamente durante una simple consulta;
-- mantener el sistema preparado para que en producción los clientes reciban releases controlados sin depender del repositorio fuente.
-
-**Respaldo previo:** rama `backup/pre-update-center-2026-09-15`.
-
-**Estado:** en implementación. La validación final requiere ejecutar el flujo en el contenedor de prueba.
+**Estado:** IMPLEMENTACIÓN PUBLICADA — **VALIDACIÓN REAL EN EL CONTENEDOR PENDIENTE**. No se declara el módulo validado hasta comprobar build, servicio, API y una actualización real de prueba.
 
 ### No incluido todavía
 - Aplicación móvil/TV.
@@ -106,9 +90,6 @@ El centro de actualización deberá:
 - Transcodificación adaptativa multi-bitrate completa.
 - Motor de sesiones de reproducción del cliente.
 - Producción de todos los perfiles HLS.
-
-### Respaldo requerido
-Antes de modificar código estructural se creará `backup/pre-etapa-12-streaming-real`.
 
 ## Próxima fase
 Después de cerrar Etapa 12, la siguiente fase continuará con HLS/reproducción y el primer flujo de canal real de extremo a extremo.
@@ -133,6 +114,7 @@ Después de cerrar Etapa 12, la siguiente fase continuará con HLS/reproducción
 - `backup/pre-etapa-11-api-clientes-sesiones`
 - `backup/pre-etapa-12-streaming-real`
 - `backup/pre-update-center-2026-09-15`
+- `backup/pre-update-center-complete-2026-09-16`
 
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
