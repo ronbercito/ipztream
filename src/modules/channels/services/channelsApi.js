@@ -8,3 +8,4 @@ export async function probeChannelSource(source){const payload=await request('/a
 export async function loadStream(id){const payload=await request(`/api/streams/${encodeURIComponent(id)}`);return payload.stream;}
 export async function startChannelStream(id){const payload=await request(`/api/streams/${encodeURIComponent(id)}/start`,{method:'POST'});return payload.stream;}
 export async function stopChannelStream(id){const payload=await request(`/api/streams/${encodeURIComponent(id)}/stop`,{method:'POST'});return payload.stream;}
+export async function clearChannelStreamHistory(id){const payload=await request(`/api/streams/${encodeURIComponent(id)}/history`,{method:'DELETE'});return payload.stream;}
