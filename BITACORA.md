@@ -20,14 +20,20 @@ Editor ancho y pestañas implementados. La corrección 0.3.3 fuerza el ancho del
 Implementada en 0.3.4. La prueba temporal usa ffprobe, no guarda el canal y devuelve estado real y latencia. Validada por el usuario con una fuente real activa.
 
 ### Mejora 12.3.4 — Metadatos técnicos de la señal
-**Motivo:** al probar una fuente activa, el usuario necesita ver no solo la latencia sino también las características reales del contenido recibido, tomando como referencia bitrate, resolución, video, audio, canales y FPS.
+Implementada en 0.3.5. La prueba devuelve bitrate, resolución, códec de video/audio, canales y FPS cuando están disponibles.
 
-**Archivos a modificar:**
-- `server/source-probe.js`
-- `src/modules/channels/components/SourceEditor.jsx`
+### Mejora 12.3.5 — Autoarranque y monitoreo operativo
+**Motivo:** actualmente guardar un canal activo no inicia la emisión; la tabla queda en `Detenido` y el tiempo activo permanece vacío hasta pulsar iniciar manualmente.
+
+**Respaldo:** `backup/pre-channel-autostart-monitoring-2026-09-16`.
+
+**Archivos previstos:**
+- `server/stream-manager.js`
+- `src/modules/channels/Channels.jsx`
+- `src/modules/channels/components/ChannelTable.jsx`
 - `src/modules/channels/styles/channels.css`
 - `package.json`
 
-**Resultado esperado:** la misma prueba ffprobe devuelve y presenta bitrate, resolución, códec de video, códec de audio, canales de audio y FPS. Los valores ausentes se representan con `—`. No se persisten estos datos al probar.
+**Resultado esperado:** crear un canal activo lo inicia automáticamente; editar un canal activo reinicia FFmpeg para aplicar cambios; desactivar detiene y activar inicia. La tabla muestra estado real, tiempo activo y cantidad de inicios/reinicios del canal.
 
 **Estado:** EN IMPLEMENTACIÓN.
