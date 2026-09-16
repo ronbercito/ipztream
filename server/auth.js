@@ -1,3 +1,7 @@
+// IPZStream auth — 2026-09-15
+// Update: adds a dedicated system.update permission for the administrative update center.
+// Receives normal auth/session data and returns the existing RBAC permission set; it does not alter authentication behavior.
+
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { pool } from './db.js';
@@ -25,6 +29,7 @@ const permissions = [
   ['devices.view', 'Ver dispositivos'], ['devices.update', 'Gestionar dispositivos'],
   ['audit.view', 'Ver auditoría'], ['statistics.view', 'Ver estadísticas'],
   ['settings.view', 'Ver configuración'], ['settings.update', 'Modificar configuración'],
+  ['system.update', 'Actualizar IPZStream'],
   ['auth.manage', 'Administrar autenticación']
 ];
 
