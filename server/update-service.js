@@ -1,9 +1,10 @@
-// IPZStream update service — 2026-09-15
-// Purpose: expose a fixed, authenticated update workflow for the test/development installation.
-// It receives no shell commands or executable paths from the browser and does not alter application data.
+// IPZStream update service — 2026-09-16
+// Purpose: provide a complete, authenticated update workflow for the development/test installation.
+// Browser input never becomes a shell command. Git/npm/systemctl arguments are fixed here.
 
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { readFile } from 'node:fs/promises';
 
 const exec = promisify(execFile);
 const ROOT = process.env.IPZTREAM_ROOT || '/opt/ipztream';
@@ -17,37 +18,57 @@ async function run(command, args, options = {}) {
     cwd: ROOT,
     timeout: options.timeout || 120000,
     maxBuffer: 1024 * 1024 * 4,
-    windowsHide: true
+    windowsHide: true,
+    env: process.env
   });
   return String(result.stdout || '').trim();
 }
 
-async function revision(ref) {
-  return run('git', ['rev-parse', ref]);
+async function revision(ref) { return run('git', ['rev-parse', ref]); }
+function short(sha) { return String(sha || '').slice(0, 12); }
+
+async function packageInfo() {
+  try {
+    const pkg = JSON.parse(await readFile(`${ROOT}/package.json`, 'utf8'));
+    return { name: pkg.name || 'ipztream', version: pkg.version || '0.0.0' };
+  } catch {
+    return { name: 'ipztream', version: 'desconocida' };
+  }
 }
 
-function short(sha) {
-  return String(sha || '').slice(0, 12);
+async function gitInfo() {
+  const [branch, remoteUrl] = await Promise.all([
+    run('git', ['branch', '--show-current']),
+    run('git', ['config', '--get', `remote.${REMOTE}.url`]).catch(() => '')
+  ]);
+  return { branch: branch || BRANCH, remoteUrl: remoteUrl || '' };
 }
 
 export async function getUpdateStatus() {
+  const checkedAt = new Date().toISOString();
+  const [current, git] = await Promise.all([revision('HEAD'), gitInfo()]);
   await run('git', ['fetch', '--quiet', REMOTE, BRANCH], { timeout: 60000 });
-  const current = await revision('HEAD');
   const remote = await revision(`${REMOTE}/${BRANCH}`);
   const dirty = await run('git', ['status', '--porcelain']);
   const commitsRaw = current === remote
     ? ''
-    : await run('git', ['log', '--format=%H%x09%s', `${current}..${REMOTE}/${BRANCH}`, '--max-count=20']);
+    : await run('git', ['log', '--format=%H%x09%h%x09%an%x09%ad%x09%s', '--date=iso-strict', `${current}..${REMOTE}/${BRANCH}`, '--max-count=20']);
 
-  const commits = commitsRaw
-    .split('\n')
-    .filter(Boolean)
-    .map((line) => {
-      const [sha, ...title] = line.split('\t');
-      return { sha, shortSha: short(sha), title: title.join('\t') };
-    });
+  const commits = commitsRaw.split('\n').filter(Boolean).map((line) => {
+    const [sha, shortSha, author, date, ...title] = line.split('\t');
+    return { sha, shortSha: shortSha || short(sha), author, date, title: title.join('\t') };
+  });
+  const pkg = await packageInfo();
 
   return {
+    ok: true,
+    checkedAt,
+    application: pkg.name,
+    version: pkg.version,
+    branch: git.branch,
+    remoteName: REMOTE,
+    remoteUrl: git.remoteUrl,
+    service: SERVICE,
     current,
     currentShort: short(current),
     remote,
@@ -55,7 +76,9 @@ export async function getUpdateStatus() {
     available: current !== remote,
     dirty: Boolean(dirty),
     dirtyFiles: dirty ? dirty.split('\n').filter(Boolean).slice(0, 30) : [],
-    commits
+    commits,
+    canInstall: current !== remote && !dirty,
+    blocker: dirty ? 'El servidor tiene cambios locales.' : current === remote ? 'No hay cambios disponibles.' : null
   };
 }
 
@@ -68,7 +91,6 @@ export async function installUpdate() {
 
   installing = true;
   const oldRevision = await revision('HEAD');
-
   try {
     const status = await getUpdateStatus();
     if (status.dirty) {
@@ -77,7 +99,7 @@ export async function installUpdate() {
       error.details = status.dirtyFiles;
       throw error;
     }
-    if (!status.available) return { installed: false, message: 'No hay una nueva versión disponible.', ...status };
+    if (!status.available) return { installed: false, message: 'No hay una nueva versión disponible.', status };
 
     await run('git', ['pull', '--ff-only', REMOTE, BRANCH], { timeout: 120000 });
     const installedRevision = await revision('HEAD');
@@ -87,24 +109,29 @@ export async function installUpdate() {
       await run('npm', ['run', 'build'], { timeout: 300000 });
     } catch (error) {
       await run('git', ['reset', '--hard', oldRevision], { timeout: 60000 });
-      throw new Error(`La actualización se descargó, pero la instalación/build falló. Se revirtió a ${short(oldRevision)}. ${error.stderr || error.message}`);
+      throw new Error(`La actualización descargada no superó la instalación/build. Se revirtió a ${short(oldRevision)}. ${error.stderr || error.message}`);
     }
 
-    setTimeout(() => {
-      execFile('systemctl', ['restart', SERVICE], { cwd: ROOT, timeout: 60000 }, (error) => {
-        if (error) console.error(`No se pudo reiniciar ${SERVICE}:`, error.message);
-      });
-    }, 1000).unref();
-
-    return {
+    const pkg = await packageInfo();
+    const result = {
       installed: true,
       restartScheduled: true,
       previousRevision: oldRevision,
       installedRevision,
       previousShort: short(oldRevision),
       installedShort: short(installedRevision),
-      message: 'Actualización instalada. Reinicio del servicio programado.'
+      version: pkg.version,
+      service: SERVICE,
+      message: `IPZStream ${pkg.version} instalado correctamente. Se reiniciará el servicio ${SERVICE}.`
     };
+
+    setTimeout(() => {
+      execFile('systemctl', ['restart', SERVICE], { cwd: ROOT, timeout: 60000, env: process.env }, (error) => {
+        if (error) console.error(`No se pudo reiniciar ${SERVICE}:`, error.message);
+      });
+    }, 1200).unref();
+
+    return result;
   } finally {
     installing = false;
   }
