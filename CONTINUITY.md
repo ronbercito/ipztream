@@ -17,35 +17,31 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión en preparación: `0.3.8`.
+- Versión en preparación: `0.3.9`.
 - Centro de actualización validado desde panel.
 - Etapa 12 — Motor de streaming real + integración de fuentes: **EN IMPLEMENTACIÓN**.
 
-## 12.3.5 — Autoarranque y monitoreo operativo
-Implementado: guardado activo inicia FFmpeg, estado real y uptime visibles.
-
 ## 12.3.6 — Historial operativo
-Implementado en 0.3.7: historial de inicio/reinicio y borrado manual sin detener la emisión.
+Implementado en 0.3.7.
 
 ## 12.3.7 — Recuperación automática ante caída del proveedor
+Implementado en 0.3.8 y validado en prueba real: el canal vuelve cuando retorna la señal del proveedor.
+
+## 12.3.8 — Corrección visual del editor ancho
 **Estado:** EN IMPLEMENTACIÓN.
 
-Objetivo: si Astra/HTTP/proveedor deja de entregar señal y FFmpeg termina, IPZStream no debe requerir intervención manual. Debe conservar el canal activo, esperar y reintentar automáticamente hasta que la fuente vuelva a responder.
+Tras 0.3.8 el editor conserva las pestañas pero perdió estilos de campos internos: inputs/selects quedaron con estilo nativo, la columna general se estrechó visualmente y la vista previa del logo se expandió de forma incorrecta. Se debe restaurar el diseño ancho aprobado sin alterar recuperación automática, historial ni controles de streaming.
 
-### Comportamiento
-- Una salida inesperada de FFmpeg deja el canal en estado de recuperación, no abandonado definitivamente.
-- Reintento automático periódico mientras el canal administrativo siga `Activo`.
-- Al recuperar respuesta de la fuente, levantar FFmpeg automáticamente.
-- Cada intento que realmente vuelva a lanzar FFmpeg se registra como `Reinicio` con fecha/hora y aumenta el contador.
-- Un `Detener` manual o desactivar el canal cancela los reintentos automáticos.
-- Evitar bucles agresivos: usar retardo entre intentos.
-- Mantener el último error visible mientras se espera recuperación.
-
-### Respaldo
-`backup/pre-stream-auto-recovery-2026-09-17`.
+### Objetivo visual
+- Mantener modal ancho y cuatro pestañas.
+- Información general ordenada, con Nombre en una fila y Número/Categoría/Estado en tres columnas.
+- Logo en tarjeta independiente con URL y vista previa contenida, sin expandirse verticalmente.
+- Inputs/selects uniformes, modernos y al 100% del espacio disponible.
+- Sin scroll horizontal en escritorio.
+- Mantener colores, contraste y temática ya aprobados.
 
 ## Próxima fase
-Actualizar desde el panel y validar cortando temporalmente una señal de Astra y restaurándola sin tocar IPZStream.
+Publicar 0.3.9 y validar visualmente el editor desde Centro de actualización.
 
 ## Protocolo obligatorio
 1. Actualizar `CONTINUITY.md`.
