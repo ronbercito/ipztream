@@ -14,6 +14,10 @@ const BRANCH = process.env.IPZTREAM_UPDATE_BRANCH || 'main';
 const SERVICE = process.env.IPZTREAM_SERVICE || 'ipztream-api';
 let installing = false;
 
+function detail(error) {
+  return String(error?.stderr || error?.stdout || error?.message || error || 'Error desconocido').trim();
+}
+
 async function run(command, args, options = {}) {
   const result = await exec(command, args, {
     cwd: ROOT,
@@ -23,6 +27,19 @@ async function run(command, args, options = {}) {
     env: process.env
   });
   return String(result.stdout || '').trim();
+}
+
+async function phase(name, fn) {
+  console.log(`[IPZStream updater] INICIO ${name}`);
+  try {
+    const result = await fn();
+    console.log(`[IPZStream updater] OK ${name}`);
+    return result;
+  } catch (error) {
+    console.error(`[IPZStream updater] ERROR ${name}: ${detail(error)}`);
+    error.updatePhase = name;
+    throw error;
+  }
 }
 
 async function revision(ref) { return run('git', ['rev-parse', ref]); }
@@ -46,13 +63,12 @@ async function gitInfo() {
 }
 
 async function trackedChanges() {
-  // Runtime/build artifacts must never block the updater. Only tracked modifications matter.
   return run('git', ['status', '--porcelain', '--untracked-files=no']);
 }
 
 async function buildApplication() {
-  await run('npm', ['install', '--no-audit', '--no-fund', '--package-lock=false'], { timeout: 300000 });
-  await run('npm', ['run', 'build'], { timeout: 300000 });
+  await phase('dependencias npm', () => run('npm', ['install', '--no-audit', '--no-fund', '--package-lock=false'], { timeout: 300000 }));
+  await phase('build Vite', () => run('npm', ['run', 'build'], { timeout: 300000 }));
   const entries = await readdir(`${ROOT}/dist`);
   if (!entries.length) throw new Error('El build terminó sin generar archivos publicables.');
 }
@@ -67,9 +83,9 @@ async function publishWebBuild() {
 }
 
 async function restoreRevision(revisionSha) {
-  await run('git', ['reset', '--hard', revisionSha], { timeout: 60000 });
+  await phase('rollback Git', () => run('git', ['reset', '--hard', revisionSha], { timeout: 60000 }));
   await buildApplication();
-  await publishWebBuild();
+  await phase('publicación rollback', publishWebBuild);
 }
 
 export async function getUpdateStatus() {
@@ -119,8 +135,9 @@ export async function installUpdate() {
 
   installing = true;
   const oldRevision = await revision('HEAD');
+  console.log(`[IPZStream updater] Actualización solicitada desde ${short(oldRevision)}`);
   try {
-    const status = await getUpdateStatus();
+    const status = await phase('comprobación', getUpdateStatus);
     if (status.dirty) {
       const error = new Error('La instalación fue bloqueada porque el servidor tiene cambios locales controlados por Git.');
       error.status = 409;
@@ -129,19 +146,20 @@ export async function installUpdate() {
     }
     if (!status.available) return { installed: false, message: 'No hay una nueva versión disponible.', status };
 
-    await run('git', ['pull', '--ff-only', REMOTE, BRANCH], { timeout: 120000 });
+    await phase('descarga Git', () => run('git', ['pull', '--ff-only', REMOTE, BRANCH], { timeout: 120000 }));
     const installedRevision = await revision('HEAD');
 
     try {
       await buildApplication();
-      await publishWebBuild();
+      await phase('publicación web', publishWebBuild);
     } catch (error) {
+      const failedPhase = error.updatePhase || 'instalación/build/publicación';
       try {
         await restoreRevision(oldRevision);
       } catch (rollbackError) {
-        throw new Error(`Falló la actualización y también la restauración automática. Revisión anterior ${short(oldRevision)}. Actualización: ${error.stderr || error.message}. Restauración: ${rollbackError.stderr || rollbackError.message}`);
+        throw new Error(`Falló la fase ${failedPhase} y también la restauración automática. Revisión anterior ${short(oldRevision)}. Actualización: ${detail(error)}. Restauración: ${detail(rollbackError)}`);
       }
-      throw new Error(`La actualización no superó instalación/build/publicación. Se restauró ${short(oldRevision)}. ${error.stderr || error.message}`);
+      throw new Error(`Falló la fase ${failedPhase}. Se restauró ${short(oldRevision)} correctamente. ${detail(error)}`);
     }
 
     const pkg = await packageInfo();
@@ -157,10 +175,12 @@ export async function installUpdate() {
       message: `IPZStream ${pkg.version} instalado y publicado correctamente. El servicio se reiniciará automáticamente.`
     };
 
-    // No se usa systemctl desde www-data. Al salir, Restart=always de systemd levanta
-    // el servicio con el código nuevo, eliminando la necesidad de privilegios root aquí.
+    console.log(`[IPZStream updater] COMPLETADA ${short(oldRevision)} -> ${short(installedRevision)}; versión ${pkg.version}`);
     setTimeout(() => process.exit(0), 1500).unref();
     return result;
+  } catch (error) {
+    console.error(`[IPZStream updater] FALLO: ${detail(error)}`);
+    throw error;
   } finally {
     installing = false;
   }
