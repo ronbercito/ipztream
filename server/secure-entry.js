@@ -1,4 +1,7 @@
 import http from 'node:http';
+import { createReadStream } from 'node:fs';
+import { access, stat } from 'node:fs/promises';
+import path from 'node:path';
 import { URL } from 'node:url';
 import { ensureAuthSchema, authenticate, getSessionUser, destroySession, serializeSessionCookie, clearSessionCookie, hasPermission, permissionForRequest } from './auth.js';
 import { addAudit } from './db.js';
@@ -9,6 +12,7 @@ import { assertFfmpeg, getStream, listStreams, startStream, stopStream, restartS
 const PUBLIC_PORT = Number(process.env.IPZTREAM_API_PORT || 3100);
 const INTERNAL_PORT = Number(process.env.IPZTREAM_INTERNAL_API_PORT || 3101);
 const HOST = process.env.IPZTREAM_API_HOST || '127.0.0.1';
+const STREAM_ROOT = path.resolve(process.env.IPZTREAM_STREAM_ROOT || '/var/lib/ipztream/streams');
 
 function send(res, status, payload, extraHeaders = {}) {
   res.writeHead(status, {
@@ -35,6 +39,52 @@ function clientIp(req) {
 
 function sessionToken(req) {
   return decodeURIComponent((req.headers.cookie || '').match(/(?:^|;\s*)ipztream_session=([^;]+)/)?.[1] || '');
+}
+
+function safeStreamPath(channelId, filename) {
+  if (!/^[A-Za-z0-9_-]{1,191}$/.test(channelId)) return null;
+  if (filename !== 'index.m3u8' && !/^segment_[0-9]{6}\.ts$/.test(filename)) return null;
+  const root = path.resolve(STREAM_ROOT);
+  const outputDir = path.resolve(root, channelId);
+  const filePath = path.resolve(outputDir, filename);
+  if (outputDir !== root && !outputDir.startsWith(`${root}${path.sep}`)) return null;
+  if (!filePath.startsWith(`${outputDir}${path.sep}`)) return null;
+  return filePath;
+}
+
+async function handleHls(req, res, pathname) {
+  if (!['GET', 'HEAD'].includes(req.method)) return false;
+  const match = pathname.match(/^\/streams\/([^/]+)\/(index\.m3u8|segment_[0-9]{6}\.ts)$/);
+  if (!match) return false;
+
+  const channelId = decodeURIComponent(match[1]);
+  const filename = match[2];
+  const filePath = safeStreamPath(channelId, filename);
+  if (!filePath) return send(res, 400, { message: 'Ruta HLS no válida.' });
+
+  const stream = getStream(channelId);
+  if (!stream || !['starting', 'running'].includes(stream.status)) {
+    return send(res, 404, { message: 'Stream no disponible.' });
+  }
+
+  try {
+    const info = await stat(filePath);
+    if (!info.isFile()) return send(res, 404, { message: 'Archivo HLS no encontrado.' });
+    const contentType = filename === 'index.m3u8' ? 'application/vnd.apple.mpegurl' : 'video/mp2t';
+    const headers = {
+      'Content-Type': contentType,
+      'Content-Length': String(info.size),
+      'Cache-Control': filename === 'index.m3u8' ? 'no-cache, no-store, must-revalidate' : 'public, max-age=10',
+      'Access-Control-Allow-Origin': process.env.IPZTREAM_CORS_ORIGIN || '*',
+      'Access-Control-Allow-Credentials': 'true'
+    };
+    res.writeHead(200, headers);
+    if (req.method === 'HEAD') return res.end();
+    return createReadStream(filePath).pipe(res);
+  } catch (error) {
+    if (error.code === 'ENOENT') return send(res, 404, { message: 'Archivo HLS no encontrado.' });
+    throw error;
+  }
 }
 
 function proxyRequest(req, res, body) {
@@ -188,6 +238,11 @@ async function handle(req, res) {
 
   const user = await getSessionUser(sessionToken(req));
   if (!user) return send(res, 401, { message: 'Autenticación requerida.' });
+
+  if (pathname.startsWith('/streams/')) {
+    const handled = await handleHls(req, res, pathname);
+    if (handled !== false) return;
+  }
 
   const permission = pathname.startsWith('/api/streams')
     ? (req.method === 'GET' ? 'channels.view' : 'channels.update')
