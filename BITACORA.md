@@ -14,26 +14,29 @@ Completadas y validadas.
 - Estado real y uptime de emisión.
 
 ### Mejora 12.3.2 — Editor definitivo ancho con pestañas
-Editor ancho y pestañas implementados. La corrección 0.3.3 fuerza el ancho del modal para evitar interferencia de estilos globales.
+Implementado.
 
 ### Mejora 12.3.3 — Probar fuente antes de guardar
-Implementada en 0.3.4. La prueba temporal usa ffprobe, no guarda el canal y devuelve estado real y latencia. Validada por el usuario con una fuente real activa.
+Implementado y validado.
 
 ### Mejora 12.3.4 — Metadatos técnicos de la señal
-Implementada en 0.3.5. La prueba devuelve bitrate, resolución, códec de video/audio, canales y FPS cuando están disponibles.
+Implementado en 0.3.5.
 
 ### Mejora 12.3.5 — Autoarranque y monitoreo operativo
-**Motivo:** actualmente guardar un canal activo no inicia la emisión; la tabla queda en `Detenido` y el tiempo activo permanece vacío hasta pulsar iniciar manualmente.
+Implementado en 0.3.6 y validado visualmente: canales activos arrancan al guardar, muestran FFmpeg activo y uptime.
 
-**Respaldo:** `backup/pre-channel-autostart-monitoring-2026-09-16`.
+### Mejora 12.3.6 — Historial de inicios/reinicios y borrado de medición
+**Motivo:** el contador actual indica cantidad de inicios, pero no permite saber a qué hora ocurrió cada evento ni comenzar una medición nueva.
 
-**Archivos previstos:**
-- `server/stream-manager.js`
-- `src/modules/channels/Channels.jsx`
-- `src/modules/channels/components/ChannelTable.jsx`
-- `src/modules/channels/styles/channels.css`
-- `package.json`
+**Implementación prevista:**
+- `server/stream-manager.js`: historial temporal por canal y función para limpiarlo.
+- `server/secure-entry.js`: endpoint autenticado para borrar historial.
+- `src/modules/channels/services/channelsApi.js`: cliente del endpoint.
+- `src/modules/channels/components/ChannelTable.jsx`: botón/historial de eventos y borrado.
+- `src/modules/channels/Channels.jsx`: refresco del estado después de limpiar.
+- `src/modules/channels/styles/channels.css`: presentación del registro.
+- `package.json`: versión 0.3.7.
 
-**Resultado esperado:** crear un canal activo lo inicia automáticamente; editar un canal activo reinicia FFmpeg para aplicar cambios; desactivar detiene y activar inicia. La tabla muestra estado real, tiempo activo y cantidad de inicios/reinicios del canal.
+**Resultado esperado:** consultar hora exacta de Inicio/Reinicio y borrar el historial/contador sin detener la emisión.
 
 **Estado:** EN IMPLEMENTACIÓN.
