@@ -120,17 +120,25 @@ Debe actualizarse el servidor con este commit y comprobar `200 OK` para `index.m
 ### Corrección 12.2 — Centro de actualización del panel
 **Motivo:** el botón `Actualizar` del panel era solamente visual: abría un modal y simulaba una comprobación mediante `setTimeout`, sin consultar el servidor ni instalar una versión real.
 
-**Archivos afectados previstos:**
-- `src/main.jsx` (integración mínima del centro de actualización)
-- nuevo módulo de actualización para separar UI y servicio
-- `server/secure-entry.js` (endpoints administrativos)
-- `server/update-service.js` (gestión controlada de versión/origen/actualización)
-
 **Respaldo:** rama `backup/pre-update-center-2026-09-15` creada antes de los cambios.
 
-**Resultado esperado:** el botón debe consultar el estado real, mostrar la revisión disponible y permitir una instalación administrativa controlada. Una consulta no debe ejecutar `pull`, build ni reinicio. La instalación debe informar errores reales y reiniciar el servicio únicamente después de una actualización confirmada.
+**Implementación publicada:**
+- `server/update-service.js`: consulta de HEAD/origin, detección de cambios locales, listado de commits, actualización `git pull --ff-only`, instalación de dependencias, build y reinicio controlado del servicio.
+- `server/auth.js`: permiso RBAC `system.update`, disponible para superadmin/admin.
+- `server/secure-entry.js`: `GET /api/update/status` y `POST /api/update/install`, con autenticación, RBAC y auditoría.
+- `src/modules/system-update/UpdateCenter.jsx`: interfaz real de comprobación, cambios disponibles, bloqueo por cambios locales y acción de instalación.
+- `src/main.jsx`: el botón `Actualizar` ahora utiliza el módulo real en lugar del modal simulado.
 
-**Estado:** EN IMPLEMENTACIÓN — falta verificación en el contenedor antes de marcarlo como validado.
+**Protecciones:** no se reciben comandos desde el navegador; el servidor utiliza comandos fijos mediante `execFile`, bloquea la instalación si existen cambios locales y revierte el código si `npm install` o `npm run build` falla. La consulta no ejecuta `pull`, build ni reinicio más allá del `git fetch` necesario para conocer el origen.
+
+**Commits de implementación:**
+- `39461ab67126c648cd461b4538fc5b8508c1c21b` — servicio de actualización.
+- `076ae4d4f9a46d5e33e08b6aa2b630809d8df968` — permiso RBAC.
+- `0f7114b78a953f719b786502615fd29bc52a499b` — API segura.
+- `bcf284ebb1ea37dd237db97628eda3a78ce8920` — UI modular.
+- `fadb76e356c9782ec60f5596e8a85ffd96b65231` — integración del botón.
+
+**Estado:** IMPLEMENTACIÓN PUBLICADA — **VALIDACIÓN EN EL CONTENEDOR PENDIENTE**. No se declara build ni reinicio verificados hasta ejecutarlos realmente en el servidor.
 
 ### Referencia técnica
 El muxer HLS de FFmpeg genera una playlist y segmentos, y permite controlar el tamaño de la ventana, duración de segmentos y eliminación de segmentos antiguos mediante sus opciones HLS.
