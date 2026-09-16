@@ -17,33 +17,39 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, ins
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión en preparación: `0.3.10`.
+- Versión en preparación: `0.3.11`.
 - Centro de actualización validado desde panel.
 - Etapa 12 — Motor de streaming real + integración de fuentes: **EN IMPLEMENTACIÓN**.
 
-## 12.3.7 — Recuperación automática ante caída del proveedor
+## 12.3.7 — Recuperación automática
 Implementado en 0.3.8 y validado en prueba real.
 
-## 12.3.8 — Corrección visual del editor ancho
-Implementado en 0.3.9 para Información general.
+## 12.3.8 — Editor ancho
+Implementado en 0.3.9.
 
-## 12.3.9 — Corrección visual de Fuentes de transmisión
+## 12.3.9 — Fuentes de transmisión
+Implementado en 0.3.10.
+
+## 12.3.10 — Persistencia del estado de emisión
 **Estado:** EN IMPLEMENTACIÓN.
 
-La pestaña Fuentes conserva toda la funcionalidad pero sus elementos no tienen el acabado visual aprobado: encabezado, acciones, tarjeta de fuente, campos y ejemplos aparecen desalineados/compactados. Se restaurará una composición amplia y ordenada sin modificar la lógica de prueba de señal ni el motor de streaming.
+Objetivo: una actualización del panel, reinicio del servicio, reinicio del contenedor o reinicio del servidor no debe olvidar qué canales estaban encendidos o detenidos.
 
-### Objetivo visual
-- Encabezado claro con título/ayuda y botón Agregar fuente alineado a la derecha.
-- Aviso de prioridad en una banda informativa independiente.
-- Cada fuente ocupa una tarjeta horizontal amplia; número, Principal/Respaldo, estado y acciones en una cabecera limpia.
-- Tipo, URL, protocolo, prioridad y tiempo de respuesta alineados en una sola grilla en escritorio.
-- Botones Probar, Editar y Eliminar con estilo consistente.
-- Resultados multimedia de Probar conservan bitrate, resolución, video, audio, canales y FPS.
-- Ejemplos de URL en bloque inferior legible y separado.
-- Sin scroll horizontal ni controles nativos desalineados.
+### Comportamiento requerido
+- Persistir por canal la intención operativa `running/stopped` en almacenamiento duradero.
+- Pulsar Iniciar guarda `running` antes de lanzar FFmpeg.
+- Pulsar Detener guarda `stopped` y cancela recuperación automática.
+- Una caída del proveedor no cambia `running`; IPZStream sigue intentando recuperar.
+- SIGTERM/SIGINT por actualización o apagado cierra FFmpeg sin convertir los canales a `stopped`.
+- Al iniciar la API, restaurar automáticamente los canales guardados como `running` y administrativamente Activos.
+- Si la fuente todavía no está disponible al arrancar, mantener intención `running` y entrar al ciclo de recuperación automática.
+- Mantener canales detenidos manualmente apagados.
+
+### Respaldo
+`backup/pre-persistent-stream-state-2026-09-16`.
 
 ## Próxima fase
-Publicar 0.3.10 y validar visualmente Fuentes de transmisión desde Centro de actualización.
+Publicar 0.3.11, actualizar exclusivamente desde el Centro de actualización y comprobar que los canales previamente iniciados vuelvan solos después del reinicio provocado por la actualización.
 
 ## Protocolo obligatorio
 1. Actualizar `CONTINUITY.md`.
