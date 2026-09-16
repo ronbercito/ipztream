@@ -46,74 +46,49 @@ Se implementó login IPTV, sesiones en MariaDB, `/api/client/me`, logout, expira
 
 ## Etapa 12 — Motor de streaming real + integración de fuentes — EN IMPLEMENTACIÓN
 
-### Objetivo
-Iniciar el primer motor de streaming real de IPZStream. No se utilizarán simulaciones: una fuente real configurada en un canal deberá poder ser procesada por FFmpeg y convertirse en una salida HLS reproducible.
-
 ### Implementación realizada
-**Archivos principales:**
-- `server/stream-manager.js`
-- `server/secure-entry.js`
-- `install.sh`
-- `docs/ETAPA-12.md`
-
-**Cambios:**
-- Se creó un gestor modular de procesos FFmpeg.
-- Se incorporó inicio, detención y reinicio por canal.
-- Se incorporó estado real: `starting`, `running`, `stopping`, `stopped`, `error`.
-- Se registran PID, tiempos, código de salida y últimas líneas de error/log.
-- Se selecciona la fuente activa de menor prioridad numérica del canal.
-- Se validan protocolos HTTP, HTTPS, RTMP, RTMPS y RTSP.
-- Los argumentos de FFmpeg se pasan directamente a `spawn()` sin shell.
-- Se genera HLS por canal con `index.m3u8` y segmentos `.ts`.
-- Se evita iniciar dos procesos simultáneos para el mismo canal.
-- El apagado del servicio intenta detener los procesos FFmpeg activos.
-- Se añadieron endpoints administrativos de streams y auditoría.
+- Gestor modular FFmpeg en `server/stream-manager.js`.
+- Inicio/detención/reinicio por canal y estados reales.
+- Salida HLS por canal.
+- Endpoints administrativos y auditoría.
 
 ### Corrección 12.1 — Servido HLS desde Secure Entry
-Durante la prueba real se comprobó que FFmpeg generaba correctamente la playlist y segmentos, pero `/streams/...` respondía `404` porque `secure-entry.js` no tenía una ruta para servir los archivos HLS. Se añadió una capa HTTP HLS limitada y autenticada.
+Se añadió una capa HTTP HLS limitada y autenticada para servir playlists y segmentos generados por FFmpeg.
 
 ### Corrección 12.2 — Centro de actualización del panel
 **Motivo:** el botón `Actualizar` era solamente visual y no consultaba ni instalaba versiones reales.
 
 **Respaldo:** `backup/pre-update-center-2026-09-15`.
 
-**Implementación inicial:** servicio Git controlado, permiso RBAC `system.update`, API autenticada y módulo React.
-
-**Estado inicial:** implementación publicada; validación del contenedor pendiente.
-
 ### Corrección 12.2.1 — Centro de actualización completo
-**Motivo:** durante el uso del módulo se comprobó que la primera versión no presentaba suficiente información al administrador y no funcionaba como un centro de actualización terminado.
-
 **Respaldo:** `backup/pre-update-center-complete-2026-09-16`.
 
-**Archivos modificados:**
+**Archivos principales:**
 - `server/update-service.js`
 - `src/modules/system-update/UpdateCenter.jsx`
 - `src/modules/system-update/UpdateCenter.css`
 - `package.json`
 - `CONTINUITY.md`
 
-**Mejoras:**
-- Versión real de `package.json` visible en el panel.
-- Commit instalado y commit remoto.
-- Rama y remote configurados.
-- Servicio administrado mostrado.
-- Fecha/hora de comprobación.
-- Estado claro: actualizado o actualización disponible.
-- Changelog con commit, autor y fecha.
-- Bloqueo explícito por cambios locales.
-- Confirmación antes de instalar.
-- Mensajes de descarga, instalación, build y reinicio.
-- Recarga automática del panel después del reinicio.
-- Estilos propios del módulo.
-- Conservación del RBAC y de los comandos fijos del backend.
-- Versión de IPZStream elevada a `0.2.0` para que el panel deje de mostrar una versión estática anterior.
+**Mejoras:** versión/commit real, rama, remote, servicio, fecha de comprobación, changelog, bloqueo por cambios locales, confirmación, feedback de instalación, build, publicación web, rollback y reinicio controlado.
 
-**Protecciones:** no se reciben comandos desde el navegador; se utiliza `execFile`, `git pull --ff-only`, bloqueo por árbol sucio y rollback del commit si instalación/build falla.
+### Corrección 12.2.2 — Validación real de actualización solo desde el panel
+**Motivo:** cerrar la prueba pendiente del centro de actualización y comprobar que las futuras revisiones de código del entorno de prueba se instalan desde el panel, sin usar terminal para hacer pull/build/publicación/reinicio.
 
-**Resultado esperado:** al pulsar `Actualizar`, el administrador debe ver siempre el estado real del servidor. Si no hay cambios, debe mostrar claramente que está actualizado. Si existen commits nuevos, debe mostrarlos y habilitar `Actualizar ahora`. Si hay cambios locales, debe bloquear la operación y explicar el motivo.
+**Estado previo comprobado por el usuario:**
+- `Centro de actualización` abre correctamente.
+- Versión instalada: `0.2.0`.
+- Revisión instalada y disponible: `1321a1621e8c`.
+- Rama: `main`; remote: `origin`; servicio: `ipztream-api`.
+- El panel informa `IPZStream está actualizado`.
+- Se corrigió la verificación del host SSH de GitHub para `www-data`.
+- Se creó una clave Ed25519 dedicada `ipztream_update` y se registró como Deploy Key de solo lectura del repositorio privado.
+- La prueba `ssh -T git@github.com` ejecutada como `www-data` autentica correctamente contra `ronbercito/ipztream`.
 
-**Estado:** IMPLEMENTACIÓN PUBLICADA — **VALIDACIÓN REAL EN EL CONTENEDOR PENDIENTE**.
+**Archivos afectados en esta preparación:** `CONTINUITY.md`, `BITACORA.md`; a continuación se publicará una revisión de aplicación que permita probar detección e instalación real desde el panel.
 
-### Referencia técnica
-El muxer HLS de FFmpeg genera una playlist y segmentos, y permite controlar el tamaño de la ventana, duración de segmentos y eliminación de segmentos antiguos mediante sus opciones HLS.
+**Resultado esperado:** el panel debe detectar una revisión posterior a `1321a16`, mostrarla como disponible y, al pulsar `Actualizar`, descargarla, compilarla, publicarla y reiniciar `ipztream-api` sin intervención de terminal.
+
+**Respaldo:** `backup/pre-update-panel-only-2026-09-16`.
+
+**Estado:** PRUEBA REAL EN CURSO.
