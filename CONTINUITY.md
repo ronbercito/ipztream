@@ -79,6 +79,24 @@ La ruta acepta únicamente `index.m3u8` y segmentos `segment_XXXXXX.ts`, valida 
 
 **Estado:** implementación publicada; validación HTTP en el contenedor pendiente.
 
+### Corrección 12.2 — Centro de actualización del panel
+**Objetivo:** sustituir el botón visual de `Actualizar`, que actualmente solo abre un modal simulado, por un flujo real y seguro de actualización para el entorno de desarrollo/pruebas.
+
+El centro de actualización deberá:
+- consultar la versión/commit instalado;
+- comprobar si existe una revisión más reciente en el origen configurado;
+- mostrar cambios antes de instalar;
+- ejecutar la actualización solo mediante una acción administrativa autenticada;
+- ejecutar `npm install`/build cuando corresponda;
+- reiniciar `ipztream-api` de forma controlada tras una instalación confirmada;
+- devolver al panel el resultado y los errores reales;
+- evitar actualizar automáticamente durante una simple consulta;
+- mantener el sistema preparado para que en producción los clientes reciban releases controlados sin depender del repositorio fuente.
+
+**Respaldo previo:** rama `backup/pre-update-center-2026-09-15`.
+
+**Estado:** en implementación. La validación final requiere ejecutar el flujo en el contenedor de prueba.
+
 ### No incluido todavía
 - Aplicación móvil/TV.
 - Control definitivo de conexiones simultáneas.
@@ -114,6 +132,7 @@ Después de cerrar Etapa 12, la siguiente fase continuará con HLS/reproducción
 - `backup/pre-etapa-10-usuarios-iptv`
 - `backup/pre-etapa-11-api-clientes-sesiones`
 - `backup/pre-etapa-12-streaming-real`
+- `backup/pre-update-center-2026-09-15`
 
 ## Protocolo obligatorio
 1. Actualizar primero `CONTINUITY.md`.
