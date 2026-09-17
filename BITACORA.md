@@ -32,15 +32,22 @@ Corregida construcción de URL para conservar `token` y agregar `t` con `&`.
 ### Corrección 12.3.17 — Sintaxis JSX bloqueaba Vite
 Corregido `ChannelTable.jsx`. Respaldo: `backup/pre-channel-table-build-fix-2026-09-17`.
 
-### Corrección 12.3.18 — Permisos de `dist` bloquean actualización
-**Diagnóstico del servidor:** updater completa Git y npm, pero Vite falla al limpiar el directorio de salida con `EACCES: permission denied, unlink '/opt/ipztream/dist/assets/index-CZCy5gXN.js'`.
+### Corrección 12.3.18 — Permisos del actualizador
+Se diagnosticaron dos bloqueos `EACCES`: primero en `/opt/ipztream/dist` durante el build y después en `/var/www/ipztream` durante la publicación. Ambos provenían de artefactos creados anteriormente como `root`, mientras el actualizador funciona como `www-data`.
 
-**Causa:** un build manual ejecutado como root dejó artefactos de `dist` propiedad de root; el updater corre como `www-data` y no puede eliminarlos. El mismo problema impide reconstruir durante rollback.
+Se corrigió la propiedad de ambos árboles a `www-data:www-data`, se verificó escritura de `www-data` en REPO y WEB, y se endureció el updater para limpiar `dist` antes de construir.
 
-**Recuperación:** devolver `/opt/ipztream/dist` a `www-data:www-data` una sola vez y volver a actualizar exclusivamente desde panel.
+**Resultado validado:** la actualización desde el Centro de actualización completó correctamente Git → npm → Vite → publicación web → reinicio. El flujo panel-first queda operativo.
 
-**Prevención:** el updater limpiará `dist` antes del build. Los builds de recuperación no deben ejecutarse como root.
+### Corrección 12.3.19 — Preview sigue en “Preparando” después de 0.3.16
+**Estado al cierre de sesión:** el modal abre con perfil `preview-h264-aac`, pero el reproductor permanece en `0:00 / Preparando`.
 
-**Versión objetivo:** 0.3.16.
+**Validado en servidor:** FFmpeg temporal sí funciona. Para `channel-afc9ccb0-a5e5-42c9-a328-abd8fbbe3be9` se generan continuamente segmentos `.ts` y `index.m3u8`. El manifiesto HLS es válido (`EXTM3U`, versión 6, target duration 2, media sequence y segmentos de ~2 s). No aparecieron errores `preview/token/401/403/404/hls` en el journal consultado.
 
-**Estado:** EN IMPLEMENTACIÓN — pendiente corrección de permisos en servidor y prueba completa del panel.
+**Conclusión actual:** fuente → FFmpeg → conversión H.264/AAC → archivos HLS funciona. El problema pendiente está en la última ruta de entrega/reproducción: endpoint `/previews/...` con token → hls.js → elemento `<video>` del navegador.
+
+**Siguiente prueba al retomar:** Chrome DevTools → Network → filtrar `m3u8`, cerrar y volver a abrir Preview, inspeccionar la petición `/previews/.../index.m3u8?token=...` y registrar `Status Code` + `Request URL`. Según el resultado, revisar token/endpoint o eventos/error de hls.js.
+
+**Versión instalada:** 0.3.16.
+
+**Estado general:** EN IMPLEMENTACIÓN — continuar desde diagnóstico del navegador; no volver a tocar FFmpeg ni permisos salvo nueva evidencia.
