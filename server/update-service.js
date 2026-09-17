@@ -1,5 +1,4 @@
-// IPZStream update service — 2026-09-16
-// Panel-first updater for the development/test installation.
+// IPZStream update service — panel-first updater.
 // Browser input never becomes a shell command. Git/npm arguments are fixed here.
 
 import { execFile } from 'node:child_process';
@@ -14,174 +13,15 @@ const BRANCH = process.env.IPZTREAM_UPDATE_BRANCH || 'main';
 const SERVICE = process.env.IPZTREAM_SERVICE || 'ipztream-api';
 let installing = false;
 
-function detail(error) {
-  return String(error?.stderr || error?.stdout || error?.message || error || 'Error desconocido').trim();
-}
-
-async function run(command, args, options = {}) {
-  const result = await exec(command, args, {
-    cwd: ROOT,
-    timeout: options.timeout || 120000,
-    maxBuffer: 1024 * 1024 * 4,
-    windowsHide: true,
-    env: process.env
-  });
-  return String(result.stdout || '').trim();
-}
-
-async function phase(name, fn) {
-  console.log(`[IPZStream updater] INICIO ${name}`);
-  try {
-    const result = await fn();
-    console.log(`[IPZStream updater] OK ${name}`);
-    return result;
-  } catch (error) {
-    console.error(`[IPZStream updater] ERROR ${name}: ${detail(error)}`);
-    error.updatePhase = name;
-    throw error;
-  }
-}
-
-async function revision(ref) { return run('git', ['rev-parse', ref]); }
-function short(sha) { return String(sha || '').slice(0, 12); }
-
-async function packageInfo() {
-  try {
-    const pkg = JSON.parse(await readFile(`${ROOT}/package.json`, 'utf8'));
-    return { name: pkg.name || 'ipztream', version: pkg.version || '0.0.0' };
-  } catch {
-    return { name: 'ipztream', version: 'desconocida' };
-  }
-}
-
-async function gitInfo() {
-  const [branch, remoteUrl] = await Promise.all([
-    run('git', ['branch', '--show-current']),
-    run('git', ['config', '--get', `remote.${REMOTE}.url`]).catch(() => '')
-  ]);
-  return { branch: branch || BRANCH, remoteUrl: remoteUrl || '' };
-}
-
-async function trackedChanges() {
-  return run('git', ['status', '--porcelain', '--untracked-files=no']);
-}
-
-async function buildApplication() {
-  await phase('dependencias npm', () => run('npm', ['install', '--no-audit', '--no-fund', '--package-lock=false'], { timeout: 300000 }));
-  await phase('build Vite', () => run('npm', ['run', 'build'], { timeout: 300000 }));
-  const entries = await readdir(`${ROOT}/dist`);
-  if (!entries.length) throw new Error('El build terminó sin generar archivos publicables.');
-}
-
-async function publishWebBuild() {
-  const source = `${ROOT}/dist`;
-  await mkdir(WEB_ROOT, { recursive: true });
-  for (const entry of await readdir(WEB_ROOT)) {
-    await rm(`${WEB_ROOT}/${entry}`, { recursive: true, force: true });
-  }
-  await cp(source, WEB_ROOT, { recursive: true, force: true });
-}
-
-async function restoreRevision(revisionSha) {
-  await phase('rollback Git', () => run('git', ['reset', '--hard', revisionSha], { timeout: 60000 }));
-  await buildApplication();
-  await phase('publicación rollback', publishWebBuild);
-}
-
-export async function getUpdateStatus() {
-  const checkedAt = new Date().toISOString();
-  const [current, git] = await Promise.all([revision('HEAD'), gitInfo()]);
-  await run('git', ['fetch', '--quiet', REMOTE, BRANCH], { timeout: 60000 });
-  const remote = await revision(`${REMOTE}/${BRANCH}`);
-  const dirty = await trackedChanges();
-  const commitsRaw = current === remote
-    ? ''
-    : await run('git', ['log', '--format=%H%x09%h%x09%an%x09%ad%x09%s', '--date=iso-strict', `${current}..${REMOTE}/${BRANCH}`, '--max-count=20']);
-
-  const commits = commitsRaw.split('\n').filter(Boolean).map((line) => {
-    const [sha, shortSha, author, date, ...title] = line.split('\t');
-    return { sha, shortSha: shortSha || short(sha), author, date, title: title.join('\t') };
-  });
-  const pkg = await packageInfo();
-
-  return {
-    ok: true,
-    checkedAt,
-    application: pkg.name,
-    version: pkg.version,
-    branch: git.branch,
-    remoteName: REMOTE,
-    remoteUrl: git.remoteUrl,
-    service: SERVICE,
-    current,
-    currentShort: short(current),
-    remote,
-    remoteShort: short(remote),
-    available: current !== remote,
-    dirty: Boolean(dirty),
-    dirtyFiles: dirty ? dirty.split('\n').filter(Boolean).slice(0, 30) : [],
-    commits,
-    canInstall: current !== remote && !dirty,
-    blocker: dirty ? 'El servidor tiene cambios locales en archivos controlados por Git.' : current === remote ? 'No hay cambios disponibles.' : null
-  };
-}
-
-export async function installUpdate() {
-  if (installing) {
-    const error = new Error('Ya hay una actualización en curso.');
-    error.status = 409;
-    throw error;
-  }
-
-  installing = true;
-  const oldRevision = await revision('HEAD');
-  console.log(`[IPZStream updater] Actualización solicitada desde ${short(oldRevision)}`);
-  try {
-    const status = await phase('comprobación', getUpdateStatus);
-    if (status.dirty) {
-      const error = new Error('La instalación fue bloqueada porque el servidor tiene cambios locales controlados por Git.');
-      error.status = 409;
-      error.details = status.dirtyFiles;
-      throw error;
-    }
-    if (!status.available) return { installed: false, message: 'No hay una nueva versión disponible.', status };
-
-    await phase('descarga Git', () => run('git', ['pull', '--ff-only', REMOTE, BRANCH], { timeout: 120000 }));
-    const installedRevision = await revision('HEAD');
-
-    try {
-      await buildApplication();
-      await phase('publicación web', publishWebBuild);
-    } catch (error) {
-      const failedPhase = error.updatePhase || 'instalación/build/publicación';
-      try {
-        await restoreRevision(oldRevision);
-      } catch (rollbackError) {
-        throw new Error(`Falló la fase ${failedPhase} y también la restauración automática. Revisión anterior ${short(oldRevision)}. Actualización: ${detail(error)}. Restauración: ${detail(rollbackError)}`);
-      }
-      throw new Error(`Falló la fase ${failedPhase}. Se restauró ${short(oldRevision)} correctamente. ${detail(error)}`);
-    }
-
-    const pkg = await packageInfo();
-    const result = {
-      installed: true,
-      restartScheduled: true,
-      previousRevision: oldRevision,
-      installedRevision,
-      previousShort: short(oldRevision),
-      installedShort: short(installedRevision),
-      version: pkg.version,
-      service: SERVICE,
-      message: `IPZStream ${pkg.version} instalado y publicado correctamente. El servicio se reiniciará automáticamente.`
-    };
-
-    console.log(`[IPZStream updater] COMPLETADA ${short(oldRevision)} -> ${short(installedRevision)}; versión ${pkg.version}`);
-    setTimeout(() => process.exit(0), 1500).unref();
-    return result;
-  } catch (error) {
-    console.error(`[IPZStream updater] FALLO: ${detail(error)}`);
-    throw error;
-  } finally {
-    installing = false;
-  }
-}
+function detail(error) { return String(error?.stderr || error?.stdout || error?.message || error || 'Error desconocido').trim(); }
+async function run(command,args,options={}){const result=await exec(command,args,{cwd:ROOT,timeout:options.timeout||120000,maxBuffer:1024*1024*4,windowsHide:true,env:process.env});return String(result.stdout||'').trim()}
+async function phase(name,fn){console.log(`[IPZStream updater] INICIO ${name}`);try{const result=await fn();console.log(`[IPZStream updater] OK ${name}`);return result}catch(error){console.error(`[IPZStream updater] ERROR ${name}: ${detail(error)}`);error.updatePhase=name;throw error}}
+async function revision(ref){return run('git',['rev-parse',ref])}function short(sha){return String(sha||'').slice(0,12)}
+async function packageInfo(){try{const pkg=JSON.parse(await readFile(`${ROOT}/package.json`,'utf8'));return{name:pkg.name||'ipztream',version:pkg.version||'0.0.0'}}catch{return{name:'ipztream',version:'desconocida'}}}
+async function gitInfo(){const[branch,remoteUrl]=await Promise.all([run('git',['branch','--show-current']),run('git',['config','--get',`remote.${REMOTE}.url`]).catch(()=>'')]);return{branch:branch||BRANCH,remoteUrl:remoteUrl||''}}
+async function trackedChanges(){return run('git',['status','--porcelain','--untracked-files=no'])}
+async function buildApplication(){await phase('dependencias npm',()=>run('npm',['install','--no-audit','--no-fund','--package-lock=false'],{timeout:300000}));await phase('limpieza build anterior',()=>rm(`${ROOT}/dist`,{recursive:true,force:true}));await phase('build Vite',()=>run('npm',['run','build'],{timeout:300000}));const entries=await readdir(`${ROOT}/dist`);if(!entries.length)throw new Error('El build terminó sin generar archivos publicables.')}
+async function publishWebBuild(){const source=`${ROOT}/dist`;await mkdir(WEB_ROOT,{recursive:true});for(const entry of await readdir(WEB_ROOT))await rm(`${WEB_ROOT}/${entry}`,{recursive:true,force:true});await cp(source,WEB_ROOT,{recursive:true,force:true})}
+async function restoreRevision(revisionSha){await phase('rollback Git',()=>run('git',['reset','--hard',revisionSha],{timeout:60000}));await buildApplication();await phase('publicación rollback',publishWebBuild)}
+export async function getUpdateStatus(){const checkedAt=new Date().toISOString();const[current,git]=await Promise.all([revision('HEAD'),gitInfo()]);await run('git',['fetch','--quiet',REMOTE,BRANCH],{timeout:60000});const remote=await revision(`${REMOTE}/${BRANCH}`),dirty=await trackedChanges(),commitsRaw=current===remote?'':await run('git',['log','--format=%H%x09%h%x09%an%x09%ad%x09%s','--date=iso-strict',`${current}..${REMOTE}/${BRANCH}`,'--max-count=20']);const commits=commitsRaw.split('\n').filter(Boolean).map(line=>{const[sha,shortSha,author,date,...title]=line.split('\t');return{sha,shortSha:shortSha||short(sha),author,date,title:title.join('\t')}}),pkg=await packageInfo();return{ok:true,checkedAt,application:pkg.name,version:pkg.version,branch:git.branch,remoteName:REMOTE,remoteUrl:git.remoteUrl,service:SERVICE,current,currentShort:short(current),remote,remoteShort:short(remote),available:current!==remote,dirty:Boolean(dirty),dirtyFiles:dirty?dirty.split('\n').filter(Boolean).slice(0,30):[],commits,canInstall:current!==remote&&!dirty,blocker:dirty?'El servidor tiene cambios locales en archivos controlados por Git.':current===remote?'No hay cambios disponibles.':null}}
+export async function installUpdate(){if(installing){const error=new Error('Ya hay una actualización en curso.');error.status=409;throw error}installing=true;const oldRevision=await revision('HEAD');console.log(`[IPZStream updater] Actualización solicitada desde ${short(oldRevision)}`);try{const status=await phase('comprobación',getUpdateStatus);if(status.dirty){const error=new Error('La instalación fue bloqueada porque el servidor tiene cambios locales controlados por Git.');error.status=409;error.details=status.dirtyFiles;throw error}if(!status.available)return{installed:false,message:'No hay una nueva versión disponible.',status};await phase('descarga Git',()=>run('git',['pull','--ff-only',REMOTE,BRANCH],{timeout:120000}));const installedRevision=await revision('HEAD');try{await buildApplication();await phase('publicación web',publishWebBuild)}catch(error){const failedPhase=error.updatePhase||'instalación/build/publicación';try{await restoreRevision(oldRevision)}catch(rollbackError){throw new Error(`Falló la fase ${failedPhase} y también la restauración automática. Revisión anterior ${short(oldRevision)}. Actualización: ${detail(error)}. Restauración: ${detail(rollbackError)}`)}throw new Error(`Falló la fase ${failedPhase}. Se restauró ${short(oldRevision)} correctamente. ${detail(error)}`)}const pkg=await packageInfo(),result={installed:true,restartScheduled:true,previousRevision:oldRevision,installedRevision,previousShort:short(oldRevision),installedShort:short(installedRevision),version:pkg.version,service:SERVICE,message:`IPZStream ${pkg.version} instalado y publicado correctamente. El servicio se reiniciará automáticamente.`};console.log(`[IPZStream updater] COMPLETADA ${short(oldRevision)} -> ${short(installedRevision)}; versión ${pkg.version}`);setTimeout(()=>process.exit(0),1500).unref();return result}catch(error){console.error(`[IPZStream updater] FALLO: ${detail(error)}`);throw error}finally{installing=false}}
