@@ -17,8 +17,8 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, des
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión publicada anterior: `0.3.13`.
-- Versión en preparación: `0.3.14`.
+- Versión publicada anterior: `0.3.14`.
+- Versión en preparación: `0.3.15`.
 - Centro de actualización validado desde panel.
 - Etapa 12 — Motor de streaming real + integración de fuentes: **EN IMPLEMENTACIÓN**.
 
@@ -26,14 +26,21 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, des
 Implementado en 0.3.13.
 
 ## 12.3.13 — Política administrativa y recuperación de contraseña
+Implementado en 0.3.14; validación final de acceso pendiente en instalación.
+
+## 12.3.14 — Vista previa compatible con navegador
 **Estado:** EN IMPLEMENTACIÓN.
 
+### Motivo
+La vista previa HLS puede avanzar pero quedar negra cuando el stream principal `remux-copy` conserva MPEG2VIDEO/MP2, códecs que el navegador no necesariamente decodifica.
+
 ### Objetivo
-- Cambiar el mínimo de contraseña administrativa de 12 a 8 caracteres.
-- Mantener hash scrypt y el resto de la autenticación sin cambios.
-- Incorporar una utilidad local de recuperación para cambiar la contraseña de un administrador existente sin borrar canales, usuarios IPTV ni configuración.
-- La utilidad debe invalidar las sesiones administrativas existentes después del cambio.
-- La contraseña nueva se introduce en el servidor y no queda escrita en el repositorio.
+- Mantener intacta la emisión principal `remux-copy` de bajo consumo.
+- Crear una salida de vista previa temporal H.264/AAC únicamente al abrir el modal.
+- Detener y limpiar el proceso temporal al cerrar la vista previa.
+- Servir el HLS temporal desde IPZStream y reproducirlo en el modal.
+- Mostrar claramente que la vista previa usa un perfil compatible con navegador.
+- No convertir permanentemente el canal ni modificar su fuente principal.
 
 ## Prueba requerida
-Ejecutar la utilidad local sobre el usuario `admin`, establecer la nueva contraseña elegida por el administrador y comprobar un inicio de sesión nuevo.
+Abrir AMERICATV SD (MPEG2VIDEO/MP2), comprobar imagen y audio en el modal, cerrar el modal y verificar que el proceso FFmpeg temporal desaparece mientras la emisión principal continúa en `remux-copy`.
