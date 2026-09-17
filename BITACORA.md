@@ -21,14 +21,18 @@ Implementado en 0.3.13.
 Implementado en 0.3.14. Acceso recuperado en instalación; queda pendiente mejorar la ejecución local segura del recuperador.
 
 ### Corrección 12.3.14 — Preview H.264/AAC bajo demanda
-Implementado en 0.3.15. La conversión temporal H.264/AAC arranca, pero la prueba real en navegador deja el modal en `Preparando` porque el `<video>` directo no resuelve HLS de forma general en Chrome/Edge.
+Implementado en 0.3.15. La conversión temporal H.264/AAC arranca, pero la prueba real en navegador deja el modal en `Preparando`.
 
-### Corrección 12.3.15 — HLS.js + preparación robusta del preview
-**Motivo:** el preview H.264/AAC es HLS válido, pero el navegador de escritorio puede no soportar `.m3u8` directamente. También se detectó `EACCES` al crear `/var/lib/ipztream/previews` después de la actualización 0.3.15.
+### Corrección 12.3.15 — HLS.js + entrega autenticada del preview
+**Diagnóstico validado:** FFmpeg temporal funciona; genera H.264/AAC, manifiesto y segmentos. La ruta HTTP `/previews/...` está detrás de la autenticación administrativa y sin credencial devuelve 401.
 
-**Implementación prevista:** integrar `hls.js` con fallback HLS nativo; reintentos durante la generación inicial del manifiesto; destruir el reproductor al cerrar; mantener parada del FFmpeg temporal; preparar correctamente el directorio de previews para el usuario del servicio.
+**Implementación 0.3.16:** integrar `hls.js`; crear token criptográfico efímero por preview; devolver `hlsUrl` con token; permitir únicamente media de preview cuyo token coincida con el preview activo; reescribir las líneas de segmentos del manifiesto para conservar el token; invalidar token y eliminar proceso/archivos al cerrar.
 
-**Prueba:** ESPN 2 y AMERICATV SD deben mostrar imagen/audio dentro del modal en Chrome/Edge y liberar el preview al cerrar.
+**Seguridad:** `/previews/...` no se vuelve pública. Un token sólo autoriza los archivos del canal/preview para el que fue emitido y existe únicamente mientras ese preview está activo.
+
+**Respaldo:** `backup/pre-preview-auth-fix-2026-09-17`.
+
+**Prueba:** ESPN 2 y AMERICATV SD deben mostrar imagen/audio en Chrome/Edge; cerrar el modal debe detener el FFmpeg temporal. URL sin token debe seguir siendo rechazada.
 
 **Versión:** 0.3.16.
 
