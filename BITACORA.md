@@ -23,21 +23,24 @@ Implementado en 0.3.14.
 ### Corrección 12.3.14 — Preview H.264/AAC bajo demanda
 Implementado en 0.3.15.
 
-### Corrección 12.3.15 — HLS.js + entrega autenticada del preview
-FFmpeg temporal y token efímero implementados para 0.3.16.
+### Corrección 12.3.15 — HLS.js + token efímero
+Implementado para 0.3.16; validación final pendiente.
 
-### Corrección 12.3.16 — Query del token HLS mal formada
-Corregida construcción de URL mediante `URL`/`URLSearchParams`, conservando `token` y agregando `t` como parámetro separado.
+### Corrección 12.3.16 — Query del token HLS
+Corregida construcción de URL para conservar `token` y agregar `t` con `&`.
 
-### Corrección 12.3.17 — Build Vite bloquea actualización desde panel
-**Diagnóstico real del servidor:** el repositorio privado no es el problema. El updater completó `comprobación`, `descarga Git` y `dependencias npm`. Vite falló con `Expected } but found Identifier` en `src/modules/channels/components/ChannelTable.jsx`, y el rollback automático restauró correctamente `d0b485bd8106` / 0.3.15.
+### Corrección 12.3.17 — Sintaxis JSX bloqueaba Vite
+Corregido `ChannelTable.jsx`. Respaldo: `backup/pre-channel-table-build-fix-2026-09-17`.
 
-**Causa:** botón `history-close` con JSX inválido: faltaba cerrar la expresión `onClick` antes del atributo `title`.
+### Corrección 12.3.18 — Permisos de `dist` bloquean actualización
+**Diagnóstico del servidor:** updater completa Git y npm, pero Vite falla al limpiar el directorio de salida con `EACCES: permission denied, unlink '/opt/ipztream/dist/assets/index-CZCy5gXN.js'`.
 
-**Corrección:** `onClick={()=>setHistoryId(null)} title="Cerrar historial"`.
+**Causa:** un build manual ejecutado como root dejó artefactos de `dist` propiedad de root; el updater corre como `www-data` y no puede eliminarlos. El mismo problema impide reconstruir durante rollback.
 
-**Respaldo:** `backup/pre-channel-table-build-fix-2026-09-17`.
+**Recuperación:** devolver `/opt/ipztream/dist` a `www-data:www-data` una sola vez y volver a actualizar exclusivamente desde panel.
+
+**Prevención:** el updater limpiará `dist` antes del build. Los builds de recuperación no deben ejecutarse como root.
 
 **Versión objetivo:** 0.3.16.
 
-**Estado:** EN IMPLEMENTACIÓN — pendiente instalar desde el panel y validar preview real.
+**Estado:** EN IMPLEMENTACIÓN — pendiente corrección de permisos en servidor y prueba completa del panel.
