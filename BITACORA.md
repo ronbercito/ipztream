@@ -18,10 +18,15 @@ Implementado en 0.3.12.
 Implementado en 0.3.13.
 
 ### Corrección 12.3.13 — Recuperación de contraseña administrativa
-**Motivo:** se requiere recuperar el acceso al usuario administrativo existente y permitir contraseñas administrativas personalizadas desde 8 caracteres.
+Implementado en 0.3.14; validación final pendiente en instalación.
 
-**Implementación:** política administrativa mínima de 8 caracteres, conservando scrypt; nueva utilidad `reset-admin-password.js` para actualizar un administrador existente e invalidar sus sesiones. La contraseña nunca se almacena en el código ni en GitHub.
+### Corrección 12.3.14 — Preview H.264/AAC bajo demanda
+**Motivo:** un canal MPEG2VIDEO/MP2 en `remux-copy` genera HLS válido pero el navegador muestra pantalla negra por compatibilidad de códec.
 
-**Versión:** 0.3.14.
+**Implementación prevista:** proceso FFmpeg temporal independiente para preview H.264/AAC; arranque al abrir modal; HLS temporal servido por IPZStream; parada y limpieza al cerrar; la emisión principal permanece `remux-copy`.
+
+**Prueba:** AMERICATV SD MPEG2VIDEO/MP2 debe reproducir imagen/audio en el modal y liberar el proceso de preview al cerrarlo.
+
+**Versión:** 0.3.15.
 
 **Estado:** EN IMPLEMENTACIÓN.
