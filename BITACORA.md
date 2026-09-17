@@ -18,15 +18,18 @@ Implementado en 0.3.12.
 Implementado en 0.3.13.
 
 ### Corrección 12.3.13 — Recuperación de contraseña administrativa
-Implementado en 0.3.14; validación final pendiente en instalación.
+Implementado en 0.3.14. Acceso recuperado en instalación; queda pendiente mejorar la ejecución local segura del recuperador.
 
 ### Corrección 12.3.14 — Preview H.264/AAC bajo demanda
-**Motivo:** un canal MPEG2VIDEO/MP2 en `remux-copy` genera HLS válido pero el navegador muestra pantalla negra por compatibilidad de códec.
+Implementado en 0.3.15. La conversión temporal H.264/AAC arranca, pero la prueba real en navegador deja el modal en `Preparando` porque el `<video>` directo no resuelve HLS de forma general en Chrome/Edge.
 
-**Implementación prevista:** proceso FFmpeg temporal independiente para preview H.264/AAC; arranque al abrir modal; HLS temporal servido por IPZStream; parada y limpieza al cerrar; la emisión principal permanece `remux-copy`.
+### Corrección 12.3.15 — HLS.js + preparación robusta del preview
+**Motivo:** el preview H.264/AAC es HLS válido, pero el navegador de escritorio puede no soportar `.m3u8` directamente. También se detectó `EACCES` al crear `/var/lib/ipztream/previews` después de la actualización 0.3.15.
 
-**Prueba:** AMERICATV SD MPEG2VIDEO/MP2 debe reproducir imagen/audio en el modal y liberar el proceso de preview al cerrarlo.
+**Implementación prevista:** integrar `hls.js` con fallback HLS nativo; reintentos durante la generación inicial del manifiesto; destruir el reproductor al cerrar; mantener parada del FFmpeg temporal; preparar correctamente el directorio de previews para el usuario del servicio.
 
-**Versión:** 0.3.15.
+**Prueba:** ESPN 2 y AMERICATV SD deben mostrar imagen/audio dentro del modal en Chrome/Edge y liberar el preview al cerrar.
+
+**Versión:** 0.3.16.
 
 **Estado:** EN IMPLEMENTACIÓN.
