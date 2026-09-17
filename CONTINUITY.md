@@ -17,28 +17,23 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, des
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión publicada anterior: `0.3.12`.
-- Versión en preparación: `0.3.13`.
+- Versión publicada anterior: `0.3.13`.
+- Versión en preparación: `0.3.14`.
 - Centro de actualización validado desde panel.
 - Etapa 12 — Motor de streaming real + integración de fuentes: **EN IMPLEMENTACIÓN**.
 
-## 12.3.10 — Persistencia del estado
-Implementado en 0.3.11.
-
-## 12.3.11 — Remux/Copy de bajo consumo
-Implementado en 0.3.12 para evitar transcodificación por defecto.
-
 ## 12.3.12 — Acciones visuales y vista previa integrada
+Implementado en 0.3.13.
+
+## 12.3.13 — Política administrativa y recuperación de contraseña
 **Estado:** EN IMPLEMENTACIÓN.
 
 ### Objetivo
-- Dar identidad visual por color a las acciones de cada canal.
-- Mostrar tooltip descriptivo al pasar el mouse: Editar, Iniciar/Detener, Vista previa, Activar/Desactivar y Eliminar.
-- Sustituir el icono de enlace externo por un icono específico de monitor/vista previa.
-- La vista previa no abrirá una pestaña o página completa.
-- Al pulsar Vista previa se abrirá una ventana modal dentro de Canales/Fuentes.
-- El modal reproducirá el HLS generado por IPZStream, manteniendo al usuario en el panel.
-- Incluir nombre del canal, estado y cierre claro del reproductor.
+- Cambiar el mínimo de contraseña administrativa de 12 a 8 caracteres.
+- Mantener hash scrypt y el resto de la autenticación sin cambios.
+- Incorporar una utilidad local de recuperación para cambiar la contraseña de un administrador existente sin borrar canales, usuarios IPTV ni configuración.
+- La utilidad debe invalidar las sesiones administrativas existentes después del cambio.
+- La contraseña nueva se introduce en el servidor y no queda escrita en el repositorio.
 
 ## Prueba requerida
-Actualizar desde panel, comprobar colores/tooltips y abrir Vista previa de un canal en funcionamiento sin abandonar la pantalla Canales/Fuentes.
+Ejecutar la utilidad local sobre el usuario `admin`, establecer la nueva contraseña elegida por el administrador y comprobar un inicio de sesión nuevo.
