@@ -32,19 +32,23 @@ Implementado en 0.3.14. Acceso administrativo recuperado en instalación; queda 
 Implementado inicialmente en 0.3.15 con conversión temporal H.264/AAC. La prueba real confirmó que el modal queda en `Preparando` y el elemento `<video>` no inicia la reproducción en navegador de escritorio.
 
 ## 12.3.15 — Reproducción HLS real en navegador
-**Estado:** EN IMPLEMENTACIÓN.
+**Estado:** EN IMPLEMENTACIÓN — corrección de entrega HTTP en 0.3.16.
 
-### Diagnóstico
-La conversión temporal H.264/AAC elimina el problema MPEG2VIDEO/MP2, pero Chrome/Edge de escritorio no reproducen de forma general un manifiesto HLS `.m3u8` asignado directamente a `<video src>`. Además, el reproductor puede solicitar el manifiesto antes de que FFmpeg haya creado los primeros segmentos.
+### Diagnóstico validado
+- FFmpeg de preview funciona y transcodifica la fuente a H.264/AAC.
+- Se generan continuamente `index.m3u8` y segmentos MPEG-TS válidos en `/var/lib/ipztream/previews/<canal>/`.
+- El acceso HTTP directo a `/previews/<canal>/index.m3u8` sin sesión devuelve `401 Autenticación requerida`.
+- Para desacoplar hls.js de la cookie administrativa, el preview usará un token aleatorio efímero creado al abrir el modal.
 
 ### Objetivo
 - Mantener intacta la emisión principal `remux-copy`.
-- Mantener el preview temporal H.264/AAC bajo demanda.
-- Reproducir HLS mediante `hls.js` cuando el navegador no tenga HLS nativo.
-- Conservar reproducción HLS nativa cuando el navegador sí la soporte.
-- Esperar/reintentar mientras aparece el manifiesto inicial sin dejar el modal bloqueado permanentemente en `Preparando`.
-- Destruir el reproductor y detener el FFmpeg temporal al cerrar el modal.
-- Corregir la preparación de `/var/lib/ipztream/previews` para evitar el `EACCES` detectado tras actualizar a 0.3.15.
+- Mantener preview H.264/AAC bajo demanda.
+- Reproducir mediante `hls.js` con fallback HLS nativo.
+- Entregar manifiesto y segmentos con un token temporal exclusivo del preview.
+- No hacer pública la ruta `/previews/`: sin token válido debe responder 401.
+- Incluir el token en las referencias de segmentos del manifiesto servido para que hls.js pueda solicitarlos.
+- Invalidar el token, detener FFmpeg y borrar los archivos al cerrar el modal.
+- Mantener la corrección de permisos de `/var/lib/ipztream/previews` como requisito del actualizador/instalador.
 
 ## Prueba requerida
-Abrir ESPN 2 y AMERICATV SD desde Chrome/Edge, comprobar imagen y audio en el modal, cerrar el modal y verificar que el proceso FFmpeg temporal desaparece mientras la emisión principal continúa en `remux-copy`.
+Abrir ESPN 2 y AMERICATV SD desde Chrome/Edge, comprobar imagen y audio en el modal, cerrar el modal y verificar que el proceso FFmpeg temporal desaparece mientras la emisión principal continúa en `remux-copy`. Confirmar además que una URL `/previews/...` sin token no entrega el contenido.
