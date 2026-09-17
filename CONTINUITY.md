@@ -15,11 +15,11 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, des
 - Mantener arquitectura modular.
 
 ## Estado actual
-- Repositorio: `ronbercito/ipztream`
-- Rama: `main`
-- Versión publicada anterior: `0.3.15`.
+- Repositorio: `ronbercito/ipztream` (privado).
+- Rama: `main`.
+- Versión instalada estable en servidor: `0.3.15`.
 - Versión en preparación: `0.3.16`.
-- Centro de actualización validado desde panel.
+- El deploy key privado de `www-data` funciona: el Centro de actualización completa `fetch` y `pull` de `origin/main`.
 - Etapa 12 — Motor de streaming real + integración de fuentes: **EN IMPLEMENTACIÓN**.
 
 ## 12.3.12 — Acciones visuales y vista previa integrada
@@ -34,16 +34,22 @@ Implementado inicialmente en 0.3.15 con conversión temporal H.264/AAC.
 ## 12.3.15 — Reproducción HLS real en navegador
 **Estado:** EN IMPLEMENTACIÓN — corrección 0.3.16.
 
-### Diagnóstico validado
+### Diagnóstico HLS validado
 - FFmpeg de preview funciona y genera H.264/AAC, `index.m3u8` y segmentos MPEG-TS.
 - Se implementó token efímero para desacoplar el preview de la cookie administrativa.
-- La prueba posterior siguió en `Preparando`.
-- Revisión de frontend encontró el fallo concreto: `hlsUrl` ya contiene `?token=...`, pero el cache-buster se concatenaba como otro `?t=...`. El resultado era `?token=<token>?t=<timestamp>`, por lo que el servidor recibía un token alterado y lo rechazaba.
+- Se corrigió la construcción del cache-buster para conservar `?token=...` y añadir `&t=...`.
+
+## 12.3.16 — Bloqueo del actualizador por error de sintaxis JSX
+**Diagnóstico validado por journal:** el actualizador privado funciona correctamente hasta `git pull` y `npm install`. El fallo ocurre en `npm run build`: Vite informa `Expected } but found Identifier` en `src/modules/channels/components/ChannelTable.jsx`.
+
+### Causa
+En el botón para cerrar el historial quedó JSX inválido: `onClick={()=>setHistoryId(null) title="Cerrar historial"` carece de la llave de cierre `}` después de `setHistoryId(null)`.
 
 ### Corrección inmediata
-- Construir la URL mediante `URL`/`URLSearchParams` para conservar `token` y añadir `t` como segundo parámetro (`&t=`).
-- Mantener token temporal, hls.js, fallback nativo y limpieza del preview.
-- Mantener intacta la emisión principal `remux-copy`.
+- Corregir el JSX a `onClick={()=>setHistoryId(null)} title="Cerrar historial"`.
+- No modificar la autenticación del repositorio privado: está validada.
+- Mantener rollback automático del actualizador.
+- Respaldo previo: `backup/pre-channel-table-build-fix-2026-09-17`.
 
 ## Prueba requerida
-Abrir AMERICATV SD y ESPN 2 en Chrome/Edge. El modal debe pasar de `Preparando` a `Reproduciendo`, mostrar imagen/audio y liberar el FFmpeg temporal al cerrar.
+Desde el Centro de actualización: comprobar → pull privado → npm install → build Vite → publicación → reinicio. Debe instalar 0.3.16 sin rollback. Después probar AMERICATV SD y ESPN 2 en Chrome/Edge; el modal debe pasar de `Preparando` a `Reproduciendo`, mostrar imagen/audio y liberar FFmpeg temporal al cerrar.
