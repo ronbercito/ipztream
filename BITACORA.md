@@ -24,13 +24,20 @@ Implementado en 0.3.14.
 Implementado en 0.3.15.
 
 ### Corrección 12.3.15 — HLS.js + entrega autenticada del preview
-FFmpeg temporal y token efímero implementados en 0.3.16.
+FFmpeg temporal y token efímero implementados para 0.3.16.
 
 ### Corrección 12.3.16 — Query del token HLS mal formada
-**Hallazgo:** el backend devuelve `hlsUrl=/previews/.../index.m3u8?token=<token>`. El frontend añadía el cache-buster con otro signo `?`: `${preview.hlsUrl}?t=...`. Esto convertía el valor real de `token` en `<token>?t=...`, provocando rechazo del token y dejando hls.js en reintentos mientras el modal mostraba `Preparando`.
+Corregida construcción de URL mediante `URL`/`URLSearchParams`, conservando `token` y agregando `t` como parámetro separado.
 
-**Corrección:** construir la URL con `new URL(..., window.location.origin)` y `searchParams.set('t', Date.now())`, conservando intacto el parámetro `token`.
+### Corrección 12.3.17 — Build Vite bloquea actualización desde panel
+**Diagnóstico real del servidor:** el repositorio privado no es el problema. El updater completó `comprobación`, `descarga Git` y `dependencias npm`. Vite falló con `Expected } but found Identifier` en `src/modules/channels/components/ChannelTable.jsx`, y el rollback automático restauró correctamente `d0b485bd8106` / 0.3.15.
 
-**Versión:** 0.3.16.
+**Causa:** botón `history-close` con JSX inválido: faltaba cerrar la expresión `onClick` antes del atributo `title`.
 
-**Estado:** EN IMPLEMENTACIÓN — pendiente prueba real después de publicar/build.
+**Corrección:** `onClick={()=>setHistoryId(null)} title="Cerrar historial"`.
+
+**Respaldo:** `backup/pre-channel-table-build-fix-2026-09-17`.
+
+**Versión objetivo:** 0.3.16.
+
+**Estado:** EN IMPLEMENTACIÓN — pendiente instalar desde el panel y validar preview real.
