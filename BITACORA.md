@@ -8,25 +8,19 @@ Completadas y validadas.
 
 ## Etapa 12 — Motor de streaming real + integración de fuentes — EN IMPLEMENTACIÓN
 
-### Mejora 12.3.6 — Historial operativo
-Implementado en 0.3.7.
-
-### Mejora 12.3.7 — Recuperación automática
-Implementado en 0.3.8 y validado.
-
-### Correcciones visuales 12.3.8 / 12.3.9
-Editor y Fuentes implementados en 0.3.9/0.3.10.
-
 ### Mejora 12.3.10 — Persistencia del estado
-Implementado en 0.3.11: running/stopped persistente y restauración automática.
+Implementado en 0.3.11.
 
 ### Mejora 12.3.11 — Remux/Copy de bajo consumo
-**Motivo:** FFmpeg estaba transcodificando todos los canales a H.264/AAC. Para señales MPEG-2/MPEG-TS esto añade CPU y puede introducir comportamiento peor que la reproducción directa observada en VLC.
+Implementado en 0.3.12.
 
-**Implementación:** usar stream copy para video/audio, conservar códecs de origen, reparar/generar timestamps necesarios para HLS, mantener reconexión y recuperación automática. No habrá fallback silencioso a transcodificación.
+### Mejora 12.3.12 — Acciones visuales + reproductor emergente
+**Motivo:** las acciones de la tabla son poco distinguibles y la vista previa abre el HLS como una página independiente.
 
-**Prueba:** canal MPEG-2 problemático + canal H.264, observando continuidad, CPU y recuperación Astra.
+**Implementación:** colores semánticos para editar, iniciar/detener, vista previa, activar/desactivar y eliminar; tooltips al pasar el mouse; icono MonitorPlay para vista previa; modal integrado con reproductor de video HLS y fallback del elemento video del navegador.
 
-**Versión:** 0.3.12.
+**Prueba:** abrir vista previa desde la fila sin salir del panel y comprobar tooltips/colores.
+
+**Versión:** 0.3.13.
 
 **Estado:** EN IMPLEMENTACIÓN.
