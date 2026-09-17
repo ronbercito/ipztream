@@ -15,12 +15,13 @@ Implementado en 0.3.11.
 Implementado en 0.3.12.
 
 ### Mejora 12.3.12 — Acciones visuales + reproductor emergente
-**Motivo:** las acciones de la tabla son poco distinguibles y la vista previa abre el HLS como una página independiente.
+Implementado en 0.3.13.
 
-**Implementación:** colores semánticos para editar, iniciar/detener, vista previa, activar/desactivar y eliminar; tooltips al pasar el mouse; icono MonitorPlay para vista previa; modal integrado con reproductor de video HLS y fallback del elemento video del navegador.
+### Corrección 12.3.13 — Recuperación de contraseña administrativa
+**Motivo:** se requiere recuperar el acceso al usuario administrativo existente y permitir contraseñas administrativas personalizadas desde 8 caracteres.
 
-**Prueba:** abrir vista previa desde la fila sin salir del panel y comprobar tooltips/colores.
+**Implementación:** política administrativa mínima de 8 caracteres, conservando scrypt; nueva utilidad `reset-admin-password.js` para actualizar un administrador existente e invalidar sus sesiones. La contraseña nunca se almacena en el código ni en GitHub.
 
-**Versión:** 0.3.13.
+**Versión:** 0.3.14.
 
 **Estado:** EN IMPLEMENTACIÓN.
