@@ -17,8 +17,8 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, des
 ## Estado actual
 - Repositorio: `ronbercito/ipztream`
 - Rama: `main`
-- Versión publicada anterior: `0.3.14`.
-- Versión en preparación: `0.3.15`.
+- Versión publicada anterior: `0.3.15`.
+- Versión en preparación: `0.3.16`.
 - Centro de actualización validado desde panel.
 - Etapa 12 — Motor de streaming real + integración de fuentes: **EN IMPLEMENTACIÓN**.
 
@@ -26,21 +26,25 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, des
 Implementado en 0.3.13.
 
 ## 12.3.13 — Política administrativa y recuperación de contraseña
-Implementado en 0.3.14; validación final de acceso pendiente en instalación.
+Implementado en 0.3.14. Acceso administrativo recuperado en instalación; queda pendiente endurecer el flujo local de recuperación para no depender del entorno manual.
 
 ## 12.3.14 — Vista previa compatible con navegador
+Implementado inicialmente en 0.3.15 con conversión temporal H.264/AAC. La prueba real confirmó que el modal queda en `Preparando` y el elemento `<video>` no inicia la reproducción en navegador de escritorio.
+
+## 12.3.15 — Reproducción HLS real en navegador
 **Estado:** EN IMPLEMENTACIÓN.
 
-### Motivo
-La vista previa HLS puede avanzar pero quedar negra cuando el stream principal `remux-copy` conserva MPEG2VIDEO/MP2, códecs que el navegador no necesariamente decodifica.
+### Diagnóstico
+La conversión temporal H.264/AAC elimina el problema MPEG2VIDEO/MP2, pero Chrome/Edge de escritorio no reproducen de forma general un manifiesto HLS `.m3u8` asignado directamente a `<video src>`. Además, el reproductor puede solicitar el manifiesto antes de que FFmpeg haya creado los primeros segmentos.
 
 ### Objetivo
-- Mantener intacta la emisión principal `remux-copy` de bajo consumo.
-- Crear una salida de vista previa temporal H.264/AAC únicamente al abrir el modal.
-- Detener y limpiar el proceso temporal al cerrar la vista previa.
-- Servir el HLS temporal desde IPZStream y reproducirlo en el modal.
-- Mostrar claramente que la vista previa usa un perfil compatible con navegador.
-- No convertir permanentemente el canal ni modificar su fuente principal.
+- Mantener intacta la emisión principal `remux-copy`.
+- Mantener el preview temporal H.264/AAC bajo demanda.
+- Reproducir HLS mediante `hls.js` cuando el navegador no tenga HLS nativo.
+- Conservar reproducción HLS nativa cuando el navegador sí la soporte.
+- Esperar/reintentar mientras aparece el manifiesto inicial sin dejar el modal bloqueado permanentemente en `Preparando`.
+- Destruir el reproductor y detener el FFmpeg temporal al cerrar el modal.
+- Corregir la preparación de `/var/lib/ipztream/previews` para evitar el `EACCES` detectado tras actualizar a 0.3.15.
 
 ## Prueba requerida
-Abrir AMERICATV SD (MPEG2VIDEO/MP2), comprobar imagen y audio en el modal, cerrar el modal y verificar que el proceso FFmpeg temporal desaparece mientras la emisión principal continúa en `remux-copy`.
+Abrir ESPN 2 y AMERICATV SD desde Chrome/Edge, comprobar imagen y audio en el modal, cerrar el modal y verificar que el proceso FFmpeg temporal desaparece mientras la emisión principal continúa en `remux-copy`.
