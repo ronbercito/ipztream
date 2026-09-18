@@ -20,6 +20,25 @@ if [[ "${EUID}" -ne 0 ]]; then
   exit 1
 fi
 
+if [[ -r /etc/os-release ]]; then
+  . /etc/os-release
+else
+  echo "No se pudo detectar el sistema operativo."
+  exit 1
+fi
+if [[ "${ID:-}" != "ubuntu" && "${ID:-}" != "debian" ]]; then
+  echo "Sistema no soportado automáticamente: ${PRETTY_NAME:-desconocido}."
+  echo "IPZStream soporta Ubuntu LTS modernas y Debian moderno."
+  exit 1
+fi
+echo "==> Sistema detectado: ${PRETTY_NAME:-$ID}"
+if [[ "${ID}" == "ubuntu" ]]; then
+  case "${VERSION_ID:-}" in
+    20.04|22.04|24.04|24.10|25.04|25.10|26.04) ;;
+    *) echo "AVISO: Ubuntu ${VERSION_ID:-desconocido} no está en la matriz validada; se comprobarán dependencias antes de continuar." ;;
+  esac
+fi
+
 if [[ ! -f "${SOURCE_DIR}/package.json" ]]; then
   echo "No se encontró package.json. Ejecuta el instalador desde la raíz del proyecto IPZStream."
   exit 1
@@ -37,7 +56,7 @@ fi
 
 echo "==> Instalando dependencias del sistema..."
 apt-get update
-apt-get install -y ca-certificates curl nginx mariadb-server mariadb-client ffmpeg
+DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg nginx mariadb-server mariadb-client ffmpeg
 
 if ! command -v node >/dev/null 2>&1 || ! node -e 'process.exit(Number(process.versions.node.split(".")[0]) < 20)' ; then
   echo "==> Instalando Node.js 22..."
