@@ -105,3 +105,11 @@ El formulario avanzado dejó de ser placeholder y ahora expone estos campos real
 Los logs confirman que Git descargó la mega actualización, pero npm falló antes del build con `ENOTEMPTY` dentro de `/opt/ipztream/node_modules`. Reintentos afectaron distintos paquetes, confirmando árbol de dependencias inconsistente. El rollback Git sí vuelve al commit anterior, pero su npm también falla al reutilizar ese árbol.
 
 Se aplicará hotfix en `server/update-service.js`: limpiar `node_modules` y usar `npm ci` con `package-lock.json`; fallback a `npm install` solo si no existe lockfile. El mismo build limpio se usará durante rollback.
+
+
+## Etapa 14 — Panel clásico XUI — INICIADA
+Se cambia el enfoque de UI: IPZStream 0.4.0 queda protegido como base funcional y se inicia una reconstrucción de alta fidelidad del flujo administrativo XUI usando código propio. Backup creado: `backup/pre-legacy-panel-rebuild-2026-09-18`.
+
+Inventario de referencia confirmado en `ronbercito/ipprueba`: admin, reseller, player, Ministra, content, crons y herramientas; dentro de admin se confirman bouquets, orden, canales creados, alta masiva, backups, cache y otros módulos. No se migrarán binarios/PHP codificados ni mecanismos de licencia.
+
+Primer bloque autorizado: 14.1 shell clásico (navegación, topbar, dashboard y sistema visual), seguido inmediatamente por 14.2 Streams/Canales.
