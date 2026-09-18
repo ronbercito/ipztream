@@ -120,3 +120,9 @@ La referencia principal será `ronbercito/ipprueba`. Se conservarán la organiza
 - 14.8: MAG/Ministra, VOD, series y radio.
 - 14.9: logs, backups, cache, herramientas y configuración.
 - 14.10: compatibilidad/migración y endurecimiento Ubuntu 24.04.
+
+
+### Hotfix previo a 14.1 — lockfile ausente/desincronizado
+El servidor confirmó que el actualizador limpio ya elimina `node_modules`, pero `npm ci` falla con EUSAGE porque el repositorio no contiene un `package-lock.json` sincronizado y la instalación conserva un lockfile local antiguo al estar ignorado/no versionado. El lock local no incluye `hls.js`.
+
+Corrección aprobada: el actualizador no debe decidir por mera existencia física de un lockfile local. Solo usará `npm ci` cuando `package-lock.json` esté controlado por Git; en caso contrario hará `npm install --package-lock=false` sobre `node_modules` limpio. Esto mantiene la solución ENOTEMPTY y evita que archivos runtime obsoletos bloqueen releases.
