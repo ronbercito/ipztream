@@ -82,3 +82,11 @@ Se autoriza trasladar a IPZStream, mediante reimplementación propia, prácticam
 La migración NO consistirá en introducir los PHP/binarios heredados dentro de IPZStream. Cada capacidad se implementará y mantendrá en nuestro código React/Vite + Node.js + MariaDB, conservando compatibilidad con el actualizador panel-first y permitiendo mejorar diseño, seguridad, rendimiento y soporte Ubuntu.
 
 La sección Canales será el primer módulo de migración profunda y servirá como patrón arquitectónico para los demás módulos.
+
+
+## Mega actualización 0.4.0 — autorización de construcción
+Se autoriza consolidar la Etapa 13 como una actualización mayor instalable desde el Centro de actualización. Respaldo previo creado: `backup/pre-mega-update-0.4.0-2026-09-17`.
+
+La versión 0.4.0 será la base moderna de IPZStream. El alcance de esta entrega prioriza una reconstrucción amplia del módulo Canales/Streams inspirada funcionalmente en XUI: administración avanzada, selección múltiple y acciones masivas, alta masiva, categorías/bouquets, EPG por canal, perfiles de salida/transcodificación, asignación de nodo, múltiples fuentes/failover, monitorización, control start/stop/restart, preview, ordenación y metadatos. Se mantendrá compatibilidad con los canales existentes mediante valores por defecto.
+
+El instalador también se endurecerá para detectar Ubuntu y soportar Ubuntu LTS modernas, con Ubuntu 24.04 como objetivo prioritario, sin reutilizar binarios heredados de XUI. La actualización debe seguir siendo panel-first y conservar datos existentes.
