@@ -65,3 +65,12 @@ Una parte importante de los PHP principales no es UTF-8 legible desde GitHub y p
 
 ### Estado previo que se conserva
 Versión instalada validada: 0.3.16. El actualizador desde panel funciona de extremo a extremo. El preview H.264/AAC genera HLS correctamente, pero la reproducción web sigue pendiente de diagnóstico en la petición m3u8/token/hls.js.
+
+
+## Directriz Etapa 13 — Fidelidad funcional XUI + compatibilidad Ubuntu
+El objetivo aprobado es que la gestión de canales/streams conserve la mayor cantidad posible de capacidades y flujo operativo reconocible del panel XUI de referencia, pero con implementación propia, interfaz modernizada y mejoras de usabilidad. Se extraerá el inventario funcional completo relacionado con canales antes de cerrar el diseño de IPZStream.
+
+La plataforma debe evitar dependencias rígidas de una única versión de Ubuntu. Instalador, servicios y runtime se diseñarán con detección de distribución/versión, comprobación de dependencias y rutas compatibles. Objetivo de soporte: Ubuntu LTS modernas, incluyendo Ubuntu 24.04, y mantener portabilidad hacia versiones Ubuntu que todavía puedan ejecutar de forma segura las dependencias requeridas por IPZStream. No se prometerá compatibilidad universal con versiones EOL si Node.js, MariaDB, FFmpeg, Nginx u otras dependencias ya no las soportan.
+
+### 13.2 — Canales/Streams: alcance ampliado
+Antes de implementar se inventariarán del panel de referencia todas las funciones visibles relacionadas con canales: alta individual y masiva, fuentes, servidores, perfiles/transcodificación, categorías, EPG, logos, orden, estado, acciones start/stop/restart, monitorización, conexiones, edición masiva, importación y herramientas relacionadas. La nueva UI buscará familiaridad funcional con XUI sin reutilizar literalmente su código ni assets propietarios.
