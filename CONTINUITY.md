@@ -130,3 +130,7 @@ Corrección aprobada: el actualizador no debe decidir por mera existencia físic
 
 ### Directriz visual global XUI
 Por decisión del proyecto, la reconstrucción no se limitará a la organización funcional. Todas las etapas 14.x buscarán máxima familiaridad visual con XUI 1.5.13 en navegación, tablas, formularios, botones, iconografía, estados, modales y vista/reproductor, siempre mediante componentes, CSS e iconos propios o con licencia compatible. Se conservará el backend IPZStream y no se copiarán assets propietarios ni código heredado.
+
+
+### Estado 14.2
+Primera entrega publicada: consola Streams clásica, filtros densos, alta múltiple modal, acciones masivas y Start/Stop/Restart reales; preview/reproductor conservado y estilizado dentro del sistema clásico. Pendiente validación mediante actualización desde panel y posterior refinamiento de tabla/formulario/reproductor según comparación visual.
