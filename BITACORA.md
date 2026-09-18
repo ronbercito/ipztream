@@ -75,3 +75,11 @@ El alcance se amplía por decisión del proyecto: la sección de canales/streams
 También se establece Ubuntu 24.04 como plataforma objetivo prioritaria. Instalador y runtime deberán detectar versión/distribución y validar dependencias en lugar de asumir paquetes/rutas de una sola release. Se buscará compatibilidad con Ubuntu LTS modernas y, cuando las dependencias sigan disponibles de forma segura, con otras versiones Ubuntu. Versiones EOL no se declararán compatibles sin validación real.
 
 **Siguiente trabajo:** inventario exhaustivo de archivos/módulos de canales del repositorio de referencia y mapa campo/acción → equivalente IPZStream antes de modificar el motor actual.
+
+
+### 13.1.2 — Migración funcional amplia autorizada
+Se amplía el objetivo: usar el paquete XUI 1.5.13 como referencia funcional global y reconstruir en IPZStream todas las capacidades útiles que sean aplicables, no únicamente canales.
+
+La implementación será propia y mantenible. No se incorporarán directamente los PHP codificados, binarios heredados ni assets propietarios del paquete. IPZStream será el código fuente definitivo que se continuará mejorando.
+
+El primer bloque profundo será Canales/Streams. El inventario ya confirma piezas relacionadas como `created_channel.php`, `created_channel_mass.php`, `created_channels.php`, `channel_order.php`, bouquets, EPG, watch/monitorización y componentes de servidor/stream. Después se extenderá el mismo patrón al resto del panel.
