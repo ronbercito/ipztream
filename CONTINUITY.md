@@ -134,3 +134,7 @@ Por decisión del proyecto, la reconstrucción no se limitará a la organizació
 
 ### Estado 14.2
 Primera entrega publicada: consola Streams clásica, filtros densos, alta múltiple modal, acciones masivas y Start/Stop/Restart reales; preview/reproductor conservado y estilizado dentro del sistema clásico. Pendiente validación mediante actualización desde panel y posterior refinamiento de tabla/formulario/reproductor según comparación visual.
+
+
+### 14.2.3 — Refinamiento visual validado contra instalación
+Captura de la instalación 14.2 validada. Se autoriza refinamiento del listado Streams: aumentar legibilidad sin perder densidad clásica, corregir proporciones de tabla/toolbar, enriquecer columnas operativas y hacer que acciones/reproductor se perciban como una consola XUI coherente. Se preservan backend, datos y motor de streaming.
