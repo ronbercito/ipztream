@@ -83,3 +83,11 @@ Se amplía el objetivo: usar el paquete XUI 1.5.13 como referencia funcional glo
 La implementación será propia y mantenible. No se incorporarán directamente los PHP codificados, binarios heredados ni assets propietarios del paquete. IPZStream será el código fuente definitivo que se continuará mejorando.
 
 El primer bloque profundo será Canales/Streams. El inventario ya confirma piezas relacionadas como `created_channel.php`, `created_channel_mass.php`, `created_channels.php`, `channel_order.php`, bouquets, EPG, watch/monitorización y componentes de servidor/stream. Después se extenderá el mismo patrón al resto del panel.
+
+
+### 13.2 — Mega actualización 0.4.0 — EN CONSTRUCCIÓN
+Respaldo previo: `backup/pre-mega-update-0.4.0-2026-09-17`.
+
+Se inicia una entrega mayor en lugar de microcambios aislados. Objetivo: convertir Canales/Streams en el primer módulo de nivel XUI reimplementado con código propio IPZStream. Incluye gestión individual/masiva, acciones operativas masivas, categorías/bouquets, EPG, nodo, perfiles, transcodificación/remux, múltiples fuentes/failover, monitorización, orden y preview.
+
+Se preservarán los registros actuales y el motor remux/preview existente. La actualización se publicará para instalación desde el panel. También se modernizará la detección de Ubuntu/dependencias con prioridad Ubuntu 24.04 y LTS modernas.
