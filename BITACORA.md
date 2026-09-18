@@ -91,3 +91,11 @@ Respaldo previo: `backup/pre-mega-update-0.4.0-2026-09-17`.
 Se inicia una entrega mayor en lugar de microcambios aislados. Objetivo: convertir Canales/Streams en el primer módulo de nivel XUI reimplementado con código propio IPZStream. Incluye gestión individual/masiva, acciones operativas masivas, categorías/bouquets, EPG, nodo, perfiles, transcodificación/remux, múltiples fuentes/failover, monitorización, orden y preview.
 
 Se preservarán los registros actuales y el motor remux/preview existente. La actualización se publicará para instalación desde el panel. También se modernizará la detección de Ubuntu/dependencias con prioridad Ubuntu 24.04 y LTS modernas.
+
+
+### 13.2.1 — Primera ola 0.4.0 publicada
+Implementado en `main`: versión 0.4.0; respaldo previo creado; alta masiva de hasta 500 canales por operación; selección múltiple; acciones masivas de activar, desactivar, categoría, bouquet y eliminar; API preparada también para nodo, perfil y reordenamiento; modelo de canal extendido con nodo, bouquet, EPG/TVG ID, perfil remux/transcode, formato de salida, orden y notas.
+
+El formulario avanzado dejó de ser placeholder y ahora expone estos campos reales. El instalador detecta Ubuntu/Debian, prioriza Ubuntu 24.04/LTS modernas y verifica dependencias usando paquetes del sistema en lugar de binarios heredados.
+
+**Instalación prevista:** exclusivamente mediante Centro de actualización del panel desde la 0.3.16. Después de instalar se validará build/publicación/reinicio y se probarán canales existentes antes de ampliar la siguiente ola.
