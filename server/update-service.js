@@ -3,7 +3,7 @@
 
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { cp, mkdir, readFile, readdir, rm, access } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, rm } from 'node:fs/promises';
 
 const exec = promisify(execFile);
 const ROOT = process.env.IPZTREAM_ROOT || '/opt/ipztream';
@@ -20,7 +20,7 @@ async function revision(ref){return run('git',['rev-parse',ref])}function short(
 async function packageInfo(){try{const pkg=JSON.parse(await readFile(`${ROOT}/package.json`,'utf8'));return{name:pkg.name||'ipztream',version:pkg.version||'0.0.0'}}catch{return{name:'ipztream',version:'desconocida'}}}
 async function gitInfo(){const[branch,remoteUrl]=await Promise.all([run('git',['branch','--show-current']),run('git',['config','--get',`remote.${REMOTE}.url`]).catch(()=>'')]);return{branch:branch||BRANCH,remoteUrl:remoteUrl||''}}
 async function trackedChanges(){return run('git',['status','--porcelain','--untracked-files=no'])}
-async function cleanInstallDependencies(){await phase('limpieza node_modules',()=>rm(`${ROOT}/node_modules`,{recursive:true,force:true,maxRetries:3,retryDelay:250}));let locked=true;try{await access(`${ROOT}/package-lock.json`)}catch{locked=false}if(locked)return phase('dependencias npm ci',()=>run('npm',['ci','--no-audit','--no-fund'],{timeout:300000}));return phase('dependencias npm',()=>run('npm',['install','--no-audit','--no-fund','--package-lock=false'],{timeout:300000}))}
+async function cleanInstallDependencies(){await phase('limpieza node_modules',()=>rm(`${ROOT}/node_modules`,{recursive:true,force:true,maxRetries:3,retryDelay:250}));const trackedLock=await run('git',['ls-files','--error-unmatch','package-lock.json'],{timeout:30000}).then(()=>true).catch(()=>false);if(trackedLock)return phase('dependencias npm ci',()=>run('npm',['ci','--no-audit','--no-fund'],{timeout:300000}));return phase('dependencias npm limpia',()=>run('npm',['install','--no-audit','--no-fund','--package-lock=false'],{timeout:300000}))}
 async function buildApplication(){await cleanInstallDependencies();await phase('limpieza build anterior',()=>rm(`${ROOT}/dist`,{recursive:true,force:true}));await phase('build Vite',()=>run('npm',['run','build'],{timeout:300000}));const entries=await readdir(`${ROOT}/dist`);if(!entries.length)throw new Error('El build terminó sin generar archivos publicables.')}
 async function publishWebBuild(){const source=`${ROOT}/dist`;await mkdir(WEB_ROOT,{recursive:true});for(const entry of await readdir(WEB_ROOT))await rm(`${WEB_ROOT}/${entry}`,{recursive:true,force:true});await cp(source,WEB_ROOT,{recursive:true,force:true})}
 async function restoreRevision(revisionSha){await phase('rollback Git',()=>run('git',['reset','--hard',revisionSha],{timeout:60000}));await buildApplication();await phase('publicación rollback',publishWebBuild)}
