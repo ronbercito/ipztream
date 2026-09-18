@@ -137,3 +137,7 @@ Se amplía el criterio de aceptación: Streams/Canales y los módulos posteriore
 Se publicó la consola Streams con cabecera/panel/toolbar de alta densidad, filtros tipo tabla administrativa, alta individual existente, nueva alta múltiple en modal propio, selección masiva y controles operativos reales Iniciar/Detener/Reiniciar. Se añadió cliente API para el endpoint restart ya existente en secure-entry. El reproductor mantiene HLS.js y preview temporal, con presentación oscura/clásica integrada.
 
 No se modificó el motor FFmpeg ni el modelo de datos en este bloque. La validación de build queda a cargo del Centro de actualización del servidor de desarrollo.
+
+
+### 14.2.3 — Refinamiento visual Streams
+La captura real mostró tabla excesivamente pequeña y mucho espacio sin jerarquía visual. Se ajustará la escala de filas/textos, cabecera, toolbar, badges de estado, acciones cuadradas e información operativa. Se añadirá Restart visible por fila y se reforzará el modal de preview estilo reproductor clásico, sin cambiar FFmpeg.
