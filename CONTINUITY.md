@@ -90,3 +90,9 @@ Se autoriza consolidar la Etapa 13 como una actualización mayor instalable desd
 La versión 0.4.0 será la base moderna de IPZStream. El alcance de esta entrega prioriza una reconstrucción amplia del módulo Canales/Streams inspirada funcionalmente en XUI: administración avanzada, selección múltiple y acciones masivas, alta masiva, categorías/bouquets, EPG por canal, perfiles de salida/transcodificación, asignación de nodo, múltiples fuentes/failover, monitorización, control start/stop/restart, preview, ordenación y metadatos. Se mantendrá compatibilidad con los canales existentes mediante valores por defecto.
 
 El instalador también se endurecerá para detectar Ubuntu y soportar Ubuntu LTS modernas, con Ubuntu 24.04 como objetivo prioritario, sin reutilizar binarios heredados de XUI. La actualización debe seguir siendo panel-first y conservar datos existentes.
+
+
+### 0.4.0 — implementación publicada en repositorio
+Primera ola de la mega actualización incorporada a `main`: versión 0.4.0, modelo de canal ampliado, alta masiva, selección y operaciones masivas, campos de nodo/bouquet/EPG/perfil/formato/orden/notas y detección de Ubuntu/Debian en instalador. Los datos antiguos siguen siendo compatibles mediante normalización con valores por defecto.
+
+Esta entrega establece la base sobre la que continuarán bouquets, EPG, nodos y demás módulos XUI modernizados sin importar código PHP/binarios heredados.
