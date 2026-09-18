@@ -131,3 +131,9 @@ Se corregirá la selección de estrategia: limpiar `node_modules`; usar `npm ci`
 
 ### 14.2.1 — Fidelidad visual XUI en todas las opciones
 Se amplía el criterio de aceptación: Streams/Canales y los módulos posteriores deberán reproducir de forma muy cercana la experiencia visual del XUI de referencia: densidad, distribución, iconos equivalentes, colores/estados, acciones, modales y reproductor. La implementación seguirá siendo propia y no reutilizará assets propietarios.
+
+
+### 14.2.2 — Primera reconstrucción clásica Streams publicada
+Se publicó la consola Streams con cabecera/panel/toolbar de alta densidad, filtros tipo tabla administrativa, alta individual existente, nueva alta múltiple en modal propio, selección masiva y controles operativos reales Iniciar/Detener/Reiniciar. Se añadió cliente API para el endpoint restart ya existente en secure-entry. El reproductor mantiene HLS.js y preview temporal, con presentación oscura/clásica integrada.
+
+No se modificó el motor FFmpeg ni el modelo de datos en este bloque. La validación de build queda a cargo del Centro de actualización del servidor de desarrollo.
