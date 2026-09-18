@@ -67,3 +67,11 @@ Se confirmó acceso al repositorio de referencia `ronbercito/ipprueba` y se real
 **Orden previsto:** mapa funcional → canales/streams → categorías/bouquets → EPG → servidores → conexiones/estadísticas → líneas/clientes → MAG/Ministra → VOD/radio → logs/backups → dashboard.
 
 **Estado:** análisis iniciado. Antes de cada bloque de implementación se hará respaldo y se mantendrá el flujo de actualización exclusivamente desde el panel.
+
+
+### 13.1.1 — Directriz de fidelidad funcional y compatibilidad Ubuntu
+El alcance se amplía por decisión del proyecto: la sección de canales/streams debe recuperar del panel XUI de referencia el conjunto más completo posible de funciones y un flujo operativo familiar, pero será reimplementada con código propio y UI modernizada.
+
+También se establece Ubuntu 24.04 como plataforma objetivo prioritaria. Instalador y runtime deberán detectar versión/distribución y validar dependencias en lugar de asumir paquetes/rutas de una sola release. Se buscará compatibilidad con Ubuntu LTS modernas y, cuando las dependencias sigan disponibles de forma segura, con otras versiones Ubuntu. Versiones EOL no se declararán compatibles sin validación real.
+
+**Siguiente trabajo:** inventario exhaustivo de archivos/módulos de canales del repositorio de referencia y mapa campo/acción → equivalente IPZStream antes de modificar el motor actual.
