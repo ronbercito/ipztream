@@ -141,3 +141,7 @@ No se modificó el motor FFmpeg ni el modelo de datos en este bloque. La validac
 
 ### 14.2.3 — Refinamiento visual Streams
 La captura real mostró tabla excesivamente pequeña y mucho espacio sin jerarquía visual. Se ajustará la escala de filas/textos, cabecera, toolbar, badges de estado, acciones cuadradas e información operativa. Se añadirá Restart visible por fila y se reforzará el modal de preview estilo reproductor clásico, sin cambiar FFmpeg.
+
+
+### 14.2.3 — Refinamiento publicado
+Aplicado ajuste de escala del listado instalado: títulos, toolbar, filas, textos y acciones ganan legibilidad conservando densidad clásica. Cada stream incorpora Restart explícito además de Start/Stop, Watch, Power, Edit y Delete. Watch Stream fue reforzado como player 16:9 oscuro con cabecera/estado clásico. Pendiente validar visualmente desde el Centro de actualización.
