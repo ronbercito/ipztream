@@ -113,3 +113,11 @@ Se cambia el enfoque de UI: IPZStream 0.4.0 queda protegido como base funcional 
 Inventario de referencia confirmado en `ronbercito/ipprueba`: admin, reseller, player, Ministra, content, crons y herramientas; dentro de admin se confirman bouquets, orden, canales creados, alta masiva, backups, cache y otros módulos. No se migrarán binarios/PHP codificados ni mecanismos de licencia.
 
 Primer bloque autorizado: 14.1 shell clásico (navegación, topbar, dashboard y sistema visual), seguido inmediatamente por 14.2 Streams/Canales.
+
+
+### 14.1 — Shell clásico — PUBLICADO
+Se reconstruyó el shell administrativo con código propio: sidebar oscuro agrupado por General/Contenido/Gestión/Sistema, topbar clásica, dashboard compacto, tarjetas operativas, estado del sistema, accesos rápidos y tabla de servidores. Se preservaron las rutas/módulos existentes y el Centro de actualización.
+
+La navegación ahora expone de forma reconocible Streams/Canales, VOD, Series, EPG, M3U, Bouquets/Paquetes, Líneas/Usuarios, Resellers, MAG/Dispositivos, Servidores, Logs, Backups/Herramientas y Configuración. Algunos destinos comparten temporalmente módulo hasta que sus etapas específicas sean reconstruidas.
+
+Siguiente bloque: 14.2 Streams/Canales con estructura clásica y funciones operativas reales.
