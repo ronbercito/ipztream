@@ -126,3 +126,7 @@ La referencia principal será `ronbercito/ipprueba`. Se conservarán la organiza
 El servidor confirmó que el actualizador limpio ya elimina `node_modules`, pero `npm ci` falla con EUSAGE porque el repositorio no contiene un `package-lock.json` sincronizado y la instalación conserva un lockfile local antiguo al estar ignorado/no versionado. El lock local no incluye `hls.js`.
 
 Corrección aprobada: el actualizador no debe decidir por mera existencia física de un lockfile local. Solo usará `npm ci` cuando `package-lock.json` esté controlado por Git; en caso contrario hará `npm install --package-lock=false` sobre `node_modules` limpio. Esto mantiene la solución ENOTEMPTY y evita que archivos runtime obsoletos bloqueen releases.
+
+
+### Directriz visual global XUI
+Por decisión del proyecto, la reconstrucción no se limitará a la organización funcional. Todas las etapas 14.x buscarán máxima familiaridad visual con XUI 1.5.13 en navegación, tablas, formularios, botones, iconografía, estados, modales y vista/reproductor, siempre mediante componentes, CSS e iconos propios o con licencia compatible. Se conservará el backend IPZStream y no se copiarán assets propietarios ni código heredado.
