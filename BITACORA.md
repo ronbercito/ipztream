@@ -99,3 +99,9 @@ Implementado en `main`: versión 0.4.0; respaldo previo creado; alta masiva de h
 El formulario avanzado dejó de ser placeholder y ahora expone estos campos reales. El instalador detecta Ubuntu/Debian, prioriza Ubuntu 24.04/LTS modernas y verifica dependencias usando paquetes del sistema en lugar de binarios heredados.
 
 **Instalación prevista:** exclusivamente mediante Centro de actualización del panel desde la 0.3.16. Después de instalar se validará build/publicación/reinicio y se probarán canales existentes antes de ampliar la siguiente ola.
+
+
+### 13.2.2 — Diagnóstico updater 0.4.0: ENOTEMPTY
+Los logs confirman que Git descargó la mega actualización, pero npm falló antes del build con `ENOTEMPTY` dentro de `/opt/ipztream/node_modules`. Reintentos afectaron distintos paquetes, confirmando árbol de dependencias inconsistente. El rollback Git sí vuelve al commit anterior, pero su npm también falla al reutilizar ese árbol.
+
+Se aplicará hotfix en `server/update-service.js`: limpiar `node_modules` y usar `npm ci` con `package-lock.json`; fallback a `npm install` solo si no existe lockfile. El mismo build limpio se usará durante rollback.
