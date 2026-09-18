@@ -121,3 +121,9 @@ Se reconstruyó el shell administrativo con código propio: sidebar oscuro agrup
 La navegación ahora expone de forma reconocible Streams/Canales, VOD, Series, EPG, M3U, Bouquets/Paquetes, Líneas/Usuarios, Resellers, MAG/Dispositivos, Servidores, Logs, Backups/Herramientas y Configuración. Algunos destinos comparten temporalmente módulo hasta que sus etapas específicas sean reconstruidas.
 
 Siguiente bloque: 14.2 Streams/Canales con estructura clásica y funciones operativas reales.
+
+
+### 14.1.1 — Hotfix updater por lockfile local obsoleto
+Diagnóstico confirmado por journal: `npm ci` aborta con EUSAGE y reporta `Missing: hls.js@1.7.3 from lock file`. En `main` no existe `package-lock.json`, por lo que el updater estaba tomando un lockfile residual del servidor como si perteneciera al release.
+
+Se corregirá la selección de estrategia: limpiar `node_modules`; usar `npm ci` únicamente si Git confirma que `package-lock.json` está versionado; de lo contrario usar instalación limpia sin generar/usar lockfile.
