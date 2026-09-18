@@ -17,9 +17,9 @@ IPZStream es una plataforma propia de gestión y distribución de streaming, des
 ## Estado actual
 - Repositorio: `ronbercito/ipztream` (actualmente público).
 - Rama: `main`.
-- Versión instalada estable en servidor: `0.3.15`.
-- Versión en preparación: `0.3.16`.
-- El Centro de actualización completa `fetch`, `pull` y `npm install`.
+- Versión instalada estable en servidor: `0.3.16`.
+- Próxima línea de desarrollo: Etapa 13 — modernización funcional.
+- El Centro de actualización está validado de extremo a extremo: Git → npm → Vite → publicación → reinicio.
 - Etapa 12 — Motor de streaming real + integración de fuentes: **EN IMPLEMENTACIÓN**.
 
 ## 12.3.15 — Reproducción HLS real en navegador
@@ -39,3 +39,29 @@ El servicio `ipztream-api` ejecuta el actualizador como `www-data`, pero un buil
 
 ## Prueba requerida
 Corregir propiedad de `dist`, pulsar Actualizar ahora y comprobar: Git → npm → build → publicación → reinicio → 0.3.16. Después validar preview AMERICATV SD/ESPN 2.
+
+
+## Etapa 13 — Modernización funcional inspirada en panel de referencia XUI 1.5.13
+Se incorpora como referencia de análisis el repositorio `ronbercito/ipprueba`. El objetivo NO es copiar literalmente su código ni su interfaz, sino inventariar capacidades y reimplementarlas con arquitectura propia de IPZStream (React/Vite + Node + MariaDB), manteniendo seguridad, modularidad y actualización panel-first.
+
+### Inventario inicial confirmado
+El panel de referencia contiene módulos separados para administración, reseller, player, Ministra/MAG, contenido, crons y servicios. En administración se observan áreas funcionales para streams/canales, creación masiva, orden de canales, bouquets, EPG, servidores, conexiones activas, backups, caché, logs y dashboard. En reseller existen líneas, actividad de líneas, conexiones activas, streams, usuarios, MAG, películas, radios y tickets.
+
+### Restricción técnica encontrada
+Una parte importante de los PHP principales no es UTF-8 legible desde GitHub y parece distribuida en formato codificado/binario. Por tanto, no se basará IPZStream en copiar ese código. Se usarán nombres de módulos, flujos observables y comportamiento funcional como referencia para diseñar implementación propia.
+
+### Plan de modernización
+- 13.1: mapa funcional XUI → IPZStream y prioridades.
+- 13.2: gestión avanzada de canales/streams y acciones masivas.
+- 13.3: categorías, bouquets y ordenación.
+- 13.4: EPG y asociación de canales.
+- 13.5: servidores/nodos y estado operativo.
+- 13.6: conexiones activas, sesiones y estadísticas.
+- 13.7: líneas/clientes y perfiles de acceso.
+- 13.8: compatibilidad MAG/Ministra donde corresponda.
+- 13.9: VOD/radio y biblioteca.
+- 13.10: logs, auditoría, backups y herramientas operativas.
+- 13.11: dashboard moderno unificado.
+
+### Estado previo que se conserva
+Versión instalada validada: 0.3.16. El actualizador desde panel funciona de extremo a extremo. El preview H.264/AAC genera HLS correctamente, pero la reproducción web sigue pendiente de diagnóstico en la petición m3u8/token/hls.js.
