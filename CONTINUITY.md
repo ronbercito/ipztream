@@ -74,3 +74,11 @@ La plataforma debe evitar dependencias rígidas de una única versión de Ubuntu
 
 ### 13.2 — Canales/Streams: alcance ampliado
 Antes de implementar se inventariarán del panel de referencia todas las funciones visibles relacionadas con canales: alta individual y masiva, fuentes, servidores, perfiles/transcodificación, categorías, EPG, logos, orden, estado, acciones start/stop/restart, monitorización, conexiones, edición masiva, importación y herramientas relacionadas. La nueva UI buscará familiaridad funcional con XUI sin reutilizar literalmente su código ni assets propietarios.
+
+
+## Decisión de migración funcional completa
+Se autoriza trasladar a IPZStream, mediante reimplementación propia, prácticamente todo el modelo funcional útil del panel de referencia. La referencia deja de limitarse a canales: se utilizará para reconstruir progresivamente administración, streams, canales creados, creación masiva, bouquets, ordenación, EPG, servidores, conexiones, usuarios/líneas, reseller, MAG/Ministra, VOD, radio, player, logs, tickets, backups, cache, herramientas, monitorización y dashboard.
+
+La migración NO consistirá en introducir los PHP/binarios heredados dentro de IPZStream. Cada capacidad se implementará y mantendrá en nuestro código React/Vite + Node.js + MariaDB, conservando compatibilidad con el actualizador panel-first y permitiendo mejorar diseño, seguridad, rendimiento y soporte Ubuntu.
+
+La sección Canales será el primer módulo de migración profunda y servirá como patrón arquitectónico para los demás módulos.
