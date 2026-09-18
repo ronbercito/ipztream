@@ -82,6 +82,13 @@ function normalizeChannel(input, current = {}) {
     category: String(input.category ?? current.category ?? '').trim(),
     status: input.status === 'Inactivo' ? 'Inactivo' : 'Activo',
     logo: String(input.logo ?? current.logo ?? '').trim(),
+    nodeId: String(input.nodeId ?? current.nodeId ?? '').trim(),
+    bouquet: String(input.bouquet ?? current.bouquet ?? '').trim(),
+    epgId: String(input.epgId ?? current.epgId ?? '').trim(),
+    streamProfile: ['remux-copy','transcode-h264-aac'].includes(input.streamProfile ?? current.streamProfile) ? (input.streamProfile ?? current.streamProfile) : 'remux-copy',
+    outputFormat: String(input.outputFormat ?? current.outputFormat ?? 'HLS').trim(),
+    notes: String(input.notes ?? current.notes ?? '').trim(),
+    sortOrder: Number.isFinite(Number(input.sortOrder ?? current.sortOrder)) ? Number(input.sortOrder ?? current.sortOrder) : Number(input.number ?? current.number),
     sources: Array.isArray(input.sources)
       ? input.sources.map(normalizeSource)
       : Array.isArray(current.sources)
@@ -200,6 +207,39 @@ async function handle(req, res) {
   if (nodeMatch) {
     const id = decodeURIComponent(nodeMatch[1]);
     if (req.method === 'DELETE') return send(res, (await saveDelete(TABLES.nodes, id, 'nodes')) ? 200 : 404, { ok: true });
+  }
+
+  if (pathname === '/api/channels/bulk-create' && req.method === 'POST') {
+    const body = await readBody(req), input = Array.isArray(body.channels) ? body.channels : [];
+    if (!input.length || input.length > 500) return send(res, 400, { message: 'Envía entre 1 y 500 canales.' });
+    const existing = await listItems(TABLES.channels), created = [], errors = [];
+    for (let i=0;i<input.length;i++) {
+      const item = normalizeChannel(input[i]);
+      const validation = validateChannel(item, [...existing,...created]);
+      if (validation) { errors.push({ index:i, name:item.name, message:validation }); continue; }
+      await saveNew(TABLES.channels,item,'channels'); created.push(item);
+    }
+    return send(res, created.length ? 201 : 400, { created, errors });
+  }
+
+  if (pathname === '/api/channels/bulk' && req.method === 'POST') {
+    const body=await readBody(req), ids=[...new Set(Array.isArray(body.ids)?body.ids.map(String):[])], action=String(body.action||''), payload=body.payload||{};
+    if (!ids.length || ids.length>500) return send(res,400,{message:'Selecciona entre 1 y 500 canales.'});
+    const allowed=['activate','deactivate','delete','category','bouquet','node','profile','reorder'];
+    if(!allowed.includes(action)) return send(res,400,{message:'Acción masiva no válida.'});
+    const updated=[],missing=[];
+    for(const id of ids){const current=await getItem(TABLES.channels,id);if(!current){missing.push(id);continue}
+      if(action==='delete'){await saveDelete(TABLES.channels,id,'channels');updated.push({id,deleted:true});continue}
+      const patch={...current};
+      if(action==='activate')patch.status='Activo'; if(action==='deactivate')patch.status='Inactivo';
+      if(action==='category')patch.category=String(payload.category||'').trim();
+      if(action==='bouquet')patch.bouquet=String(payload.bouquet||'').trim();
+      if(action==='node')patch.nodeId=String(payload.nodeId||'').trim();
+      if(action==='profile')patch.streamProfile=String(payload.streamProfile||'remux-copy');
+      if(action==='reorder')patch.sortOrder=Number(payload.orders?.[id]??patch.sortOrder??patch.number);
+      const item=normalizeChannel(patch,current); await saveUpdate(TABLES.channels,id,item,'channels');updated.push(item);
+    }
+    return send(res,200,{updated,missing});
   }
 
   if (pathname === '/api/channels') {
