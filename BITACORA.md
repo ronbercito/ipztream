@@ -127,3 +127,7 @@ Siguiente bloque: 14.2 Streams/Canales con estructura clásica y funciones opera
 Diagnóstico confirmado por journal: `npm ci` aborta con EUSAGE y reporta `Missing: hls.js@1.7.3 from lock file`. En `main` no existe `package-lock.json`, por lo que el updater estaba tomando un lockfile residual del servidor como si perteneciera al release.
 
 Se corregirá la selección de estrategia: limpiar `node_modules`; usar `npm ci` únicamente si Git confirma que `package-lock.json` está versionado; de lo contrario usar instalación limpia sin generar/usar lockfile.
+
+
+### 14.2.1 — Fidelidad visual XUI en todas las opciones
+Se amplía el criterio de aceptación: Streams/Canales y los módulos posteriores deberán reproducir de forma muy cercana la experiencia visual del XUI de referencia: densidad, distribución, iconos equivalentes, colores/estados, acciones, modales y reproductor. La implementación seguirá siendo propia y no reutilizará assets propietarios.
