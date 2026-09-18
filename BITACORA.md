@@ -51,3 +51,19 @@ Se corrigió la propiedad de ambos árboles a `www-data:www-data`, se verificó 
 **Versión instalada:** 0.3.16.
 
 **Estado general:** EN IMPLEMENTACIÓN — continuar desde diagnóstico del navegador; no volver a tocar FFmpeg ni permisos salvo nueva evidencia.
+
+
+## Etapa 13 — Modernización funcional — INICIADA
+
+### 13.1 — Inventario del panel de referencia XUI 1.5.13
+Se confirmó acceso al repositorio de referencia `ronbercito/ipprueba` y se realizó el primer inventario estructural.
+
+**Áreas detectadas:** administración, streams/canales, creación masiva, orden de canales, bouquets, EPG, servidores, conexiones activas, dashboard, caché, backups, logs, reseller, líneas, usuarios, MAG/Ministra, player, películas, radios y tickets.
+
+**Decisión de arquitectura:** IPZStream no copiará literalmente el código ni el diseño antiguo. Se reimplementarán las capacidades seleccionadas con código propio y el stack actual React/Vite + Node + MariaDB, mejorando UX, seguridad y mantenimiento.
+
+**Hallazgo:** varios PHP principales del paquete de referencia no son texto UTF-8 legible desde GitHub (contenido codificado/binario), por lo que el análisis se centrará en estructura, comportamiento y flujos funcionales observables.
+
+**Orden previsto:** mapa funcional → canales/streams → categorías/bouquets → EPG → servidores → conexiones/estadísticas → líneas/clientes → MAG/Ministra → VOD/radio → logs/backups → dashboard.
+
+**Estado:** análisis iniciado. Antes de cada bloque de implementación se hará respaldo y se mantendrá el flujo de actualización exclusivamente desde el panel.
