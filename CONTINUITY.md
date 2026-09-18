@@ -102,3 +102,21 @@ Esta entrega establece la base sobre la que continuarán bouquets, EPG, nodos y 
 La primera instalación 0.4.0 alcanzó correctamente `descarga Git`, pero falló en `dependencias npm` con `ENOTEMPTY` al renombrar paquetes dentro de `node_modules` (incluyendo `@types/node`, `@rolldown/binding-linux-x64-gnu` y `rolldown`). El rollback Git funcionó, pero el rollback volvió a ejecutar npm sobre el mismo árbol inconsistente y falló por la misma causa.
 
 Corrección aprobada: el actualizador debe hacer instalación reproducible desde árbol limpio cuando exista lockfile: eliminar `node_modules` y ejecutar `npm ci`. El rollback aplicará el mismo procedimiento limpio. Esto evita reutilizar un `node_modules` parcialmente mutado entre versiones.
+
+
+## Etapa 14 — Reconstrucción del panel clásico XUI — INICIADA
+Decisión aprobada: congelar la base IPZStream 0.4.0 como punto seguro y reconstruir el flujo visual/operativo del panel XUI 1.5.13 de referencia con alta fidelidad funcional, manteniendo implementación propia y mantenible. Respaldo previo: `backup/pre-legacy-panel-rebuild-2026-09-18`.
+
+La referencia principal será `ronbercito/ipprueba`. Se conservarán la organización reconocible, navegación, densidad de tablas, formularios y flujo administrativo del panel clásico, pero no se copiarán PHP codificados, binarios, mecanismos de licencia ni assets propietarios. El backend seguirá siendo IPZStream (Node.js + MariaDB + FFmpeg) y la actualización seguirá siendo panel-first.
+
+### Etapas
+- 14.1: shell clásico: sidebar, topbar, dashboard y sistema visual.
+- 14.2: Streams/Canales, creados, alta individual/masiva, orden y monitorización.
+- 14.3: categorías y bouquets.
+- 14.4: EPG.
+- 14.5: servidores/load balancers.
+- 14.6: líneas/usuarios/conexiones.
+- 14.7: reseller.
+- 14.8: MAG/Ministra, VOD, series y radio.
+- 14.9: logs, backups, cache, herramientas y configuración.
+- 14.10: compatibilidad/migración y endurecimiento Ubuntu 24.04.
