@@ -96,3 +96,9 @@ El instalador también se endurecerá para detectar Ubuntu y soportar Ubuntu LTS
 Primera ola de la mega actualización incorporada a `main`: versión 0.4.0, modelo de canal ampliado, alta masiva, selección y operaciones masivas, campos de nodo/bouquet/EPG/perfil/formato/orden/notas y detección de Ubuntu/Debian en instalador. Los datos antiguos siguen siendo compatibles mediante normalización con valores por defecto.
 
 Esta entrega establece la base sobre la que continuarán bouquets, EPG, nodos y demás módulos XUI modernizados sin importar código PHP/binarios heredados.
+
+
+### 0.4.0 — hotfix del actualizador por ENOTEMPTY npm
+La primera instalación 0.4.0 alcanzó correctamente `descarga Git`, pero falló en `dependencias npm` con `ENOTEMPTY` al renombrar paquetes dentro de `node_modules` (incluyendo `@types/node`, `@rolldown/binding-linux-x64-gnu` y `rolldown`). El rollback Git funcionó, pero el rollback volvió a ejecutar npm sobre el mismo árbol inconsistente y falló por la misma causa.
+
+Corrección aprobada: el actualizador debe hacer instalación reproducible desde árbol limpio cuando exista lockfile: eliminar `node_modules` y ejecutar `npm ci`. El rollback aplicará el mismo procedimiento limpio. Esto evita reutilizar un `node_modules` parcialmente mutado entre versiones.
