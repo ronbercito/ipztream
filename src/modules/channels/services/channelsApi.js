@@ -11,3 +11,6 @@ export async function stopChannelStream(id){const payload=await request(`/api/st
 export async function startChannelPreview(id){const payload=await request(`/api/streams/${encodeURIComponent(id)}/preview`,{method:'POST'});return payload.preview;}
 export async function stopChannelPreview(id){const payload=await request(`/api/streams/${encodeURIComponent(id)}/preview`,{method:'DELETE'});return payload.preview;}
 export async function clearChannelStreamHistory(id){const payload=await request(`/api/streams/${encodeURIComponent(id)}/history`,{method:'DELETE'});return payload.stream;}
+
+export async function bulkChannelAction(ids,action,payload={}){return request(`${API_BASE}/bulk`,{method:'POST',body:JSON.stringify({ids,action,payload})});}
+export async function createChannelsBulk(channels){return request(`${API_BASE}/bulk-create`,{method:'POST',body:JSON.stringify({channels})});}
