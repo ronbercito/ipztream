@@ -333,3 +333,20 @@ Alcance aprobado para 0.4.9:
 - sin start/stop/restart automático durante esta etapa.
 
 La prueba Main + MariaDB + SUB real continúa pendiente y sigue siendo requisito antes de declarar producción distribuida.
+
+
+### 15.5 — resultado técnico 0.4.9
+Implementación completada en rama:
+- scheduler conservador de nodos;
+- cálculo de carga combinando CPU, RAM, streams activos y capacidad;
+- compatibilidad por capacidades/perfil del stream;
+- nodos Fuera de línea/Mantenimiento excluidos;
+- nodos Degradados penalizados en la puntuación;
+- no se planifican ni se mueven streams con estado deseado `running`;
+- por defecto no se mueven canales ya asignados;
+- planificación previa y aplicación explícita;
+- auditoría de cambios;
+- controles en la pantalla Servidores / Load Balancers;
+- versión preparada: `0.4.9`.
+
+Validación disponible en GitHub: rama parte de `main` sin commits pendientes de base y no existe workflow CI configurado. El build/runtime deberá validarse desde el servidor de desarrollo. La prueba física con segundo servidor sigue pendiente.
