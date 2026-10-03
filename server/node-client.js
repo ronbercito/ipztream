@@ -78,3 +78,7 @@ export async function restartRemoteStream(node,channel){
   const payload=await request(node,remotePath(channel.id,'restart'),{method:'POST',body:{channel}});
   return decorate(node,payload.stream);
 }
+export async function clearRemoteStreamHistory(node,channelId){
+  const payload=await request(node,remotePath(channelId,'history'),{method:'DELETE'});
+  return decorate(node,payload.stream);
+}
