@@ -20,6 +20,8 @@ const HOST=process.env.IPZTREAM_NODE_AGENT_HOST||'0.0.0.0';
 const PORT=Number(process.env.IPZTREAM_NODE_AGENT_PORT||3200);
 const NODE_ID=String(process.env.IPZTREAM_NODE_ID||'').trim();
 const TOKEN=String(process.env.IPZTREAM_NODE_REGISTRATION_TOKEN||'');
+const MAIN_URL=String(process.env.IPZTREAM_MAIN_URL||'').replace(/\/$/,'');
+const SYNC_INTERVAL_MS=Math.max(5000,Number(process.env.IPZTREAM_NODE_SYNC_INTERVAL_MS||15000));
 const STREAM_ROOT=nodeStreamRoot();
 
 function send(res,status,payload,extra={}){
@@ -95,13 +97,51 @@ async function handle(req,res){
   return send(res,405,{message:'Método no permitido.'});
 }
 
+async function syncAssignments(){
+  if(!MAIN_URL||!NODE_ID||!TOKEN)return{skipped:true};
+  let response;
+  try{
+    response=await fetch(`${MAIN_URL}/api/stream-nodes/${encodeURIComponent(NODE_ID)}/assignments`,{
+      headers:{'X-IPZStream-Node-Token':TOKEN},
+      signal:AbortSignal.timeout(8000)
+    });
+  }catch(error){
+    throw new Error(`No se pudo sincronizar con Main: ${error.message}`);
+  }
+  let payload={};
+  try{payload=await response.json()}catch{}
+  if(!response.ok)throw new Error(payload?.message||`Main respondió HTTP ${response.status}`);
+  const assignments=Array.isArray(payload.assignments)?payload.assignments:[];
+  const assignedIds=new Set(assignments.map(item=>String(item?.channel?.id||'')).filter(Boolean));
+  for(const item of assignments){
+    const channel=item?.channel,id=String(channel?.id||'');
+    if(!id)continue;
+    const current=getNodeStream(id);
+    if(item.desiredState==='running'&&channel.status!=='Inactivo'){
+      if(current.desiredState!=='running'||!['running','starting','recovering'].includes(current.status))await startNodeStream(channel);
+    }else if(current.desiredState==='running'){
+      await stopNodeStream(id);
+    }
+  }
+  for(const current of listNodeStreams()){
+    if(current.desiredState==='running'&&!assignedIds.has(String(current.channelId)))await stopNodeStream(current.channelId);
+  }
+  return{assignments:assignments.length};
+}
+
 if(!NODE_ID)console.warn('IPZTREAM_NODE_ID no configurado en agente.');
 const restored=await restoreNodeStreams();
 if(restored)console.log(`IPZStream Node Agent restauró ${restored} stream(s) deseados.`);
 const server=http.createServer((req,res)=>handle(req,res).catch(error=>send(res,error.status||500,{message:error.message||'Error interno del agente.'})));
-server.listen(PORT,HOST,()=>console.log(`IPZStream Node Agent ${NODE_ID||'sin-id'} escuchando en http://${HOST}:${PORT}`));
+server.listen(PORT,HOST,()=>{
+  console.log(`IPZStream Node Agent ${NODE_ID||'sin-id'} escuchando en http://${HOST}:${PORT}`);
+  syncAssignments().catch(error=>console.error(error.message));
+});
+const syncTimer=setInterval(()=>syncAssignments().catch(error=>console.error(error.message)),SYNC_INTERVAL_MS);
+syncTimer.unref?.();
 
 async function shutdown(){
+  clearInterval(syncTimer);
   server.close();
   await stopAllNodeStreams({preserveDesired:true}).catch(()=>{});
   process.exit(0);
