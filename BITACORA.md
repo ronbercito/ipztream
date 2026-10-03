@@ -157,3 +157,9 @@ Regla aplicada: primero continuidad/bitácora, luego código. No se incorporan P
 Se implementa el siguiente bloque main/sub: instalador base de nodo secundario, bypass seguro en `secure-entry` para registro/heartbeat por token, navegación real hacia `NodesPage` y UI de Servidores/Load Balancers con rol, capacidades, métricas y última señal.
 
 La implementación mantiene código propio IPZStream y evita copiar PHP/binarios de los paquetes de referencia. El nodo secundario queda preparado como servicio systemd liviano que reporta heartbeat al main; la ejecución distribuida de streams queda para el siguiente bloque.
+
+
+### 0.4.3 — UI Streams más viva, clara y profesional
+A partir de la captura real del panel se reemplaza la presentación excesivamente plana por una interfaz de mayor contraste y legibilidad. Se agregan tarjetas reales para Total de Streams, Funcionando, Con error y Detenidos; nueva cabecera Streams / Canales; toolbar de búsqueda/filtros más clara; iconos operativos con colores diferenciados; filas y textos más nítidos; y un shell general con sidebar/topbar más vivos.
+
+El trabajo es únicamente de frontend y usa componentes/iconos propios ya presentes en IPZStream. Se preservan los endpoints, el polling de estado cada 3 segundos, el motor FFmpeg/HLS, las acciones masivas y el reproductor existente. Versión incrementada a 0.4.3.
