@@ -270,3 +270,24 @@ Alcance 0.4.7:
 - instalador SUB convertido en servicio systemd real.
 
 No se cerrará 15.3 ni se declarará producción hasta disponer del segundo servidor real.
+
+
+### 15.4 — resultado técnico 0.4.7
+Se implementó el agente real SUB/EDGE y el control remoto de streams.
+
+Incluye:
+- start/stop/restart/status remoto;
+- FFmpeg/HLS ejecutado por el agente;
+- persistencia de streams deseados;
+- sincronización de asignaciones desde Main;
+- selección real de nodo en el canal;
+- estado local/remoto en Streams;
+- servicio systemd dedicado;
+- validación de URL/host del agente;
+- timeout de comandos remotos;
+- corrección del header de autenticación de nodos;
+- se mantienen intactos el diseño y las métricas automáticas cada 5 s de 0.4.6.
+
+Pruebas aisladas: sintaxis OK, build OK (1942 módulos), health del agente OK y token autenticado OK. El runner no tiene FFmpeg; la ejecución HLS real y Main+SUB físico quedan pendientes para cuando haya segundo servidor.
+
+Estado: **0.4.7 preparado para integración, no declarado producción distribuida**.
