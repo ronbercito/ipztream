@@ -138,3 +138,24 @@ Primera entrega publicada: consola Streams clásica, filtros densos, alta múlti
 
 ### 14.2.3 — Refinamiento visual validado contra instalación
 Captura de la instalación 14.2 validada. Se autoriza refinamiento del listado Streams: aumentar legibilidad sin perder densidad clásica, corregir proporciones de tabla/toolbar, enriquecer columnas operativas y hacer que acciones/reproductor se perciban como una consola XUI coherente. Se preservan backend, datos y motor de streaming.
+
+## Etapa 15 — Fundación IPZStream Main/Sub propia — INICIADA
+Se retoma el proyecto paralizado `ipztream` para construir una arquitectura propia inspirada en los paquetes históricos `main_xtreamcodes_reborn` y `sub_xtreamcodes_reborn`, sin importar PHP ofuscado, binarios antiguos, mecanismos de licencia ni assets heredados.
+
+### Decisión técnica
+- `main` se modela como control central IPZStream: panel, API, base MariaDB, usuarios, canales, auditoría y orquestación.
+- `sub` se modela como nodo streaming IPZStream: servidor secundario con estado, capacidades, heartbeat, métricas y futura ejecución de streams.
+- La primera entrega crea inventario documental y endpoints base para registrar/listar nodos streaming sobre la tabla `nodes` existente, manteniendo compatibilidad con el panel actual.
+- La comunicación main/sub será propia, tokenizada y auditable. No se ejecutará ni copiará código legado.
+
+### Alcance 15.1
+- Documento `docs/reference/xtream-reborn-main-sub-map.md`.
+- Versión `0.4.1`.
+- Normalización extendida de nodos: rol, endpoint API, capacidades, métricas, última señal y estado operativo.
+- Endpoints base: `/api/stream-nodes`, `/api/stream-nodes/register`, `/api/stream-nodes/:id/heartbeat`.
+
+### Pendiente
+- UI clásica para servidores/load balancers.
+- Instalador de nodo secundario IPZStream.
+- Autenticación HMAC por nodo y rotación de token.
+- Asignación real de canales a nodos y scheduler de streams distribuidos.
