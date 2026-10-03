@@ -26,7 +26,8 @@ async function getText(path) {
 try {
   const auth = await getJson(`/player_api.php?${qs}`);
   if (Number(auth?.user_info?.auth) !== 1) throw new Error('Autenticación IPTV rechazada.');
-  console.log('OK autenticación');
+  if (String(auth?.user_info?.password || '') !== password) throw new Error('La respuesta Xtream no devolvió la contraseña esperada por clientes compatibles.');
+  console.log('OK autenticación Xtream');
 
   const categories = await getJson(`/player_api.php?${qs}&action=get_live_categories`);
   console.log(`OK categorías: ${Array.isArray(categories) ? categories.length : 0}`);
@@ -34,6 +35,12 @@ try {
   const streams = await getJson(`/player_api.php?${qs}&action=get_live_streams`);
   if (!Array.isArray(streams) || !streams.length) throw new Error('No hay canales disponibles para este usuario.');
   console.log(`OK canales: ${streams.length}`);
+
+  for (const action of ['get_vod_categories', 'get_vod_streams', 'get_series_categories', 'get_series']) {
+    const empty = await getJson(`/player_api.php?${qs}&action=${action}`);
+    if (!Array.isArray(empty)) throw new Error(`${action} no devolvió una lista compatible.`);
+  }
+  console.log('OK compatibilidad VOD/Series vacíos');
 
   const playlist = await getText(`/get.php?${qs}&type=m3u_plus&output=m3u8`);
   if (!playlist.text.startsWith('#EXTM3U')) throw new Error('La playlist M3U no es válida.');
@@ -55,7 +62,7 @@ try {
   if (![301, 302, 307, 308].includes(ts.status)) throw new Error(`Compatibilidad .ts inesperada: HTTP ${ts.status}`);
   console.log('OK compatibilidad URL .ts');
 
-  console.log('IPZStream IPTV core: validación básica completada.');
+  console.log('IPZStream IPTV 0.5.2: validación de compatibilidad completada.');
 } catch (error) {
   console.error(`FALLO: ${error.message}`);
   process.exit(1);
