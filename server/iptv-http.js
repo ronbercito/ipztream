@@ -122,8 +122,9 @@ async function authPathUser(username, password) {
 }
 async function serveLive(req, res, url, streamRoot) {
   const playlist = url.pathname.match(/^\/live\/([^/]+)\/([^/]+)\/([^/]+)\.m3u8$/);
+  const transport = url.pathname.match(/^\/live\/([^/]+)\/([^/]+)\/([^/]+)\.ts$/);
   const segment = url.pathname.match(/^\/live\/([^/]+)\/([^/]+)\/([^/]+)\/(segment_[0-9]{6}\.ts)$/);
-  const match = playlist || segment;
+  const match = playlist || transport || segment;
   if (!match) return false;
   const [, rawUser, rawPass, rawChannel] = match;
   const user = await authPathUser(rawUser, rawPass);
