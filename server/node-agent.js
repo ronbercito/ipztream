@@ -72,15 +72,16 @@ async function handle(req,res){
     const served=await serveStreamMedia(req,res,pathname);
     if(served!==false)return;
   }
-  if(pathname==='/health'&&req.method==='GET'){
-    let ffmpeg='unavailable';
-    try{ffmpeg=await assertNodeFfmpeg()}catch(error){ffmpeg=error.message}
-    return send(res,200,{ok:true,nodeId:NODE_ID,role:'sub-agent',ffmpeg,streams:listNodeStreams().length});
-  }
+  if(pathname==='/health'&&req.method==='GET')return send(res,200,{ok:true,nodeId:NODE_ID,role:'sub-agent'});
 
   if(!pathname.startsWith('/v1/'))return send(res,404,{message:'Ruta no encontrada.'});
   requireToken(req);
 
+  if(pathname==='/v1/health'&&req.method==='GET'){
+    let ffmpeg='unavailable';
+    try{ffmpeg=await assertNodeFfmpeg()}catch(error){ffmpeg=error.message}
+    return send(res,200,{ok:true,nodeId:NODE_ID,role:'sub-agent',ffmpeg,streams:listNodeStreams().length});
+  }
   if(pathname==='/v1/streams'&&req.method==='GET')return send(res,200,{streams:listNodeStreams()});
   const match=pathname.match(/^\/v1\/streams\/([^/]+)(?:\/(start|stop|restart|status))?$/);
   if(!match)return send(res,404,{message:'Ruta del agente no encontrada.'});
