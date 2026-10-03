@@ -217,7 +217,7 @@ export default function ChannelDetailDrawer({
   }, [onClose]);
 
   const markPreviewReady = React.useCallback(() => setPreviewReady(true), []);
-  const media = probe?.media || cachedMedia || null;
+  const media = cachedMedia || probe?.media || null;
   const state = stateFor(stream);
   const clients = runtimeClients(stream);
   const running = stream?.status === 'running';
