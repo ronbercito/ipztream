@@ -106,6 +106,8 @@ export default function Channels() {
   }, [channels, streams]);
 
   const detailChannel = detail ? channels.find((channel) => channel.id === detail.id) || null : null;
+  const closeDetail = React.useCallback(() => setDetail(null), []);
+  const handleMedia = React.useCallback((id, media) => setMediaByChannel((previous) => ({ ...previous, [id]: media })), []);
 
   const openEdit = React.useCallback((channel) => {
     setDetail(null);
@@ -326,8 +328,8 @@ export default function Channels() {
       stream={streams[detailChannel.id]}
       media={mediaByChannel[detailChannel.id]}
       autoPreview={detail.autoPreview}
-      onClose={() => setDetail(null)}
-      onMedia={(id, media) => setMediaByChannel((previous) => ({ ...previous, [id]: media }))}
+      onClose={closeDetail}
+      onMedia={handleMedia}
       onEdit={openEdit}
       onStream={streamAction}
     />}
