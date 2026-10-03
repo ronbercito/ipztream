@@ -278,7 +278,7 @@ async function serveLive(req, res, url, streamRoot) {
 
 export async function handleIptvHttp(req, res, url, { streamRoot }) {
   if (!['GET', 'HEAD'].includes(req.method)) return false;
-  if (url.pathname === '/player_api.php') return handlePlayerApi(req, res, url);
+  if (url.pathname === '/player_api.php' || url.pathname === '/panel_api.php') return handlePlayerApi(req, res, url);
   if (url.pathname === '/get.php') return handlePlaylist(req, res, url);
   if (url.pathname === '/xmltv.php') return handleXmltv(req, res, url);
   if (url.pathname.startsWith('/live/')) return serveLive(req, res, url, streamRoot);
