@@ -26,6 +26,7 @@ import {
   getStreamDesiredState
 } from './db.js';
 import { ensureUserSchema, listUsers, getUser, createUser, updateUser, deleteUser } from './user-service.js';
+import { buildSchedulerPlan, applySchedulerPlan } from './node-scheduler.js';
 
 const PORT = Number(process.env.IPZTREAM_API_PORT || 3100);
 const HOST = process.env.IPZTREAM_API_HOST || '127.0.0.1';
@@ -283,6 +284,24 @@ async function handle(req, res) {
       return user ? send(res, 200, { user }) : send(res, 404, { message: 'Usuario no encontrado.' });
     }
     if (req.method === 'DELETE') return send(res, (await deleteUser(id, req.headers['x-ipztream-actor'] || 'system')) ? 200 : 404, { ok: true });
+  }
+
+  if (pathname === '/api/node-scheduler/plan' && req.method === 'GET') {
+    const region = String(url.searchParams.get('region') || '').trim();
+    const includeAssigned = url.searchParams.get('includeAssigned') === 'true';
+    const channelIds = String(url.searchParams.get('channelIds') || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    return send(res, 200, { plan: await buildSchedulerPlan({ channelIds, region, includeAssigned }) });
+  }
+
+  if (pathname === '/api/node-scheduler/apply' && req.method === 'POST') {
+    const body = await readBody(req);
+    const result = await applySchedulerPlan(body.assignments, {
+      actor: req.headers['x-ipztream-actor'] || 'system'
+    });
+    return send(res, 200, result);
   }
 
   if (pathname === '/api/stream-nodes' && req.method === 'GET') {

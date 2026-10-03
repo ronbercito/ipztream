@@ -1,9 +1,9 @@
 import React from 'react';
-import { Plus, Search, Server, X, RefreshCw, Activity } from 'lucide-react';
+import { Plus, Search, Server, X, RefreshCw, Activity, Shuffle } from 'lucide-react';
 import NodeFilters from './components/NodeFilters.jsx';
 import NodeForm from './components/NodeForm.jsx';
 import NodeTable from './components/NodeTable.jsx';
-import { loadNodes, createNode, removeNode } from './services/nodesApi.js';
+import { loadNodes, createNode, removeNode, planNodeAssignments, applyNodeAssignments } from './services/nodesApi.js';
 import './styles/nodes.css';
 
 const initialNodes = [];
@@ -18,6 +18,8 @@ export default function Nodes(){
   const [formOpen,setFormOpen]=React.useState(false);
   const [notice,setNotice]=React.useState('');
   const [loading,setLoading]=React.useState(true);
+  const [schedulerPlan,setSchedulerPlan]=React.useState(null);
+  const [schedulerBusy,setSchedulerBusy]=React.useState(false);
 
   const refresh=React.useCallback(async()=>{
     setLoading(true);
@@ -60,13 +62,41 @@ export default function Nodes(){
     }
   };
 
+  const previewScheduler=async()=>{
+    setSchedulerBusy(true);
+    try{
+      const payload=await planNodeAssignments();
+      const plan=payload.plan||payload;
+      setSchedulerPlan(plan);
+      const count=plan.assignments?.length||0;
+      const skipped=plan.skipped?.length||0;
+      setNotice(count?'Scheduler preparó '+count+' asignación(es). '+skipped+' canal(es) quedaron sin cambios.':'Scheduler no encontró canales detenidos y sin nodo que necesiten asignación.');
+    }catch(error){
+      setSchedulerPlan(null);
+      setNotice(error.message||'No se pudo calcular el plan automático.');
+    }finally{setSchedulerBusy(false)}
+  };
+
+  const applyScheduler=async()=>{
+    const assignments=schedulerPlan?.assignments||[];
+    if(!assignments.length)return;
+    setSchedulerBusy(true);
+    try{
+      const result=await applyNodeAssignments(assignments);
+      setNotice('Scheduler aplicó '+(result.applied?.length||0)+' asignación(es); '+(result.skipped?.length||0)+' omitidas.');
+      setSchedulerPlan(null);
+      await refresh();
+    }catch(error){
+      setNotice(error.message||'No se pudo aplicar el plan automático.');
+    }finally{setSchedulerBusy(false)}
+  };
   const copyIp=(ip)=>navigator.clipboard?.writeText(ip).then(()=>setNotice(`IP ${ip} copiada.`)).catch(()=>setNotice('No se pudo copiar la IP.'));
   const online=nodes.filter(isOnline).length;
 
   return <div className="module-page nodes-page xui-nodes">
     <div className="module-head">
       <div className="module-title"><div className="module-icon"><Server size={22}/></div><div><h1>Servidores / Load Balancers</h1><p>Main/Sub IPZStream, estado, capacidades y heartbeat.</p></div></div>
-      <div className="nodes-actions"><button className="secondary-button" onClick={refresh}><RefreshCw size={15}/>Actualizar</button><button className="primary-button" onClick={()=>setFormOpen(true)}><Plus size={16}/>Agregar nodo</button></div>
+      <div className="nodes-actions"><button className="secondary-button" disabled={schedulerBusy} onClick={previewScheduler}><Shuffle size={15}/>{schedulerBusy?'Calculando...':'Planificar auto'}</button>{schedulerPlan?.assignments?.length>0&&<button className="secondary-button" disabled={schedulerBusy} onClick={applyScheduler}><Shuffle size={15}/>Aplicar {schedulerPlan.assignments.length}</button>}<button className="secondary-button" onClick={refresh}><RefreshCw size={15}/>Actualizar</button><button className="primary-button" onClick={()=>setFormOpen(true)}><Plus size={16}/>Agregar nodo</button></div>
     </div>
     {notice&&<div className="nodes-notice"><span>{notice}</span><button className="icon-button" onClick={()=>setNotice('')}><X size={15}/></button></div>}
     <div className="node-summary">
@@ -75,7 +105,7 @@ export default function Nodes(){
       <div><span>CPU promedio</span><strong>{metricAvg(nodes,'cpu')}%</strong><small>nodos reportando</small></div>
       <div><span>Streams activos</span><strong>{nodes.reduce((a,n)=>a+Number(n.activeStreams||0),0)}</strong><small>heartbeat actual</small></div>
     </div>
-    <div className="nodes-hint"><Activity size={15}/><span>Los nodos remotos se registran con <b>IPZTREAM_NODE_REGISTRATION_TOKEN</b> y reportan heartbeat a <b>/api/stream-nodes/:id/heartbeat</b>.</span></div>
+    <div className="nodes-hint"><Activity size={15}/><span>Los nodos remotos se registran con <b>IPZTREAM_NODE_REGISTRATION_TOKEN</b> y reportan heartbeat a <b>/api/stream-nodes/:id/heartbeat</b>. El scheduler automático solo propone canales detenidos y sin nodo; no mueve streams activos.</span></div>
     <div className="toolbar"><div className="module-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar nodo, IP, rol, capacidad o región..."/></div><NodeFilters filters={filters} setFilters={setFilters} regions={regions}/></div>
     <div className="card module-table"><div className="table-info"><span>{loading?'Cargando...':`${filtered.length} registros`}</span><span>Fuente: API main/sub</span></div><NodeTable nodes={filtered} onDelete={deleteNode} onCopyIp={copyIp}/></div>
     {formOpen&&<NodeForm onCancel={()=>setFormOpen(false)} onSave={addNode}/>} 

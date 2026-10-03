@@ -331,3 +331,38 @@ Implementado:
 - se conserva íntegramente la base distribuida 0.4.7 Main/SUB/EDGE.
 
 Versión: `0.4.8`.
+
+
+## 15.5 — Scheduler y balanceo automático de streams — INICIADA
+Decisión del operador: la prueba física con un segundo servidor continúa **pendiente** y no bloquea el siguiente desarrollo. No se declarará producción distribuida hasta completar esa validación real.
+
+Objetivo de la etapa 15.5 / versión 0.4.9:
+- añadir un scheduler propio en MAIN para recomendar/asignar nodos disponibles;
+- considerar estado del nodo, rol, capacidades, CPU, RAM y cantidad de streams activos;
+- excluir nodos Fuera de línea o en Mantenimiento;
+- mantener asignaciones manuales existentes y permitir modo automático solo cuando se solicite;
+- exponer una vista previa del plan de asignación antes de aplicarlo;
+- impedir movimientos automáticos de streams cuyo estado deseado sea running;
+- registrar cada aplicación del scheduler en auditoría;
+- preparar el terreno para rebalanceo controlado y políticas por región/capacidad en etapas posteriores.
+
+La primera implementación se hará en rama `feature/ipztream-node-scheduler-0.4.9`. El scheduler será conservador: no moverá streams activos ni iniciará/detendrá FFmpeg por sí mismo.
+
+
+### 15.5 — implementación técnica 0.4.9
+Implementado en la rama de desarrollo:
+- `server/node-scheduler.js` calcula asignaciones sin tocar streams activos;
+- puntuación por CPU, RAM, streams activos y capacidad declarada;
+- penalización para nodos degradados;
+- compatibilidad por capacidades del nodo y perfil del stream;
+- exclusión de nodos sin capacidad disponible;
+- filtros opcionales por región y por lista de canales;
+- modo seguro por defecto: solo canales detenidos y no asignados;
+- endpoint de vista previa `GET /api/node-scheduler/plan`;
+- aplicación explícita mediante `POST /api/node-scheduler/apply`;
+- permisos: lectura con `nodes.view`, aplicación con `nodes.update`;
+- auditoría `SCHEDULER_APPLY`;
+- controles `Planificar auto` / `Aplicar` añadidos en Servidores / Load Balancers;
+- versión preparada: `0.4.9`.
+
+No existe workflow CI en el repositorio, por lo que el build/sintaxis ejecutable debe validarse en el servidor de desarrollo mediante el Centro de actualización antes de declarar esta etapa instalada. La prueba física Main+SUB sigue pendiente.
