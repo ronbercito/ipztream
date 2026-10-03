@@ -1,3 +1,153 @@
-import React from'react';import Hls from'hls.js';import{Edit3,Trash2,Power,Play,Square,MonitorPlay,Activity,Clock3,RotateCcw,RotateCw,History,X,LoaderCircle}from'lucide-react';import{startChannelPreview,stopChannelPreview}from'../services/channelsApi.js';function uptime(s,n){if(!s)return'—';const x=Math.max(0,Math.floor((n-new Date(s).getTime())/1000)),h=Math.floor(x/3600),m=Math.floor((x%3600)/60),q=x%60;return h?`${h}h ${m}m ${q}s`:m?`${m}m ${q}s`:`${q}s`}function when(v){return new Intl.DateTimeFormat('es-PE',{dateStyle:'short',timeStyle:'medium'}).format(new Date(v))}
-function PreviewModal({channel,onClose}){const[preview,setPreview]=React.useState(null),[error,setError]=React.useState(''),[ready,setReady]=React.useState(false),videoRef=React.useRef(null);React.useEffect(()=>{let alive=true;startChannelPreview(channel.id).then(p=>{if(alive)setPreview(p)}).catch(e=>alive&&setError(e.message));return()=>{alive=false;stopChannelPreview(channel.id).catch(()=>{})}},[channel.id]);React.useEffect(()=>{if(!preview?.hlsUrl||!videoRef.current)return;const video=videoRef.current;let hls=null,retryTimer=null,disposed=false,attempt=0;const play=()=>video.play().catch(()=>{});const sourceUrl=()=>{const u=new URL(preview.hlsUrl,window.location.origin);u.searchParams.set('t',String(Date.now()));return`${u.pathname}${u.search}`};const native=video.canPlayType('application/vnd.apple.mpegurl');if(native){video.src=sourceUrl();video.addEventListener('loadedmetadata',play,{once:true});return()=>{video.removeAttribute('src');video.load()}}if(!Hls.isSupported()){setError('Este navegador no soporta reproducción HLS.');return}hls=new Hls({enableWorker:true,lowLatencyMode:false,manifestLoadingMaxRetry:12,manifestLoadingRetryDelay:500,manifestLoadingMaxRetryTimeout:4000,levelLoadingMaxRetry:8,fragLoadingMaxRetry:8});const attach=()=>{if(disposed)return;attempt+=1;hls.loadSource(sourceUrl());hls.attachMedia(video)};hls.on(Hls.Events.MANIFEST_PARSED,()=>{setReady(true);play()});hls.on(Hls.Events.ERROR,(_event,data)=>{if(!data.fatal)return;if((data.type===Hls.ErrorTypes.NETWORK_ERROR)&&attempt<12){hls.stopLoad();retryTimer=setTimeout(()=>{if(!disposed){hls.detachMedia();attach()}},Math.min(3000,500+attempt*250));return}setError(`No se pudo reproducir la vista previa${data.details?`: ${data.details}`:''}.`)});attach();return()=>{disposed=true;if(retryTimer)clearTimeout(retryTimer);hls?.destroy()}},[preview?.hlsUrl]);React.useEffect(()=>{const key=e=>e.key==='Escape'&&onClose();window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[onClose]);return <div className="channel-preview-backdrop" onMouseDown={e=>e.target===e.currentTarget&&onClose()}><div className="channel-preview-modal"><div className="channel-preview-head"><div><span className="preview-live-dot"/><strong>Watch Stream · {channel.name}</strong><small>Live Player · H.264 / AAC</small></div><button onClick={onClose} title="Cerrar vista previa"><X size={20}/></button></div><div className="channel-preview-player">{!preview&&!error&&<div className="preview-loading"><LoaderCircle size={28}/><span>Preparando vista previa H.264/AAC…</span></div>}{error&&<div className="preview-loading"><span>{error}</span></div>}{preview&&<video ref={videoRef} controls autoPlay playsInline preload="auto" onCanPlay={()=>setReady(true)}>Tu navegador no puede reproducir esta vista previa HLS.</video>}</div><div className="channel-preview-foot"><span><Activity size={14}/> {error?'Error':ready?'Reproduciendo':'Preparando'}</span><span>HLS · preview-h264-aac</span><button onClick={onClose}>Cerrar</button></div></div></div>}
-export default function ChannelTable({channels,selected=[],onSelected=()=>{},streams,streamBusy,loading,onEdit,onDelete,onToggle,onStream,onClearHistory}){const[now,setNow]=React.useState(Date.now()),[historyId,setHistoryId]=React.useState(null),[preview,setPreview]=React.useState(null);React.useEffect(()=>{const t=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(t)},[]);if(loading)return <div className="card module-table channel-table"><div className="channel-empty">Cargando canales...</div></div>;return <><div className="card module-table channel-table"><div className="table-info"><span>{channels.length} registros</span><span>Estado real del motor FFmpeg/HLS</span></div><div className="table-scroll"><table><thead><tr><th><input type="checkbox" aria-label="Seleccionar todos" checked={channels.length>0&&channels.every(c=>selected.includes(c.id))} onChange={e=>onSelected(e.target.checked?[...new Set([...selected,...channels.map(c=>c.id)])]:selected.filter(id=>!channels.some(c=>c.id===id)))}/></th><th>N.º</th><th>Canal</th><th>Origen</th><th>Fuente</th><th>Funcionamiento</th><th>Tiempo activo</th><th>Reinicios</th><th>Acciones</th></tr></thead><tbody>{channels.map(c=>{const sources=c.sources||[],active=sources.filter(x=>x.status==='Activa'),p=[...active].sort((a,b)=>a.priority-b.priority)[0]||sources[0],s=streams[c.id],running=s?.status==='running',starting=s?.status==='starting',recovering=s?.status==='recovering',failed=s?.status==='error',state=running?'Funcionando':starting?'Iniciando':recovering?'Recuperando señal':failed?'Error':'Detenido',open=historyId===c.id;return <React.Fragment key={c.id}><tr className={selected.includes(c.id)?'selected-row':''}><td><input type="checkbox" aria-label={`Seleccionar ${c.name}`} checked={selected.includes(c.id)} onChange={e=>onSelected(e.target.checked?[...selected,c.id]:selected.filter(id=>id!==c.id))}/></td><td><b className="channel-number">{c.number}</b></td><td><div className="channel-name-cell"><div className="channel-logo"><span>{c.name.slice(0,1)}</span></div><div className="channel-name-stack"><strong>{c.name}</strong><span>{c.category} · {c.status}</span></div></div></td><td>{p?.originType==='ASTRA'?'Astra Cesbo':'HTTP directo'}</td><td>{active.length}/{sources.length} · {p?.protocol||'—'} · P{p?.priority||'—'}</td><td><div className={`stream-health ${running?'live':recovering?'starting':failed?'failed':'stopped'}`}><Activity size={15}/><div><strong>{state}</strong><span>{running?`FFmpeg activo · PID ${s?.pid||'—'}`:recovering?`Proveedor sin señal · reintento automático cada ${Math.round((s?.retryDelayMs||10000)/1000)}s`:(s?.error||'Sin emisión activa')}</span></div></div></td><td><div className="stream-uptime"><Clock3 size={14}/><strong>{running?uptime(s?.startedAt,now):'—'}</strong></div></td><td><button className="restart-summary" title="Ver historial de inicios y reinicios" onClick={()=>setHistoryId(open?null:c.id)}><RotateCcw size={14}/><b>{s?.restartCount||0}</b><span>{s?.startCount||0} inicio(s)</span><History size={13}/></button></td><td><div className="row-actions"><button className="icon-button action-edit" title="Editar canal" onClick={()=>onEdit(c)}><Edit3 size={16}/></button><button className={`icon-button ${running?'action-stop':'action-play'}`} title={running?'Detener emisión':'Iniciar emisión'} disabled={streamBusy===c.id||c.status!=='Activo'} onClick={()=>onStream(c,running?'stop':'start')}>{running?<Square size={16}/>:<Play size={16}/>}</button><button className="icon-button action-restart" title="Reiniciar stream" disabled={streamBusy===c.id||c.status!=='Activo'} onClick={()=>onStream(c,'restart')}><RotateCw size={16}/></button><button className="icon-button action-preview" title={running?'Vista previa compatible H.264/AAC':'Vista previa disponible cuando el canal está funcionando'} disabled={!running} onClick={()=>running&&setPreview(c)}><MonitorPlay size={17}/></button><button className={`icon-button ${c.status==='Activo'?'action-power-on':'action-power-off'}`} title={c.status==='Activo'?'Desactivar canal':'Activar canal'} onClick={()=>onToggle(c)}><Power size={16}/></button><button className="icon-button action-delete" title="Eliminar canal" onClick={()=>onDelete(c)}><Trash2 size={16}/></button></div></td></tr>{open&&<tr className="restart-history-row"><td colSpan="9"><div className="restart-history"><div className="restart-history-head"><div><strong>Historial operativo · {c.name}</strong><span>Inicios y reinicios desde el último borrado</span></div><div><button className="history-clear" onClick={()=>onClearHistory(c)}>Borrar historial</button><button className="history-close" onClick={()=>setHistoryId(null)} title="Cerrar historial"><X size={15}/></button></div></div><div className="history-list">{s?.history?.length?s.history.map((e,i)=><div className="history-event" key={`${e.at}-${i}`}><span className={e.type==='Reinicio'?'restart':'start'}>{e.type}{e.automatic?' automático':''}</span><strong>{when(e.at)}</strong></div>):<div className="history-empty">No hay registros.</div>}</div></div></td></tr>}</React.Fragment>})}</tbody></table></div></div>{preview&&<PreviewModal channel={preview} onClose={()=>setPreview(null)}/>}</>}
+import React from 'react';
+import { Activity, Clock3, Edit3, Folder, Gauge, History, Link2, Monitor, MonitorPlay, MoreVertical, Play, Power, RefreshCw, RotateCcw, Server, Square, Trash2, Users } from 'lucide-react';
+
+function uptime(startedAt, now) {
+  if (!startedAt) return '—';
+  const total = Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return h ? h + 'h ' + m + 'm' : m ? m + 'm ' + s + 's' : s + 's';
+}
+
+function primarySource(channel) {
+  const sources = channel?.sources || [];
+  const active = sources.filter((source) => source.status === 'Activa');
+  return [...(active.length ? active : sources)].sort((a, b) => Number(a.priority || 99) - Number(b.priority || 99))[0] || null;
+}
+
+function formatBitrate(media) {
+  const kbps = Number(media?.bitrateKbps || 0);
+  if (!kbps) return '—';
+  return kbps >= 1000 ? (kbps / 1000).toFixed(1) + ' Mbps' : Math.round(kbps) + ' Kbps';
+}
+
+function formatResolution(media) {
+  return media?.width && media?.height ? media.width + '×' + media.height : '—';
+}
+
+function runtimeClients(stream) {
+  for (const value of [stream?.clients, stream?.clientCount, stream?.viewers]) {
+    const number = Number(value);
+    if (Number.isFinite(number) && number >= 0) return number;
+  }
+  return null;
+}
+
+function streamState(stream) {
+  if (stream?.status === 'running') return { label: 'EN LÍNEA', className: 'live' };
+  if (stream?.status === 'starting') return { label: 'INICIANDO', className: 'starting' };
+  if (stream?.status === 'recovering') return { label: 'RECUPERANDO', className: 'starting' };
+  if (stream?.status === 'error') return { label: 'ERROR', className: 'failed' };
+  return { label: 'DETENIDO', className: 'stopped' };
+}
+
+export default function ChannelTable({
+  channels,
+  selected = [],
+  onSelected = () => {},
+  streams,
+  mediaByChannel = {},
+  columns = { bitrate: true, resolution: true, clients: true },
+  streamBusy,
+  loading,
+  onEdit,
+  onDelete,
+  onToggle,
+  onStream,
+  onClearHistory,
+  onInspect
+}) {
+  const [now, setNow] = React.useState(Date.now());
+  const [historyId, setHistoryId] = React.useState(null);
+  const [menuId, setMenuId] = React.useState(null);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  React.useEffect(() => {
+    const close = () => setMenuId(null);
+    window.addEventListener('click', close);
+    return () => window.removeEventListener('click', close);
+  }, []);
+
+  if (loading) return <div className="card module-table channel-table"><div className="channel-empty">Cargando canales...</div></div>;
+
+  const extraColumns = Number(Boolean(columns.bitrate)) + Number(Boolean(columns.resolution)) + Number(Boolean(columns.clients));
+  const colSpan = 10 + extraColumns;
+
+  return <div className="card module-table channel-table stream-modern-table">
+    <div className="table-info"><span>Mostrando {channels.length} stream{channels.length === 1 ? '' : 's'}</span><span>Estado real FFmpeg/HLS · las métricas multimedia se analizan al abrir el detalle</span></div>
+    <div className="table-scroll">
+      <table>
+        <thead><tr>
+          <th><input type="checkbox" aria-label="Seleccionar todos" checked={channels.length > 0 && channels.every((channel) => selected.includes(channel.id))} onChange={(event) => onSelected(event.target.checked ? [...new Set([...selected, ...channels.map((channel) => channel.id)])] : selected.filter((id) => !channels.some((channel) => channel.id === id)))}/></th>
+          <th>N.º</th>
+          <th>Canal</th>
+          <th>Categoría</th>
+          <th>Origen</th>
+          <th>Servidor</th>
+          <th>Estado</th>
+          {columns.bitrate && <th>Bitrate</th>}
+          {columns.resolution && <th>Resolución</th>}
+          {columns.clients && <th>Clientes</th>}
+          <th>Tiempo activo</th>
+          <th>Reinicios</th>
+          <th>Acciones</th>
+        </tr></thead>
+        <tbody>{channels.map((channel) => {
+          const source = primarySource(channel);
+          const stream = streams[channel.id];
+          const state = streamState(stream);
+          const running = stream?.status === 'running';
+          const media = mediaByChannel[channel.id];
+          const clients = runtimeClients(stream);
+          const historyOpen = historyId === channel.id;
+          const menuOpen = menuId === channel.id;
+
+          return <React.Fragment key={channel.id}>
+            <tr className={(selected.includes(channel.id) ? 'selected-row ' : '') + (running ? 'stream-row-live' : '')}>
+              <td><input type="checkbox" aria-label={'Seleccionar ' + channel.name} checked={selected.includes(channel.id)} onChange={(event) => onSelected(event.target.checked ? [...selected, channel.id] : selected.filter((id) => id !== channel.id))}/></td>
+              <td><b className="channel-number">{channel.number}</b></td>
+              <td>
+                <button className="channel-identity-button" onClick={() => onInspect(channel, false)} title="Abrir detalle">
+                  <span className="channel-logo">{channel.logo ? <img src={channel.logo} alt=""/> : <span>{channel.name.slice(0, 1)}</span>}</span>
+                  <span className="channel-name-stack"><strong>{channel.name}</strong><span>{channel.status}{channel.outputFormat ? ' · ' + channel.outputFormat : ''}</span></span>
+                </button>
+              </td>
+              <td><span className="channel-category-badge"><Folder size={12}/>{channel.category || 'General'}</span></td>
+              <td><div className="stream-origin-cell"><Link2 size={13}/><span>{source?.originType === 'ASTRA' ? 'Astra Cesbo' : source?.originType === 'M3U' ? 'M3U / M3U8' : 'HTTP directo'}</span></div></td>
+              <td><div className="stream-server-cell"><Server size={13}/><div><strong>{channel.nodeId || 'Local'}</strong><span>{source ? (source.protocol || '—') + ' · P' + (source.priority || 1) : 'Sin fuente'}</span></div></div></td>
+              <td><div className={'stream-state-cell ' + state.className}><span className="stream-state-badge"><i></i>{state.label}</span><small>{running ? 'FFmpeg PID ' + (stream?.pid || '—') : stream?.error || stream?.lastError || 'Sin emisión activa'}</small></div></td>
+              {columns.bitrate && <td><div className="stream-metric-cell"><Gauge size={13}/><strong>{formatBitrate(media)}</strong>{media?.bitrateKbps ? <span className="metric-bars"><i></i><i></i><i></i><i></i></span> : <small>al abrir detalle</small>}</div></td>}
+              {columns.resolution && <td><div className="stream-resolution-cell"><Monitor size={13}/><strong>{formatResolution(media)}</strong><span>{media?.fps ? media.fps.toFixed(2) + ' FPS' : '—'}</span></div></td>}
+              {columns.clients && <td><div className="stream-clients-cell"><Users size={14}/><strong>{clients === null ? '—' : clients}</strong></div></td>}
+              <td><div className="stream-uptime"><Clock3 size={14}/><strong>{running ? uptime(stream?.startedAt, now) : '—'}</strong></div></td>
+              <td><button className="restart-summary" title="Ver historial de inicios y reinicios" onClick={() => setHistoryId(historyOpen ? null : channel.id)}><RotateCcw size={14}/><b>{stream?.restartCount || 0}</b><span>{stream?.startCount || 0} inicio(s)</span><History size={13}/></button></td>
+              <td>
+                <div className="row-actions stream-row-actions">
+                  <button className="icon-button action-play" title="Iniciar emisión" disabled={running || streamBusy === channel.id || channel.status !== 'Activo'} onClick={() => onStream(channel, 'start')}><Play size={15}/></button>
+                  <button className="icon-button action-stop" title="Detener emisión" disabled={!running || streamBusy === channel.id} onClick={() => onStream(channel, 'stop')}><Square size={15}/></button>
+                  <button className="icon-button action-restart" title="Reiniciar stream" disabled={streamBusy === channel.id || channel.status !== 'Activo'} onClick={() => onStream(channel, 'restart')}><RefreshCw size={15}/></button>
+                  <button className="icon-button action-preview" title="Abrir detalle y preview" onClick={() => onInspect(channel, true)}><MonitorPlay size={16}/></button>
+                  <div className="stream-more-wrap">
+                    <button className="icon-button action-more" title="Más acciones" onClick={(event) => { event.stopPropagation(); setMenuId(menuOpen ? null : channel.id); }}><MoreVertical size={16}/></button>
+                    {menuOpen && <div className="stream-row-menu" onClick={(event) => event.stopPropagation()}>
+                      <button onClick={() => { setMenuId(null); onEdit(channel); }}><Edit3 size={14}/> Editar stream</button>
+                      <button onClick={() => { setMenuId(null); onToggle(channel); }}><Power size={14}/> {channel.status === 'Activo' ? 'Desactivar canal' : 'Activar canal'}</button>
+                      <button onClick={() => { setMenuId(null); setHistoryId(historyOpen ? null : channel.id); }}><History size={14}/> Historial operativo</button>
+                      <button className="danger" onClick={() => { setMenuId(null); onDelete(channel); }}><Trash2 size={14}/> Eliminar</button>
+                    </div>}
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {historyOpen && <tr className="restart-history-row"><td colSpan={colSpan}><div className="restart-history"><div className="restart-history-head"><div><strong>Historial operativo · {channel.name}</strong><span>Inicios y reinicios registrados por el runtime</span></div><div><button className="history-clear" onClick={() => onClearHistory(channel)}>Borrar historial</button><button className="history-close" onClick={() => setHistoryId(null)} title="Cerrar historial">×</button></div></div><div className="history-list">{stream?.history?.length ? stream.history.map((item, index) => <div className="history-event" key={(item.at || index) + '-' + index}><span className={item.type === 'Reinicio' ? 'restart' : 'start'}>{item.type}{item.automatic ? ' automático' : ''}</span><strong>{item.at ? new Date(item.at).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'medium' }) : '—'}</strong></div>) : <div className="history-empty">No hay registros.</div>}</div></div></td></tr>}
+          </React.Fragment>;
+        })}</tbody>
+      </table>
+    </div>
+  </div>;
+}
