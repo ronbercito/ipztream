@@ -307,3 +307,11 @@ Validación aislada:
 - el runner no dispone de FFmpeg, por lo que start/stop HLS real queda incluido en la prueba física pendiente con segundo servidor.
 
 Estado: **código técnicamente listo para merge; validación distribuida real sigue pendiente**.
+
+
+#### Integración 15.4 en main
+PR #8 mezclado en `main`.
+Merge commit: `c9c1955a78a842c5ea64ffb291d14a94965a287b`.
+La línea activa pasa a `0.4.7`.
+
+Queda pendiente únicamente la validación física con segundo servidor para cerrar 15.3/15.4 en entorno real. El siguiente desarrollo puede avanzar sobre esta base, pero sin declarar producción distribuida hasta completar esa prueba.
