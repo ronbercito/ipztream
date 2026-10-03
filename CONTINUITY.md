@@ -418,3 +418,26 @@ Se continúa exclusivamente sobre el servidor IPTV. Esta etapa mejora compatibil
 
 ### Regla de entrega
 La rama debe pasar revisión de diff y merge protegido. La validación real seguirá siendo: instalar desde Centro de actualización, ejecutar prueba automática y reproducir desde una app IPTV externa con un canal real activo.
+
+
+### Resultado técnico 0.5.1
+Implementado en la rama de endurecimiento:
+- corrección del desacople entre `stream_id` público numérico y carpeta HLS interna por UUID;
+- autoarranque bajo demanda cuando una app abre un canal permitido sin manifiesto HLS disponible;
+- entrega transparente desde MAIN tanto para canales locales como para canales ejecutados en SUB;
+- proxy de segmentos HLS remotos a través del MAIN, sin obligar a la app a conocer la IP del SUB;
+- XMLTV autenticado en `/xmltv.php` y alias `/panel_api.php`;
+- `active_cons` real en la API compatible;
+- limitación básica de intentos fallidos de autenticación IPTV;
+- una sesión por combinación usuario+IP+app para permitir cambio de canal sin consumir conexiones adicionales;
+- Usuarios IPTV muestra conexiones activas reales y refresca cada 5 segundos;
+- Conexiones IPTV refresca cada 5 segundos, muestra historial, duración, IP, app, canal y nodo;
+- Paquetes IPTV incorpora búsqueda, selección masiva visible, limpieza y conteo de canales autorizados;
+- failover de múltiples fuentes por prioridad en MAIN y SUB: ante caída de FFmpeg se rota a la siguiente fuente activa;
+- endpoint administrativo `/api/iptv/status` con diagnóstico del servicio;
+- GitHub Actions CI agregado para `node --check` de backend y `npm run build`;
+- prueba `scripts/test-iptv-client.mjs` ampliada para validar XMLTV además de login, catálogo, M3U y reproducción;
+- versión preparada: `0.5.1`.
+
+### Validación pendiente
+La rama todavía debe pasar CI y revisión de PR. Después del merge, instalar 0.5.1 desde el Centro de actualización y validar con un canal real y una app IPTV externa. La prueba física de un segundo SUB sigue pendiente para certificar el recorrido MAIN→SUB→MAIN→app en hardware real.
