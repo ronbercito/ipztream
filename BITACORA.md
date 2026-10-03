@@ -173,3 +173,20 @@ Objetivo autorizado:
 - dejar preparada la base para scheduler, balanceo y agente real del subnodo.
 
 La implementación se hará primero en rama `feature/ipztream-stream-node-persistence`. No se considera lista para producción hasta validar build, sintaxis y una prueba real con MariaDB.
+
+#### Resultado de implementación
+Quedó implementada la base 15.3 para versión `0.4.3`:
+- tablas dedicadas de nodos/heartbeats + migración única desde `nodes`;
+- API canónica y compatibilidad sin doble fuente de verdad;
+- offline automático y retención;
+- historial de heartbeat;
+- permisos correctos para `stream-nodes`;
+- corrección del gateway que antes descartaba el body de registro/heartbeat;
+- token de nodos generado/preservado por el instalador Main;
+- subnodo con métricas más reales, JSON seguro e ID canónico;
+- UI sin nodos demo falsos cuando la API falla/viene vacía.
+
+Validación técnica en checkout limpio:
+`node --check` backend/gateway OK · `bash -n` instaladores OK · `npm run build` OK (Vite 8.3.2, 1933 módulos).
+
+Estado: **código listo para merge y prueba real de MariaDB/subnodo; producción todavía no aprobada**.
