@@ -269,7 +269,8 @@ async function handle(req, res) {
   }
 
   if (pathname === '/api/stream-nodes' && req.method === 'POST') {
-    const item = normalizeNode(await readBody(req));
+    const body = await readBody(req);
+    const item = normalizeNode({ ...body, status: body.status || 'Fuera de línea' });
     if (!item.name || !item.ip || !item.region || !item.capacity) {
       return send(res, 400, { message: 'Nombre, IP, región y capacidad son obligatorios.' });
     }
@@ -346,7 +347,8 @@ async function handle(req, res) {
   if (pathname === '/api/nodes') {
     if (req.method === 'GET') return send(res, 200, { nodes: await listStreamNodes() });
     if (req.method === 'POST') {
-      const item = normalizeNode(await readBody(req));
+      const body = await readBody(req);
+      const item = normalizeNode({ ...body, status: body.status || 'Fuera de línea' });
       if (!item.name || !item.ip || !item.region || !item.capacity) return send(res, 400, { message: 'Nombre, IP, región y capacidad son obligatorios.' });
       if (!validNodeHost(item.ip)) return send(res, 400, { message: 'Ingresa una IP o hostname válido.' });
       if (await findStreamNodeByIp(item.ip)) return send(res, 409, { message: `La IP ${item.ip} ya está registrada en otro nodo.` });
