@@ -366,3 +366,25 @@ Implementado en la rama de desarrollo:
 - versión preparada: `0.4.9`.
 
 No existe workflow CI en el repositorio, por lo que el build/sintaxis ejecutable debe validarse en el servidor de desarrollo mediante el Centro de actualización antes de declarar esta etapa instalada. La prueba física Main+SUB sigue pendiente.
+
+
+## 0.5.0 — Núcleo servidor IPTV y compatibilidad de clientes
+Se concentra IPZStream en cuatro áreas operativas: Canales/Streams, Usuarios IPTV, Conexiones activas y Servidores Main/Sub.
+
+### Alcance autorizado
+- API de cliente IPTV propia con compatibilidad inicial estilo Xtream Codes para apps de terceros: autenticación, información de usuario/servidor, categorías, canales live y EPG básico.
+- Playlist M3U autenticada por usuario.
+- Endpoint de reproducción live autenticado que valida usuario, vencimiento, estado y máximo de conexiones antes de entregar HLS/stream.
+- Sesiones de reproducción persistentes en MariaDB, heartbeat y cierre administrativo.
+- Paquetes/bouquets como control de acceso a canales; un usuario solo recibe los canales permitidos por su paquete.
+- Mantener el motor FFmpeg/HLS y arquitectura Main/Sub existentes.
+- No incorporar VOD, reseller, MAG ni módulos no esenciales en esta fase.
+
+### Seguridad y límites
+- Las contraseñas IPTV continúan almacenadas con scrypt; nunca se devuelven hashes al cliente.
+- Se limita el número de conexiones simultáneas por usuario.
+- Se registran IP, user-agent, canal, nodo y última actividad de cada reproducción.
+- Compatibilidad de terceros se implementa con código propio, sin importar código heredado de XUI/Xtream.
+
+### Validación requerida
+Antes de declarar 0.5.0 estable: actualizar servidor de desarrollo, crear paquete+usuario, iniciar un canal real y probar login/listado/reproducción desde una app IPTV gratuita compatible o desde VLC. La prueba física Main/Sub continúa pendiente y no bloquea la validación local del cliente IPTV.
