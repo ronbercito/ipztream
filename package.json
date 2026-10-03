@@ -9,7 +9,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "api": "node server/secure-entry.js",
     "bootstrap-admin": "node server/bootstrap-admin.js",
-    "reset-admin-password": "node server/reset-admin-password.js"
+    "reset-admin-password": "node server/reset-admin-password.js",
+    "node-agent": "node server/node-agent.js"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
