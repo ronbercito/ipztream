@@ -441,3 +441,9 @@ Implementado en la rama de endurecimiento:
 
 ### Validación pendiente
 La rama todavía debe pasar CI y revisión de PR. Después del merge, instalar 0.5.1 desde el Centro de actualización y validar con un canal real y una app IPTV externa. La prueba física de un segundo SUB sigue pendiente para certificar el recorrido MAIN→SUB→MAIN→app en hardware real.
+
+
+### Integración 0.5.1 en main
+PR #12 mezclado en `main` después de GitHub Actions CI exitoso: instalación npm, `node --check` de backend y build Vite aprobados. Merge commit: `50f02ccd7f1c351af89fc3142ad3f0f1af0d4b7b`.
+
+La siguiente validación ya no es de código sino de runtime: instalar 0.5.1 desde el Centro de actualización, ejecutar `scripts/test-iptv-client.mjs` contra el servidor y abrir un canal desde una app IPTV real. La prueba física con segundo SUB sigue pendiente para certificar distribución remota completa.
