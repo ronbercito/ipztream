@@ -253,3 +253,20 @@ Implementado:
 - indicador visual “Bitrate / Resolución · actualización automática cada 5 s”.
 
 Versión preparada: `0.4.6`.
+
+
+## 15.4 — Agente real SUB y control remoto — INICIADA
+Se autoriza continuar aunque la prueba física Main+SUB de 15.3 quede pendiente.
+
+Alcance 0.4.7:
+- agente Node.js para SUB/EDGE;
+- ejecución FFmpeg/HLS local en el SUB;
+- API remota autenticada para start/stop/restart/status;
+- cliente/orquestador en MAIN;
+- selección real de nodo por canal;
+- sincronización de asignaciones;
+- persistencia de streams deseados en el agente;
+- protección frente a mover/desactivar/eliminar un canal mientras está marcado como running;
+- instalador SUB convertido en servicio systemd real.
+
+No se cerrará 15.3 ni se declarará producción hasta disponer del segundo servidor real.
