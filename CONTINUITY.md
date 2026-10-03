@@ -402,3 +402,19 @@ Antes de declarar 0.5.0 estable: actualizar servidor de desarrollo, crear paquet
 
 ### Pendiente obligatorio antes de declarar estable
 No existe CI en GitHub para este repositorio y esta entrega todavía no fue ejecutada en el servidor de desarrollo. Debe instalarse 0.5.0 desde el Centro de actualización, validar arranque/MariaDB, ejecutar `scripts/test-iptv-client.mjs` con un usuario real y después probar reproducción desde una app IPTV externa. La prueba física Main/Sub sigue pendiente y es independiente de esta validación local de cliente.
+
+
+## 0.5.1 — Endurecimiento completo del núcleo IPTV
+Se continúa exclusivamente sobre el servidor IPTV. Esta etapa mejora compatibilidad de clientes, operación diaria y robustez sin reabrir VOD, reseller, MAG ni módulos secundarios.
+
+### Objetivos
+- Ampliar compatibilidad estilo Xtream para apps IPTV: datos de cuenta más completos, conexiones activas reales, XMLTV/EPG y URLs live consistentes.
+- Mejorar playlists M3U y stream IDs públicos numéricos.
+- Añadir estado/diagnóstico del servicio IPTV para soporte y pruebas.
+- Endurecer sesiones de reproducción: conteo real, expiración, cierre administrativo y protección contra abuso de autenticación.
+- Mejorar Paquetes para seleccionar/buscar canales y aplicar todos/ninguno de forma cómoda.
+- Mejorar Conexiones Activas con refresco automático, duración y detalle útil.
+- Mantener FFmpeg/HLS, Main/Sub y MariaDB actuales sin declarar producción hasta validar runtime real.
+
+### Regla de entrega
+La rama debe pasar revisión de diff y merge protegido. La validación real seguirá siendo: instalar desde Centro de actualización, ejecutar prueba automática y reproducir desde una app IPTV externa con un canal real activo.
