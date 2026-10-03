@@ -37,7 +37,7 @@ if [[ ! "${NODE_AGENT_PORT}" =~ ^[0-9]+$ ]] || (( NODE_AGENT_PORT < 1 || NODE_AG
   exit 1
 fi
 if [[ ! -f "${SOURCE_ROOT}/server/node-agent.js" || ! -f "${SOURCE_ROOT}/server/node-stream-runtime.js" ]]; then
-  echo "Faltan server/node-agent.js o server/node-stream-runtime.js. Ejecuta este instalador desde un checkout IPZStream 0.4.5 o superior." >&2
+  echo "Faltan server/node-agent.js o server/node-stream-runtime.js. Ejecuta este instalador desde un checkout IPZStream 0.4.7 o superior." >&2
   exit 1
 fi
 
@@ -149,7 +149,7 @@ payload={
   "apiBaseUrl":os.environ.get("IPZTREAM_NODE_API_BASE_URL",""),
   "region":os.environ.get("IPZTREAM_NODE_REGION","Local"),
   "capacity":os.environ.get("IPZTREAM_NODE_CAPACITY","Auto"),
-  "version":"node-agent-0.4.5",
+  "version":"node-agent-0.4.7",
   "capabilities":["live","hls","ffmpeg","remux","transcode"],
   "metrics":{"cpu":num("cpu"),"ram":num("ram"),"disk":num("disk"),"load":num("load"),"activeStreams":int(num("active_streams")),"uptime":int(num("uptime_s"))}
 }
