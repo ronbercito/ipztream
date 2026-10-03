@@ -27,6 +27,7 @@ import {
 } from './db.js';
 import { ensureUserSchema, listUsers, getUser, createUser, updateUser, deleteUser } from './user-service.js';
 import { buildSchedulerPlan, applySchedulerPlan } from './node-scheduler.js';
+import { listPlaybackConnections, closePlaybackConnection } from './iptv-service.js';
 
 const PORT = Number(process.env.IPZTREAM_API_PORT || 3100);
 const HOST = process.env.IPZTREAM_API_HOST || '127.0.0.1';
@@ -194,7 +195,7 @@ function normalizeGeneric(type, input, current = {}) {
   if (type === 'series') return { id: value.id, title: String(value.title || '').trim(), description: String(value.description || '').trim(), category: String(value.category || '').trim(), year: Number(value.year) || new Date().getFullYear(), poster: String(value.poster || '').trim(), status: value.status === 'Inactivo' ? 'Inactivo' : 'Activo', seasons: Math.max(1, Number(value.seasons) || 1), episodes: Math.max(1, Number(value.episodes) || 1) };
   if (type === 'epg') return { id: value.id, channel: String(value.channel || '').trim(), title: String(value.title || '').trim(), start: String(value.start || ''), end: String(value.end || ''), description: String(value.description || '').trim(), status: ['Programado', 'Emitido', 'Cancelado'].includes(value.status) ? value.status : 'Programado' };
   if (type === 'm3u') return { id: value.id, name: String(value.name || '').trim(), profile: String(value.profile || '').trim(), status: value.status === 'Inactivo' ? 'Inactivo' : 'Activo', description: String(value.description || '').trim(), sourceUrl: String(value.sourceUrl || '').trim(), items: Math.max(0, Number(value.items) || 0) };
-  if (type === 'packages') return { id: value.id || makeId('pkg'), name: String(value.name || '').trim(), description: String(value.description || '').trim(), price: Number(value.price) || 0, duration: Math.max(1, Number(value.duration) || 30), maxConnections: Math.max(1, Number(value.maxConnections) || 1), status: value.status === 'Inactivo' ? 'Inactivo' : 'Activo', userCount: Math.max(0, Number(value.userCount) || 0) };
+  if (type === 'packages') return { id: value.id || makeId('pkg'), name: String(value.name || '').trim(), description: String(value.description || '').trim(), price: Number(value.price) || 0, duration: Math.max(1, Number(value.duration) || 30), maxConnections: Math.max(1, Number(value.maxConnections) || 1), status: value.status === 'Inactivo' ? 'Inactivo' : 'Activo', userCount: Math.max(0, Number(value.userCount) || 0), channelIds: Array.isArray(value.channelIds) ? [...new Set(value.channelIds.map(String).filter(Boolean))] : [], bouquets: Array.isArray(value.bouquets) ? [...new Set(value.bouquets.map(String).filter(Boolean))] : [] };
   return { id: value.id || makeId(type), ...value };
 }
 
@@ -524,15 +525,12 @@ async function handle(req, res) {
     if (req.method === 'DELETE') return send(res, (await saveDelete(TABLES.packages, id, 'packages')) ? 200 : 404, { ok: true });
   }
 
-  if (pathname === '/api/connections' && req.method === 'GET') return send(res, 200, { connections: await listItems(TABLES.connections) });
+  if (pathname === '/api/connections' && req.method === 'GET') return send(res, 200, { connections: await listPlaybackConnections({ includeClosed: url.searchParams.get('includeClosed') === 'true' }) });
   const connectionClose = pathname.match(/^\/api\/connections\/([^/]+)\/close$/);
   if (connectionClose && req.method === 'POST') {
     const id = decodeURIComponent(connectionClose[1]);
-    const item = await getItem(TABLES.connections, id);
-    if (!item) return send(res, 404, { message: 'Conexión no encontrada.' });
-    item.status = 'Cerrada';
-    item.lastActivity = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
-    return send(res, 200, await saveUpdate(TABLES.connections, id, item, 'connections'));
+    const ok = await closePlaybackConnection(id, req.headers['x-ipztream-actor'] || 'system');
+    return send(res, ok ? 200 : 404, ok ? { ok: true } : { message: 'Conexión no encontrada.' });
   }
 
   if (pathname === '/api/devices' && req.method === 'GET') return send(res, 200, { devices: await listItems(TABLES.devices) });
