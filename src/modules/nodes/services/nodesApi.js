@@ -1,4 +1,5 @@
 const API_BASE='/api/nodes';
+const STREAM_NODE_BASE='/api/stream-nodes';
 const LOCAL_KEY='ipztream-nodes-v1';
 
 async function request(url,options={}){
@@ -14,6 +15,10 @@ async function request(url,options={}){
 }
 
 export async function loadNodes(fallback=[]){
+  try{
+    const payload=await request(STREAM_NODE_BASE);
+    if(Array.isArray(payload?.nodes))return payload.nodes;
+  }catch{}
   try{
     const payload=await request(API_BASE);
     return Array.isArray(payload?.nodes)?payload.nodes:fallback;
