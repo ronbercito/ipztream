@@ -92,6 +92,14 @@ systemctl enable --now mariadb
 mariadb-admin ping --silent
 
 DB_PASSWORD="$(node -e "console.log(require('node:crypto').randomBytes(24).toString('hex'))")"
+EXISTING_NODE_TOKEN=""
+if [[ -f "${ENV_FILE}" ]]; then
+  EXISTING_NODE_TOKEN="$(grep '^IPZTREAM_NODE_REGISTRATION_TOKEN=' "${ENV_FILE}" 2>/dev/null | tail -n1 | cut -d= -f2- || true)"
+fi
+NODE_REGISTRATION_TOKEN="${IPZTREAM_NODE_REGISTRATION_TOKEN:-${EXISTING_NODE_TOKEN}}"
+if [[ -z "${NODE_REGISTRATION_TOKEN}" ]]; then
+  NODE_REGISTRATION_TOKEN="$(node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))")"
+fi
 
 if ! mariadb -Nse "SELECT 1 FROM mysql.user WHERE User='${DB_USER}' AND Host='${DB_HOST}'" | grep -q '^1$'; then
   mariadb -e "CREATE USER '${DB_USER}'@'${DB_HOST}' IDENTIFIED BY '${DB_PASSWORD}';"
@@ -114,6 +122,9 @@ IPZTREAM_SESSION_TTL=28800
 IPZTREAM_COOKIE_SECURE=false
 IPZTREAM_STREAM_ROOT=${STREAM_DIR}
 IPZTREAM_FFMPEG_BIN=/usr/bin/ffmpeg
+IPZTREAM_NODE_REGISTRATION_TOKEN=${NODE_REGISTRATION_TOKEN}
+IPZTREAM_NODE_OFFLINE_AFTER_SECONDS=${IPZTREAM_NODE_OFFLINE_AFTER_SECONDS:-150}
+IPZTREAM_NODE_HEARTBEAT_RETENTION_DAYS=${IPZTREAM_NODE_HEARTBEAT_RETENTION_DAYS:-7}
 EOF
 chown root:www-data "${ENV_FILE}"
 chmod 640 "${ENV_FILE}"
@@ -185,8 +196,151 @@ if ! /usr/bin/ffmpeg -version >/dev/null 2>&1; then
 fi
 
 # Verifica que las tablas de datos sigan accesibles internamente en MariaDB.
-if ! mariadb -Nse "SELECT COUNT(*) FROM \`${DB_NAME}\`.nodes;" | grep -q '^[0-9][0-9]*$'; then
-  echo "ERROR: no se pudo consultar la tabla nodes en MariaDB."
+if ! mariadb -Nse "SELECT COUNT(*) FROM \`${DB_NAME}\`.stream_nodes;" | grep -q '^[0-9][0-9]*
+
+echo "==> Publicando panel web..."
+rm -rf "${WEB_DIR}"
+mkdir -p "${WEB_DIR}"
+cp -a dist/. "${WEB_DIR}/"
+chown -R www-data:www-data "${WEB_DIR}"
+
+cat > "${NGINX_SITE}" <<'NGINX'
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    root /var/www/ipztream;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3100;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location /streams/ {
+        alias /var/lib/ipztream/streams/;
+        add_header Cache-Control "no-store" always;
+        add_header Access-Control-Allow-Origin "*" always;
+        types {
+            application/vnd.apple.mpegurl m3u8;
+            video/mp2t ts;
+        }
+        try_files $uri =404;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(js|css|svg|png|jpg|jpeg|webp|ico|woff2?)$ {
+        expires 7d;
+        add_header Cache-Control "public, max-age=604800, immutable";
+        try_files $uri =404;
+    }
+}
+NGINX
+
+rm -f /etc/nginx/sites-enabled/default
+ln -sfn "${NGINX_SITE}" "/etc/nginx/sites-enabled/${APP_NAME}"
+nginx -t
+systemctl enable nginx
+systemctl restart nginx
+
+curl -fsS "http://127.0.0.1:3100/api/health" >/dev/null
+curl -fsS "http://127.0.0.1/" >/dev/null
+
+echo
+echo "=============================================="
+echo " IPZStream instalado correctamente"
+echo " URL: http://<IP_DEL_CONTENEDOR>/"
+echo " API pública: http://127.0.0.1:3100 (gateway seguro)"
+echo " API interna: 127.0.0.1:3101 (no expuesta)"
+echo " HLS: /streams/"
+echo " FFmpeg: /usr/bin/ffmpeg"
+echo " MariaDB: ${DB_NAME} / ${DB_USER}"
+echo " Config DB/API: ${ENV_FILE}"
+echo " Token de nodos: guardado en ${ENV_FILE} (root:www-data, no se imprime)"
+echo " Archivos: ${APP_DIR}"
+echo " Web: ${WEB_DIR}"
+echo "=============================================="
+; then
+  echo "ERROR: no se pudo consultar stream_nodes en MariaDB."
+  exit 1
+fi
+if ! mariadb -Nse "SELECT COUNT(*) FROM \`${DB_NAME}\`.stream_node_heartbeats;" | grep -q '^[0-9][0-9]*
+
+echo "==> Publicando panel web..."
+rm -rf "${WEB_DIR}"
+mkdir -p "${WEB_DIR}"
+cp -a dist/. "${WEB_DIR}/"
+chown -R www-data:www-data "${WEB_DIR}"
+
+cat > "${NGINX_SITE}" <<'NGINX'
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    root /var/www/ipztream;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3100;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location /streams/ {
+        alias /var/lib/ipztream/streams/;
+        add_header Cache-Control "no-store" always;
+        add_header Access-Control-Allow-Origin "*" always;
+        types {
+            application/vnd.apple.mpegurl m3u8;
+            video/mp2t ts;
+        }
+        try_files $uri =404;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(js|css|svg|png|jpg|jpeg|webp|ico|woff2?)$ {
+        expires 7d;
+        add_header Cache-Control "public, max-age=604800, immutable";
+        try_files $uri =404;
+    }
+}
+NGINX
+
+rm -f /etc/nginx/sites-enabled/default
+ln -sfn "${NGINX_SITE}" "/etc/nginx/sites-enabled/${APP_NAME}"
+nginx -t
+systemctl enable nginx
+systemctl restart nginx
+
+curl -fsS "http://127.0.0.1:3100/api/health" >/dev/null
+curl -fsS "http://127.0.0.1/" >/dev/null
+
+echo
+echo "=============================================="
+echo " IPZStream instalado correctamente"
+echo " URL: http://<IP_DEL_CONTENEDOR>/"
+echo " API pública: http://127.0.0.1:3100 (gateway seguro)"
+echo " API interna: 127.0.0.1:3101 (no expuesta)"
+echo " HLS: /streams/"
+echo " FFmpeg: /usr/bin/ffmpeg"
+echo " MariaDB: ${DB_NAME} / ${DB_USER}"
+echo " Config DB: ${ENV_FILE}"
+echo " Archivos: ${APP_DIR}"
+echo " Web: ${WEB_DIR}"
+echo "=============================================="
+; then
+  echo "ERROR: no se pudo consultar stream_node_heartbeats en MariaDB."
   exit 1
 fi
 
