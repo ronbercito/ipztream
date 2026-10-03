@@ -315,3 +315,21 @@ Ahora:
 - si la medición real no es válida, se evita mostrar un fallback engañoso de solo audio.
 
 Versión preparada: `0.4.8`.
+
+
+## 15.5 — Scheduler y balanceo automático de nodos — INICIADA
+Se continúa después de 0.4.8 dejando pendiente la prueba física con segundo servidor.
+
+Alcance aprobado para 0.4.9:
+- scheduler en MAIN con cálculo de nodo recomendado;
+- selección por disponibilidad, estado operativo, CPU, RAM y streams activos;
+- filtros opcionales por región;
+- planificación previa sin modificar canales;
+- aplicación explícita del plan;
+- exclusión de nodos Fuera de línea/Mantenimiento;
+- exclusión de streams cuyo estado deseado sea running;
+- no mover canales ya asignados salvo solicitud explícita;
+- auditoría de las asignaciones automáticas;
+- sin start/stop/restart automático durante esta etapa.
+
+La prueba Main + MariaDB + SUB real continúa pendiente y sigue siendo requisito antes de declarar producción distribuida.
