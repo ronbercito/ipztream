@@ -4,6 +4,7 @@ import { promisify } from 'node:util';
 const exec = promisify(execFile);
 const FFPROBE = process.env.IPZTREAM_FFPROBE || 'ffprobe';
 const TIMEOUT_MS = Math.max(3000, Number(process.env.IPZTREAM_PROBE_TIMEOUT_MS || 12000));
+const BITRATE_SAMPLE_SECONDS = Math.min(3, Math.max(0.75, Number(process.env.IPZTREAM_BITRATE_SAMPLE_SECONDS || 1.25)));
 
 function safeUrl(value) {
   const raw = String(value || '').trim();
@@ -24,6 +25,11 @@ function numberOrNull(value) {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
+function numberOrZero(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : 0;
+}
+
 function fpsFromRate(value) {
   const raw = String(value || '');
   if (!raw || raw === '0/0') return null;
@@ -33,6 +39,90 @@ function fpsFromRate(value) {
   return Number.isFinite(fps) && fps > 0 ? Math.round(fps * 100) / 100 : null;
 }
 
+function kbps(value) {
+  return value ? Math.round(value / 1000) : null;
+}
+
+function packetTimestamp(packet) {
+  const pts = Number(packet?.pts_time);
+  if (Number.isFinite(pts)) return pts;
+  const dts = Number(packet?.dts_time);
+  return Number.isFinite(dts) ? dts : null;
+}
+
+function measurePacketBitrates(packets = [], streams = []) {
+  if (!Array.isArray(packets) || packets.length < 2) return null;
+
+  const streamTypes = new Map(streams.map((stream) => [Number(stream.index), String(stream.codec_type || 'other')]));
+  let firstTs = Infinity;
+  let lastTs = -Infinity;
+  let totalBytes = 0;
+  const bytesByType = { video: 0, audio: 0, subtitle: 0, data: 0, other: 0 };
+
+  for (const packet of packets) {
+    const size = numberOrZero(packet?.size);
+    if (!size) continue;
+
+    totalBytes += size;
+    const type = streamTypes.get(Number(packet?.stream_index));
+    const bucket = Object.prototype.hasOwnProperty.call(bytesByType, type) ? type : 'other';
+    bytesByType[bucket] += size;
+
+    const ts = packetTimestamp(packet);
+    if (ts === null) continue;
+    const duration = Math.max(0, Number(packet?.duration_time) || 0);
+    firstTs = Math.min(firstTs, ts);
+    lastTs = Math.max(lastTs, ts + duration);
+  }
+
+  if (!totalBytes) return null;
+
+  const measuredSeconds = Number.isFinite(firstTs) && Number.isFinite(lastTs) && lastTs > firstTs
+    ? lastTs - firstTs
+    : null;
+
+  if (!measuredSeconds || measuredSeconds < 0.25) return null;
+
+  const toBps = (bytes) => bytes > 0 ? Math.round((bytes * 8) / measuredSeconds) : null;
+  const videoBps = toBps(bytesByType.video);
+  const audioBps = toBps(bytesByType.audio);
+  const subtitleBps = toBps(bytesByType.subtitle);
+  const dataBps = toBps(bytesByType.data);
+  const otherBps = toBps(bytesByType.other);
+
+  return {
+    measuredSeconds: Math.round(measuredSeconds * 1000) / 1000,
+    totalBps: toBps(totalBytes),
+    videoBps,
+    audioBps,
+    subtitleBps,
+    dataBps,
+    otherBps,
+    packetCount: packets.length
+  };
+}
+
+function declaredBitrates(streams = [], format = {}) {
+  const videoBps = streams.filter((stream) => stream.codec_type === 'video').reduce((sum, stream) => sum + numberOrZero(stream.bit_rate), 0) || null;
+  const audioBps = streams.filter((stream) => stream.codec_type === 'audio').reduce((sum, stream) => sum + numberOrZero(stream.bit_rate), 0) || null;
+  const subtitleBps = streams.filter((stream) => stream.codec_type === 'subtitle').reduce((sum, stream) => sum + numberOrZero(stream.bit_rate), 0) || null;
+  const dataBps = streams.filter((stream) => stream.codec_type === 'data').reduce((sum, stream) => sum + numberOrZero(stream.bit_rate), 0) || null;
+  const otherBps = streams.filter((stream) => !['video', 'audio', 'subtitle', 'data'].includes(stream.codec_type)).reduce((sum, stream) => sum + numberOrZero(stream.bit_rate), 0) || null;
+  const streamsTotalBps = streams.reduce((sum, stream) => sum + numberOrZero(stream.bit_rate), 0) || null;
+  const formatBps = numberOrNull(format?.bit_rate);
+
+  let totalBps = formatBps || streamsTotalBps;
+  const hasVideo = streams.some((stream) => stream.codec_type === 'video');
+
+  // Evita el falso 128 Kbps típico de HLS cuando ffprobe solo declara el audio
+  // pero no entrega bit_rate para la pista de video.
+  if (hasVideo && !videoBps && totalBps && audioBps && totalBps <= audioBps * 1.25) {
+    totalBps = null;
+  }
+
+  return { totalBps, videoBps, audioBps, subtitleBps, dataBps, otherBps };
+}
+
 export async function probeSource(input = {}) {
   const url = safeUrl(input.url);
   const started = Date.now();
@@ -40,23 +130,33 @@ export async function probeSource(input = {}) {
     const { stdout } = await exec(FFPROBE, [
       '-v', 'error',
       '-rw_timeout', String(TIMEOUT_MS * 1000),
-      '-show_entries', 'format=format_name,duration,bit_rate:stream=index,codec_type,codec_name,width,height,bit_rate,channels,channel_layout,r_frame_rate,avg_frame_rate',
+      '-read_intervals', '%+' + String(BITRATE_SAMPLE_SECONDS),
+      '-show_entries', 'format=format_name,duration,bit_rate:stream=index,codec_type,codec_name,width,height,bit_rate,channels,channel_layout,r_frame_rate,avg_frame_rate:packet=stream_index,size,pts_time,dts_time,duration_time',
       '-of', 'json',
       url
-    ], { timeout: TIMEOUT_MS + 2000, maxBuffer: 1024 * 1024 * 2, windowsHide: true });
+    ], { timeout: TIMEOUT_MS + 2500, maxBuffer: 1024 * 1024 * 8, windowsHide: true });
+
     const elapsedMs = Date.now() - started;
     const parsed = JSON.parse(stdout || '{}');
     const streams = Array.isArray(parsed.streams) ? parsed.streams : [];
+    const packets = Array.isArray(parsed.packets) ? parsed.packets : [];
     const formatName = String(parsed.format?.format_name || '');
     const playlist = /hls|m3u/i.test(formatName) || /\.m3u8?(?:$|[?#])/i.test(url);
+
     if (!streams.length && !playlist) {
       return { ok: false, status: 'no_signal', label: 'Sin señal', responseMs: elapsedMs, message: 'La URL respondió, pero ffprobe no detectó audio, video ni playlist reproducible.' };
     }
 
-    const video = streams.find(stream => stream.codec_type === 'video') || null;
-    const audio = streams.find(stream => stream.codec_type === 'audio') || null;
-    const streamBitrate = streams.reduce((sum, stream) => sum + (numberOrNull(stream.bit_rate) || 0), 0) || null;
-    const bitrate = numberOrNull(parsed.format?.bit_rate) || streamBitrate;
+    const video = streams.find((stream) => stream.codec_type === 'video') || null;
+    const audio = streams.find((stream) => stream.codec_type === 'audio') || null;
+    const measured = measurePacketBitrates(packets, streams);
+    const declared = declaredBitrates(streams, parsed.format);
+    const totalBps = measured?.totalBps || declared.totalBps;
+    const videoBps = measured?.videoBps || declared.videoBps;
+    const audioBps = measured?.audioBps || declared.audioBps;
+    const subtitleBps = measured?.subtitleBps || declared.subtitleBps;
+    const dataBps = measured?.dataBps || declared.dataBps;
+    const otherBps = measured?.otherBps || declared.otherBps;
     const fps = fpsFromRate(video?.avg_frame_rate) || fpsFromRate(video?.r_frame_rate);
 
     return {
@@ -68,8 +168,23 @@ export async function probeSource(input = {}) {
       format: formatName || null,
       playlist,
       media: {
-        bitrateBps: bitrate,
-        bitrateKbps: bitrate ? Math.round(bitrate / 1000) : null,
+        bitrateBps: totalBps,
+        bitrateKbps: kbps(totalBps),
+        totalBitrateBps: totalBps,
+        totalBitrateKbps: kbps(totalBps),
+        videoBitrateBps: videoBps,
+        videoBitrateKbps: kbps(videoBps),
+        audioBitrateBps: audioBps,
+        audioBitrateKbps: kbps(audioBps),
+        subtitleBitrateBps: subtitleBps,
+        subtitleBitrateKbps: kbps(subtitleBps),
+        dataBitrateBps: dataBps,
+        dataBitrateKbps: kbps(dataBps),
+        otherBitrateBps: otherBps,
+        otherBitrateKbps: kbps(otherBps),
+        bitrateSource: measured?.totalBps ? 'measured_all_packets' : totalBps ? 'declared_total' : 'unavailable',
+        bitrateSampleSeconds: measured?.measuredSeconds || null,
+        bitratePacketCount: measured?.packetCount || 0,
         width: numberOrNull(video?.width),
         height: numberOrNull(video?.height),
         videoCodec: video?.codec_name || null,
@@ -78,15 +193,15 @@ export async function probeSource(input = {}) {
         audioLayout: audio?.channel_layout || null,
         fps
       },
-      streams: streams.map(s => ({
-        type: s.codec_type || null,
-        codec: s.codec_name || null,
-        width: s.width || null,
-        height: s.height || null,
-        bitRate: numberOrNull(s.bit_rate),
-        channels: numberOrNull(s.channels),
-        channelLayout: s.channel_layout || null,
-        fps: s.codec_type === 'video' ? (fpsFromRate(s.avg_frame_rate) || fpsFromRate(s.r_frame_rate)) : null
+      streams: streams.map((stream) => ({
+        type: stream.codec_type || null,
+        codec: stream.codec_name || null,
+        width: stream.width || null,
+        height: stream.height || null,
+        bitRate: numberOrNull(stream.bit_rate),
+        channels: numberOrNull(stream.channels),
+        channelLayout: stream.channel_layout || null,
+        fps: stream.codec_type === 'video' ? (fpsFromRate(stream.avg_frame_rate) || fpsFromRate(stream.r_frame_rate)) : null
       })).slice(0, 8)
     };
   } catch (error) {

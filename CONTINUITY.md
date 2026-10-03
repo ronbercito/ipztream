@@ -315,3 +315,19 @@ Merge commit: `c9c1955a78a842c5ea64ffb291d14a94965a287b`.
 La línea activa pasa a `0.4.7`.
 
 Queda pendiente únicamente la validación física con segundo servidor para cerrar 15.3/15.4 en entorno real. El siguiente desarrollo puede avanzar sobre esta base, pero sin declarar producción distribuida hasta completar esa prueba.
+
+
+## 0.4.8 — Bitrate total real del stream
+Se corrige la medición que podía mostrar 128 Kbps en HLS cuando ffprobe solo declaraba el bitrate del audio y no el de video.
+
+Implementado:
+- muestreo real de paquetes con ffprobe durante una ventana corta;
+- suma del bitrate de **todos los paquetes recibidos**: video + audio + subtítulos + datos/otros;
+- `bitrateKbps` y `totalBitrateKbps` representan ahora el total combinado;
+- desglose adicional: `videoBitrateKbps`, `audioBitrateKbps`, `subtitleBitrateKbps`, `dataBitrateKbps` y `otherBitrateKbps`;
+- protección contra el falso 128 Kbps cuando hay video pero únicamente el audio publica `bit_rate`;
+- la tabla cambia el encabezado a **Bitrate total** y mantiene refresco automático cada 5 s;
+- el drawer muestra bitrate total y desglose de video/audio;
+- se conserva íntegramente la base distribuida 0.4.7 Main/SUB/EDGE.
+
+Versión: `0.4.8`.
