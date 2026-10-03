@@ -131,7 +131,7 @@ export async function iptvStatus() {
 }
 
 function playbackKey(userId, channelId, ip, userAgent) {
-  return createHash('sha256').update([userId, channelId, ip || '', userAgent || ''].join('|')).digest('hex');
+  return createHash('sha256').update([userId, ip || '', userAgent || ''].join('|')).digest('hex');
 }
 
 export async function expirePlaybackSessions() {
@@ -146,8 +146,8 @@ export async function touchPlayback(user, channel, metadata = {}) {
   const key = playbackKey(user.id, channel.id, metadata.ip, metadata.userAgent);
   const existing = await pool.query(`SELECT id, status, blocked_until AS blockedUntil FROM iptv_playback_sessions WHERE session_key = ? LIMIT 1`, [key]);
   if (existing.rows[0]?.status === 'Activa') {
-    await pool.query(`UPDATE iptv_playback_sessions SET last_seen_at = CURRENT_TIMESTAMP(3), node_id = ?, channel_name = ? WHERE id = ?`,
-      [String(channel.nodeId || ''), String(channel.name || ''), existing.rows[0].id]);
+    await pool.query(`UPDATE iptv_playback_sessions SET last_seen_at = CURRENT_TIMESTAMP(3), channel_id = ?, channel_name = ?, node_id = ? WHERE id = ?`,
+      [String(channel.id), String(channel.name || ''), String(channel.nodeId || ''), existing.rows[0].id]);
     return existing.rows[0].id;
   }
   if (existing.rows[0]?.blockedUntil && new Date(existing.rows[0].blockedUntil).getTime() > Date.now()) {
@@ -164,7 +164,7 @@ export async function touchPlayback(user, channel, metadata = {}) {
     throw error;
   }
   if (existing.rows[0]) {
-    await pool.query(`UPDATE iptv_playback_sessions SET status = 'Activa', started_at = CURRENT_TIMESTAMP(3), last_seen_at = CURRENT_TIMESTAMP(3), closed_at = NULL, blocked_until = NULL, node_id = ?, channel_name = ?, ip_address = ?, user_agent = ? WHERE id = ?`, [String(channel.nodeId || ''), String(channel.name || ''), String(metadata.ip || '').slice(0, 64), String(metadata.userAgent || '').slice(0, 512), existing.rows[0].id]);
+    await pool.query(`UPDATE iptv_playback_sessions SET status = 'Activa', started_at = CURRENT_TIMESTAMP(3), last_seen_at = CURRENT_TIMESTAMP(3), closed_at = NULL, blocked_until = NULL, channel_id = ?, channel_name = ?, node_id = ?, ip_address = ?, user_agent = ? WHERE id = ?`, [String(channel.id), String(channel.name || ''), String(channel.nodeId || ''), String(metadata.ip || '').slice(0, 64), String(metadata.userAgent || '').slice(0, 512), existing.rows[0].id]);
     return existing.rows[0].id;
   }
   const id = randomUUID();
