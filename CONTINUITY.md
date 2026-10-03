@@ -169,3 +169,9 @@ Se continúa la fundación main/sub con el primer instalador de nodo secundario 
 - Conectar la navegación `Servidores` con `NodesPage` real.
 - Adaptar la pantalla de nodos para roles `main/sub/edge`, capacidades, métricas, último heartbeat y endpoint API.
 - Mantener compatibilidad con `/api/nodes` existente.
+
+
+### 0.4.3 — Rediseño visual vivo de Streams/Canales
+Se moderniza la interfaz real del panel, sin usar imágenes generadas ni reemplazar la funcionalidad existente. La pantalla Streams/Canales incorpora cabecera más clara, cuatro tarjetas de estado con datos reales del motor, filtros más legibles, tipografía de mayor peso, contraste reforzado e iconografía Lucide con colores operativos diferenciados.
+
+La tabla conserva Start/Stop/Restart, Watch, Power, Edit y Delete, pero aumenta jerarquía visual, tamaño útil de filas, estados y acciones. El shell global recibe mayor contraste en sidebar/topbar y textos más nítidos. No se modifica FFmpeg, HLS, MariaDB ni el modelo de datos; el cambio es compatible con los canales existentes y con el Centro de actualización.
