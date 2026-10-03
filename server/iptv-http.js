@@ -105,6 +105,7 @@ async function handlePlaylist(req, res, url) {
   if (!user) return sendText(res, 401, 'Credenciales IPTV no válidas.');
   const username = url.searchParams.get('username') || '';
   const password = url.searchParams.get('password') || '';
+  const output = String(url.searchParams.get('output') || 'm3u8').toLowerCase() === 'ts' ? 'ts' : 'm3u8';
   const channels = await channelsForUser(user);
   const base = publicBase(req);
   const lines = ['#EXTM3U'];
@@ -112,7 +113,7 @@ async function handlePlaylist(req, res, url) {
     const logo = String(channel.logo || '').replace(/"/g, '&quot;');
     const group = String(channel.category || 'Sin categoría').replace(/"/g, '&quot;');
     lines.push(`#EXTINF:-1 tvg-id="${channel.epgId || ''}" tvg-logo="${logo}" group-title="${group}",${channel.name}`);
-    lines.push(`${base}/live/${encodeURIComponent(username)}/${encodeURIComponent(password)}/${encodeURIComponent(channel.id)}.m3u8`);
+    lines.push(`${base}/live/${encodeURIComponent(username)}/${encodeURIComponent(password)}/${encodeURIComponent(channel.id)}.${output}`);
   }
   return sendText(res, 200, `${lines.join('\n')}\n`, 'audio/x-mpegurl; charset=utf-8');
 }
@@ -131,6 +132,12 @@ async function serveLive(req, res, url, streamRoot) {
   const channel = await getAllowedChannel(user, channelId);
   if (!channel) return sendText(res, 403, 'Canal no autorizado.');
   await touchPlayback(user, channel, { ip: clientIp(req), userAgent: req.headers['user-agent'] || '' });
+
+  if (transport) {
+    const location = `/live/${rawUser}/${rawPass}/${encodeURIComponent(channelId)}.m3u8`;
+    res.writeHead(302, { Location: location, 'Cache-Control': 'no-store' });
+    return res.end();
+  }
 
   if (playlist) {
     const filePath = safeStreamPath(streamRoot, channelId, 'index.m3u8');
