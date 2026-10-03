@@ -8,7 +8,8 @@ import {
   liveStreamsForUser,
   epgForChannel,
   getAllowedChannel,
-  touchPlayback
+  touchPlayback,
+  activeConnectionCount
 } from './iptv-service.js';
 
 function sendJson(res, status, payload) {
@@ -35,11 +36,34 @@ function safeStreamPath(root, channelId, file) {
   const target = path.resolve(dir, file);
   return target.startsWith(`${dir}${path.sep}`) ? target : null;
 }
-async function authenticate(url) {
+const authFailures = new Map();
+function authKey(req, username) {
+  return `${clientIp(req)}|${String(username || '').trim().toLowerCase()}`;
+}
+function blockedAuth(req, username) {
+  const item = authFailures.get(authKey(req, username));
+  return Boolean(item && item.blockedUntil > Date.now());
+}
+function recordAuthFailure(req, username) {
+  const key = authKey(req, username);
+  const current = authFailures.get(key) || { count: 0, blockedUntil: 0 };
+  const count = current.blockedUntil > Date.now() ? current.count : current.count + 1;
+  authFailures.set(key, {
+    count,
+    blockedUntil: count >= 8 ? Date.now() + 60_000 : 0
+  });
+}
+function clearAuthFailure(req, username) {
+  authFailures.delete(authKey(req, username));
+}
+async function authenticate(req, url) {
   const username = url.searchParams.get('username') || '';
   const password = url.searchParams.get('password') || '';
-  if (!username || !password) return null;
-  return authenticateClient(username, password);
+  if (!username || !password || blockedAuth(req, username)) return null;
+  const user = await authenticateClient(username, password);
+  if (!user) recordAuthFailure(req, username);
+  else clearAuthFailure(req, username);
+  return user;
 }
 function userInfo(user, activeCons = 0) {
   const exp = user.expiresAt ? Math.floor(new Date(`${user.expiresAt}T23:59:59Z`).getTime() / 1000) : null;
@@ -70,16 +94,23 @@ function serverInfo(req) {
   };
 }
 async function handlePlayerApi(req, res, url) {
-  const user = await authenticate(url);
+  const user = await authenticate(req, url);
   if (!user) return sendJson(res, 200, { user_info: { auth: 0, status: 'Disabled' }, server_info: serverInfo(req) });
   const action = url.searchParams.get('action') || '';
-  if (!action) return sendJson(res, 200, { user_info: userInfo(user), server_info: serverInfo(req) });
+  if (!action) return sendJson(res, 200, { user_info: userInfo(user, await activeConnectionCount(user.id)), server_info: serverInfo(req) });
   if (action === 'get_live_categories') return sendJson(res, 200, await liveCategoriesForUser(user));
   if (action === 'get_live_streams') {
     const categories = await liveCategoriesForUser(user);
     const categoryId = String(url.searchParams.get('category_id') || '');
     const category = categories.find((item) => String(item.category_id) === categoryId);
     return sendJson(res, 200, await liveStreamsForUser(user, category?.category_name || ''));
+  }
+  if (action === 'get_simple_data_table') {
+    const streamId = String(url.searchParams.get('stream_id') || '');
+    const allowedChannel = await getAllowedChannel(user, streamId);
+    if (!allowedChannel) return sendJson(res, 200, { epg_listings: [] });
+    const rows = await epgForChannel(allowedChannel.id, Number(url.searchParams.get('limit') || 50));
+    return sendJson(res, 200, { epg_listings: rows });
   }
   if (action === 'get_short_epg') {
     const streamId = String(url.searchParams.get('stream_id') || '');
@@ -102,7 +133,7 @@ async function handlePlayerApi(req, res, url) {
   return sendJson(res, 200, []);
 }
 async function handlePlaylist(req, res, url) {
-  const user = await authenticate(url);
+  const user = await authenticate(req, url);
   if (!user) return sendText(res, 401, 'Credenciales IPTV no válidas.');
   const username = url.searchParams.get('username') || '';
   const password = url.searchParams.get('password') || '';
@@ -114,10 +145,39 @@ async function handlePlaylist(req, res, url) {
     const logo = String(channel.logo || '').replace(/"/g, '&quot;');
     const group = String(channel.category || 'Sin categoría').replace(/"/g, '&quot;');
     lines.push(`#EXTINF:-1 tvg-id="${channel.epgId || ''}" tvg-logo="${logo}" group-title="${group}",${channel.name}`);
-    lines.push(`${base}/live/${encodeURIComponent(username)}/${encodeURIComponent(password)}/${encodeURIComponent(channel.id)}.${output}`);
+    lines.push(`${base}/live/${encodeURIComponent(username)}/${encodeURIComponent(password)}/${encodeURIComponent(channel.number || channel.id)}.${output}`);
   }
   return sendText(res, 200, `${lines.join('\n')}\n`, 'audio/x-mpegurl; charset=utf-8');
 }
+function xmlEscape(value) {
+  return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
+}
+function xmltvTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())} +0000`;
+}
+async function handleXmltv(req, res, url) {
+  const user = await authenticate(req, url);
+  if (!user) return sendText(res, 401, 'Credenciales IPTV no válidas.');
+  const channels = await channelsForUser(user);
+  const parts = ['<?xml version="1.0" encoding="UTF-8"?>', '<tv generator-info-name="IPZStream">'];
+  for (const channel of channels) {
+    const id = xmlEscape(channel.epgId || channel.id);
+    parts.push(`<channel id="${id}"><display-name>${xmlEscape(channel.name)}</display-name>${channel.logo ? `<icon src="${xmlEscape(channel.logo)}"/>` : ''}</channel>`);
+  }
+  for (const channel of channels) {
+    const rows = await epgForChannel(channel.id, 100);
+    for (const item of rows) {
+      if (!item.start || !item.end) continue;
+      parts.push(`<programme start="${xmltvTime(item.start)}" stop="${xmltvTime(item.end)}" channel="${xmlEscape(channel.epgId || channel.id)}"><title lang="es">${xmlEscape(item.title)}</title><desc lang="es">${xmlEscape(item.description || '')}</desc></programme>`);
+    }
+  }
+  parts.push('</tv>');
+  return sendText(res, 200, parts.join('\n'), 'application/xml; charset=utf-8');
+}
+
 async function authPathUser(username, password) {
   return authenticateClient(decodeURIComponent(username), decodeURIComponent(password));
 }
@@ -142,7 +202,7 @@ async function serveLive(req, res, url, streamRoot) {
   }
 
   if (playlist) {
-    const filePath = safeStreamPath(streamRoot, channelId, 'index.m3u8');
+      const filePath = safeStreamPath(streamRoot, String(channel.id), 'index.m3u8');
     if (!filePath) return sendText(res, 400, 'Ruta de canal no válida.');
     try {
       let body = await readFile(filePath, 'utf8');
@@ -155,7 +215,7 @@ async function serveLive(req, res, url, streamRoot) {
   }
 
   const file = match[4];
-  const filePath = safeStreamPath(streamRoot, channelId, file);
+  const filePath = safeStreamPath(streamRoot, String(channel.id), file);
   if (!filePath) return sendText(res, 400, 'Segmento no válido.');
   try {
     const info = await stat(filePath);
@@ -170,6 +230,7 @@ export async function handleIptvHttp(req, res, url, { streamRoot }) {
   if (!['GET', 'HEAD'].includes(req.method)) return false;
   if (url.pathname === '/player_api.php') return handlePlayerApi(req, res, url);
   if (url.pathname === '/get.php') return handlePlaylist(req, res, url);
+  if (url.pathname === '/xmltv.php') return handleXmltv(req, res, url);
   if (url.pathname.startsWith('/live/')) return serveLive(req, res, url, streamRoot);
   return false;
 }
