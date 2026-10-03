@@ -221,3 +221,27 @@ Se integra en el panel real el rediseño solicitado, sin usar imágenes generada
 La tabla conserva las funciones existentes Start/Stop/Restart, Watch, Power, Edit y Delete, pero aumenta jerarquía visual, tamaño útil de filas, lectura de estados y separación de acciones. El shell global recibe mayor contraste en sidebar/topbar y textos más nítidos.
 
 No se modifica FFmpeg, HLS, MariaDB, el modelo de nodos 0.4.3 ni los endpoints existentes. La versión visual pasa a `0.4.4` para no colisionar con la entrega 0.4.3 de persistencia Main/Sub.
+
+
+### 15.4 — Agente real de subnodo y control remoto de streams
+Respaldo previo: `backup/pre-subnode-agent-0.4.5-20261003`.
+
+Decisión del operador: la validación física de 15.3 con un segundo servidor queda **pendiente**, no cancelada. Se permite continuar el desarrollo, pero no declarar producción ni cerrar 15.3 hasta probar Main + MariaDB + SUB real.
+
+Objetivo 15.4:
+- convertir el subnodo en un agente HTTP real capaz de ejecutar FFmpeg/HLS localmente;
+- exponer start/stop/restart/status de streams con autenticación por token;
+- hacer que el Main enrute las órdenes según `channel.nodeId`;
+- mantener el procesamiento local cuando el canal no tenga nodo remoto asignado;
+- devolver una URL HLS del nodo que realmente procesa el canal;
+- instalar el agente como servicio systemd desde `scripts/install-node.sh`;
+- conservar heartbeat y agente como servicios separados;
+- mostrar nodos reales en el selector de canal en lugar de escribir IDs manuales;
+- conservar compatibilidad con el motor local actual.
+
+Seguridad transitoria:
+- el agente usa el mismo secreto `IPZTREAM_NODE_REGISTRATION_TOKEN` para control remoto en esta etapa;
+- HMAC por nodo, rotación/revocación individual y allowlist estricta siguen pendientes para la siguiente etapa de endurecimiento;
+- el Main validará el `apiBaseUrl` contra la IP/hostname registrada del nodo antes de enviar órdenes.
+
+La versión de trabajo será `0.4.5`. La validación real con un segundo servidor seguirá marcada como pendiente al finalizar el código.
