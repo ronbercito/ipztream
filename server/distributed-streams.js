@@ -12,6 +12,7 @@ import {
   TABLES
 } from './db.js';
 import {
+  clearRemoteStreamHistory,
   getRemoteStream,
   resolveChannelTarget,
   restartRemoteStream,
@@ -59,7 +60,7 @@ export async function clearDistributedStreamHistory(channelId){
   const target=await resolveChannelTarget(channelId,{allowOffline:true});
   if(target.type==='local')return localDecorate(clearStreamHistory(channelId),target);
   if(target.node.status==='Fuera de línea')return{channelId:String(channelId),status:'error',desiredState:'unknown',nodeId:target.node.id,nodeName:target.node.name,execution:'remote',hlsUrl:null,error:'Nodo fuera de línea.',remotePending:true,logs:[]};
-  return getRemoteStream(target.node,channelId);
+  return clearRemoteStreamHistory(target.node,channelId);
 }
 export async function restoreDistributedDesiredStreams(){
   const ids=await listDesiredRunningStreams();
