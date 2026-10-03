@@ -355,7 +355,8 @@ export async function upsertStreamNode(item, { matchByIp = true } = {}) {
   const id = current?.id || requestedId;
   if (!id) throw new Error('El nodo requiere un ID estable.');
 
-  const lastSeenAt = item.lastSeenAt ? new Date(item.lastSeenAt) : null;
+  const effectiveLastSeenAt = item.lastSeenAt ?? current?.lastSeenAt ?? null;
+  const parsedLastSeenAt = effectiveLastSeenAt ? new Date(effectiveLastSeenAt) : null;
   const params = [
     id,
     String(item.name || current?.name || '').trim(),
@@ -376,7 +377,7 @@ export async function upsertStreamNode(item, { matchByIp = true } = {}) {
     nullableNumber(item.load ?? current?.load),
     Math.max(0, Number(item.activeStreams ?? current?.activeStreams ?? 0)),
     Math.max(0, Number(item.uptime ?? current?.uptime ?? 0)),
-    lastSeenAt && !Number.isNaN(lastSeenAt.getTime()) ? lastSeenAt : current?.lastSeenAt || null
+    parsedLastSeenAt && !Number.isNaN(parsedLastSeenAt.getTime()) ? parsedLastSeenAt : null
   ];
 
   await mariaPool.query(
