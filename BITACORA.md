@@ -253,3 +253,18 @@ Implementado:
 - indicador visual “Bitrate / Resolución · actualización automática cada 5 s”.
 
 Versión preparada: `0.4.6`.
+
+
+## 0.4.7 — Corrección de 128 Kbps en Bitrate
+Se corrige el caso observado en ESPN 2 y América TV donde ambos mostraban 128 Kbps. Ese valor provenía de la pista de audio AAC cuando la pista de video HLS no publicaba `bit_rate`.
+
+Implementado:
+- muestreo de paquetes con ffprobe;
+- suma real de bytes de todas las pistas;
+- cálculo del bitrate total sobre la duración real de la muestra;
+- desglose video/audio disponible para el drawer;
+- protección contra fallback engañoso de solo audio;
+- columna renombrada a **Bitrate total**;
+- actualización cada 5 s preservada.
+
+Versión preparada: `0.4.7`.
