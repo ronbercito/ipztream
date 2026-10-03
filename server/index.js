@@ -410,6 +410,13 @@ async function handle(req, res) {
     if (!ids.length || ids.length>500) return send(res,400,{message:'Selecciona entre 1 y 500 canales.'});
     const allowed=['activate','deactivate','delete','category','bouquet','node','profile','reorder'];
     if(!allowed.includes(action)) return send(res,400,{message:'Acción masiva no válida.'});
+    if(['deactivate','delete','node'].includes(action)){
+      for(const id of ids){
+        const current=await getItem(TABLES.channels,id);
+        if(!current)continue;
+        if(await getStreamDesiredState(id)==='running')return send(res,409,{message:`Detén el stream ${current.name||id} antes de ${action==='node'?'moverlo de nodo':action==='delete'?'eliminarlo':'desactivarlo'}.`});
+      }
+    }
     const updated=[],missing=[];
     for(const id of ids){const current=await getItem(TABLES.channels,id);if(!current){missing.push(id);continue}
       if(action==='delete'){await saveDelete(TABLES.channels,id,'channels');updated.push({id,deleted:true});continue}
@@ -444,12 +451,17 @@ async function handle(req, res) {
     if (req.method === 'PUT') {
       const channels = await listItems(TABLES.channels);
       const item = normalizeChannel(await readBody(req), current);
-      if(String(item.nodeId||'').trim()!==String(current.nodeId||'').trim()&&await getStreamDesiredState(id)==='running')return send(res,409,{message:'Detén el stream antes de moverlo a otro nodo.'});
+      const desiredState=await getStreamDesiredState(id);
+      if(String(item.nodeId||'').trim()!==String(current.nodeId||'').trim()&&desiredState==='running')return send(res,409,{message:'Detén el stream antes de moverlo a otro nodo.'});
+      if(item.status==='Inactivo'&&current.status!=='Inactivo'&&desiredState==='running')return send(res,409,{message:'Detén el stream antes de desactivar el canal.'});
       const validation = validateChannel(item, channels, id) || await validateChannelNode(item);
       if (validation) return send(res, 400, { message: validation });
       return send(res, 200, await saveUpdate(TABLES.channels, id, item, 'channels'));
     }
-    if (req.method === 'DELETE') return send(res, (await saveDelete(TABLES.channels, id, 'channels')) ? 200 : 404, { ok: true });
+    if (req.method === 'DELETE') {
+      if(await getStreamDesiredState(id)==='running')return send(res,409,{message:'Detén el stream antes de eliminar el canal.'});
+      return send(res, (await saveDelete(TABLES.channels, id, 'channels')) ? 200 : 404, { ok: true });
+    }
   }
 
   if (pathname === '/api/packages') {
