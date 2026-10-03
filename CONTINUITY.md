@@ -388,3 +388,17 @@ Se concentra IPZStream en cuatro áreas operativas: Canales/Streams, Usuarios IP
 
 ### Validación requerida
 Antes de declarar 0.5.0 estable: actualizar servidor de desarrollo, crear paquete+usuario, iniciar un canal real y probar login/listado/reproducción desde una app IPTV gratuita compatible o desde VLC. La prueba física Main/Sub continúa pendiente y no bloquea la validación local del cliente IPTV.
+
+
+### Resultado técnico 0.5.0 — núcleo IPTV implementado
+- Nueva capa `server/iptv-service.js` para catálogo autorizado por paquete, sesiones de reproducción, límite de conexiones, expiración y cierre administrativo.
+- Nueva capa pública `server/iptv-http.js` con compatibilidad inicial estilo Xtream: `/player_api.php`, `/get.php`, live HLS y compatibilidad `.ts`.
+- Los clientes externos autentican contra los usuarios IPTV existentes; no requieren sesión administrativa del panel.
+- `stream_id` público usa el número de canal cuando existe para mejorar compatibilidad con clientes que esperan IDs numéricos; internamente IPZStream conserva su UUID.
+- Paquetes permiten restringir canales concretos. Si no se seleccionan canales, el comportamiento retrocompatible es permitir todos.
+- La consola Conexiones Activas ahora lee sesiones reales de reproducción IPTV.
+- Se agregó `scripts/test-iptv-client.mjs` y `docs/iptv-client-test.md` para la validación end-to-end en servidor.
+- Versión objetivo: `0.5.0`.
+
+### Pendiente obligatorio antes de declarar estable
+No existe CI en GitHub para este repositorio y esta entrega todavía no fue ejecutada en el servidor de desarrollo. Debe instalarse 0.5.0 desde el Centro de actualización, validar arranque/MariaDB, ejecutar `scripts/test-iptv-client.mjs` con un usuario real y después probar reproducción desde una app IPTV externa. La prueba física Main/Sub sigue pendiente y es independiente de esta validación local de cliente.
