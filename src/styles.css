@@ -24,3 +24,9 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-r
 .legacy-admin{font-weight:750!important}.legacy-admin .avatar{background:#197bb8!important;box-shadow:0 0 0 2px rgba(255,255,255,.12)}
 .legacy-content{background:linear-gradient(180deg,#f6fafe,#f2f6fa)!important;min-height:calc(100vh - 50px)}
 .legacy-page-title h1{color:#17324b!important;font-weight:850!important;letter-spacing:-.2px}.legacy-page-title p{color:#6d8294!important;font-weight:600}
+
+
+/* 0.4.5 — chip de estado del módulo Streams */
+.channel-auto-chip{height:29px;display:inline-flex;align-items:center;gap:6px;padding:0 9px;border-radius:7px;background:rgba(4,91,142,.25);border:1px solid rgba(255,255,255,.16);color:#e9f8ff;font-size:9px;font-weight:800;white-space:nowrap}
+.channel-auto-chip svg{color:#9de1ff}
+@media(max-width:900px){.channel-auto-chip{display:none}}
