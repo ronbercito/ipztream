@@ -53,6 +53,12 @@ CREATE TABLE IF NOT EXISTS stream_node_heartbeats (
   CONSTRAINT fk_stream_node_heartbeats_node FOREIGN KEY (node_id) REFERENCES stream_nodes(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS app_meta (
+  meta_key VARCHAR(128) PRIMARY KEY,
+  meta_value TEXT NOT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS audit_logs (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, action VARCHAR(64) NOT NULL, module VARCHAR(128) NOT NULL, actor VARCHAR(191), detail TEXT, metadata JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_audit_logs_created_at (created_at));
 
 -- Autenticación administrativa y RBAC.
