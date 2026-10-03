@@ -7,7 +7,9 @@ import {
 } from './stream-manager.js';
 import {
   listDesiredRunningStreams,
-  setStreamDesiredState
+  listItems,
+  setStreamDesiredState,
+  TABLES
 } from './db.js';
 import {
   getRemoteStream,
@@ -20,6 +22,14 @@ import {
 function localDecorate(stream,target){
   return{...stream,nodeId:target.node?.id||'',nodeName:target.node?.name||'Main',execution:'local'};
 }
+export async function listDistributedStreams(){
+  const channels=await listItems(TABLES.channels);
+  return Promise.all(channels.map(async channel=>{
+    try{return await getDistributedStream(channel.id)}
+    catch(error){return{channelId:String(channel.id),status:'error',desiredState:'unknown',nodeId:String(channel.nodeId||''),nodeName:'',execution:channel.nodeId?'remote':'local',hlsUrl:null,error:error.message,logs:[]}}
+  }));
+}
+
 export async function getDistributedStream(channelId){
   const target=await resolveChannelTarget(channelId,{allowOffline:true});
   if(target.type==='local')return localDecorate(getStream(channelId),target);
