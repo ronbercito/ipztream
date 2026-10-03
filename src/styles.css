@@ -30,3 +30,20 @@ html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-r
 .channel-auto-chip{height:29px;display:inline-flex;align-items:center;gap:6px;padding:0 9px;border-radius:7px;background:rgba(4,91,142,.25);border:1px solid rgba(255,255,255,.16);color:#e9f8ff;font-size:9px;font-weight:800;white-space:nowrap}
 .channel-auto-chip svg{color:#9de1ff}
 @media(max-width:900px){.channel-auto-chip{display:none}}
+
+
+/* 0.4.6 — shell con contraste más sólido */
+.legacy-sidebar{background:#071d30!important;border-right:1px solid #163b59!important}
+.legacy-brand{background:#0a2740!important;border-bottom:1px solid #1d4b6c!important}
+.legacy-logo{background:#0788f5!important;box-shadow:0 6px 16px rgba(0,111,206,.35)!important}
+.legacy-nav-label{color:#75a6c8!important}
+.legacy-nav button{color:#d1e0eb!important;font-weight:720!important}
+.legacy-nav button:hover{background:#113653!important;color:#fff!important}
+.legacy-nav button.active{background:#0788f5!important;border-left-color:#8bd7ff!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)!important}
+.legacy-topbar{background:#0788d6!important;box-shadow:0 3px 12px rgba(0,75,126,.24)!important}
+.legacy-search{background:rgba(255,255,255,.18)!important;border-color:rgba(255,255,255,.28)!important}
+.update-button{background:#0874bc!important;border-color:rgba(255,255,255,.3)!important;font-weight:800!important}
+.update-button:hover{background:#0566a8!important}
+.channel-auto-chip{background:#0569aa!important;border-color:#41a8e2!important;color:#fff!important;box-shadow:0 3px 8px rgba(0,60,105,.16)}
+.channel-auto-chip svg{color:#bcecff!important}
+.legacy-content{background:#edf4fa!important}

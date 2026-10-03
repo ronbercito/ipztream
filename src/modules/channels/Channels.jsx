@@ -1,10 +1,10 @@
 import React from 'react';
-import { AlertTriangle, CheckCircle2, FolderOpen, Layers3, PauseCircle, Play, Plus, Radio, RadioTower, RefreshCw, RotateCw, Square, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FolderOpen, Layers3, PauseCircle, Play, Plus, Radio, RadioTower, RotateCw, Square, Trash2 } from 'lucide-react';
 import ChannelDetailDrawer from './components/ChannelDetailDrawer.jsx';
 import ChannelFilters from './components/ChannelFilters.jsx';
 import ChannelForm from './components/ChannelForm.jsx';
 import ChannelTable from './components/ChannelTable.jsx';
-import { bulkChannelAction, clearChannelStreamHistory, createChannel, createChannelsBulk, deleteChannel, loadChannels, loadStream, restartChannelStream, startChannelStream, stopChannelStream, updateChannel } from './services/channelsApi.js';
+import { bulkChannelAction, clearChannelStreamHistory, createChannel, createChannelsBulk, deleteChannel, loadChannels, loadStream, probeChannelSource, restartChannelStream, startChannelStream, stopChannelStream, updateChannel } from './services/channelsApi.js';
 import './styles/channels.css';
 
 function primarySource(channel) {
@@ -38,6 +38,8 @@ export default function Channels() {
   const [type, setType] = React.useState('Todos');
   const [category, setCategory] = React.useState('Todas');
   const [columns, setColumns] = React.useState({ bitrate: true, resolution: true, clients: true });
+  const [mediaRefreshing, setMediaRefreshing] = React.useState(false);
+  const mediaProbeRunningRef = React.useRef(false);
 
   const refreshStreams = React.useCallback(async (list) => {
     const target = list || channels;
@@ -91,6 +93,48 @@ export default function Channels() {
     const matchesType = type === 'Todos' || sourceType(channel) === type;
     return matchesQuery && matchesStatus && matchesCategory && matchesServer && matchesType;
   }).sort((a, b) => Number(a.sortOrder || a.number) - Number(b.sortOrder || b.number)), [channels, query, status, category, server, type]);
+
+  const refreshMediaMetrics = React.useCallback(async (list = filtered) => {
+    if (mediaProbeRunningRef.current) return;
+    const target = (list || []).slice(0, 25).filter((channel) => primarySource(channel)?.url);
+    if (!target.length) return;
+
+    mediaProbeRunningRef.current = true;
+    setMediaRefreshing(true);
+    const updates = {};
+    let cursor = 0;
+
+    const worker = async () => {
+      while (cursor < target.length) {
+        const channel = target[cursor++];
+        const source = primarySource(channel);
+        if (!source?.url) continue;
+        try {
+          const result = await probeChannelSource(source);
+          if (result?.media) updates[channel.id] = { ...result.media, measuredAt: Date.now() };
+        } catch {
+          // Conserva la última medición válida para evitar parpadeos por fallos transitorios.
+        }
+      }
+    };
+
+    try {
+      await Promise.all(Array.from({ length: Math.min(4, target.length) }, () => worker()));
+      if (Object.keys(updates).length) {
+        setMediaByChannel((previous) => ({ ...previous, ...updates }));
+      }
+    } finally {
+      mediaProbeRunningRef.current = false;
+      setMediaRefreshing(false);
+    }
+  }, [filtered]);
+
+  React.useEffect(() => {
+    if (!filtered.length) return undefined;
+    refreshMediaMetrics(filtered);
+    const timer = setInterval(() => refreshMediaMetrics(filtered), 5000);
+    return () => clearInterval(timer);
+  }, [filtered, refreshMediaMetrics]);
 
   const streamStats = React.useMemo(() => {
     let running = 0;
@@ -258,11 +302,6 @@ export default function Channels() {
   return <div className={'channels-page xui-streams modern-streams' + (detailChannel ? ' details-open' : '')}>
     <div className="stream-page-hero">
       <div className="stream-page-title"><span className="stream-page-icon"><RadioTower size={26}/></span><div><h1>Streams / Canales</h1><span>Administra, monitorea y controla tus señales en tiempo real</span></div></div>
-      <div className="xui-title-actions modern-title-actions">
-        <button className="stream-refresh-button" onClick={refresh} title="Actualizar ahora"><RefreshCw size={15}/> Actualizar</button>
-        <button onClick={() => setMassOpen(true)}><Layers3 size={15}/> Añadir múltiples</button>
-        <button className="xui-primary" onClick={() => { setEditing(null); setFormOpen(true); }}><Plus size={15}/> Añadir Stream</button>
-      </div>
     </div>
 
     <div className="stream-summary-grid">
@@ -290,6 +329,10 @@ export default function Channels() {
         types={types}
         categories={categories}
         columns={columns}
+        metricsBusy={mediaRefreshing}
+        onRefresh={async () => { await refresh(); await refreshMediaMetrics(filtered); }}
+        onMassAdd={() => setMassOpen(true)}
+        onAdd={() => { setEditing(null); setFormOpen(true); }}
         onToggleColumn={(name) => setColumns((previous) => ({ ...previous, [name]: !previous[name] }))}
       />
 
