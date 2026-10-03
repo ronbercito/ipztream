@@ -260,3 +260,27 @@ Cambios:
 - estado FFmpeg/HLS mantiene su polling existente de 3 s.
 
 Versión: `0.4.6`.
+
+
+## 15.4 — Agente real SUB y control remoto de streams — INICIADA
+Respaldo previo: `backup/pre-subnode-agent-0.4.7-20261003`.
+
+Decisión del operador: la prueba física de 15.3 con un segundo servidor queda **pendiente**, no cancelada. Se continúa desarrollo sin declarar producción.
+
+Objetivo de esta etapa:
+- instalar un agente HTTP real en cada SUB/EDGE;
+- permitir start/stop/restart/status de FFmpeg/HLS remoto;
+- enrutar desde el MAIN según `channel.nodeId`;
+- conservar ejecución local cuando `nodeId` esté vacío o sea Main;
+- exponer HLS del SUB mediante su `apiBaseUrl`;
+- sincronizar asignaciones deseadas MAIN→SUB;
+- impedir mover/desactivar/eliminar un canal mientras su stream siga deseado en ejecución;
+- mantener token actual de nodo como mecanismo transitorio de control hasta implementar HMAC/token por nodo.
+
+La versión de integración será `0.4.7`, preservando íntegramente los cambios visuales y métricas de 0.4.6.
+
+Validación mínima antes de merge:
+- sintaxis Node/Bash;
+- build Vite;
+- pruebas aisladas del agente sin requerir todavía un segundo servidor físico;
+- revisión de que 0.4.6 no pierda polling multimedia ni acabado visual.
