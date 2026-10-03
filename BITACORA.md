@@ -376,3 +376,9 @@ También se agregó `.github/workflows/ci.yml` para validar sintaxis Node y buil
 
 ## 2026-10-03 — 0.5.1 integrado en main
 PR #12 aprobado técnicamente por GitHub Actions CI: dependencias, sintaxis Node y build Vite correctos. Merge commit: `50f02ccd7f1c351af89fc3142ad3f0f1af0d4b7b`. Se actualiza continuidad con la validación pendiente en servidor/app real.
+
+
+## 2026-10-03 — Smarters: diagnóstico y plan 0.5.2
+Prueba real confirmada en LAN contra `192.168.10.220:3100`: autenticación `auth:1`, categorías PERU/DEPORTES, streams AMERICATV SD/ESPN 2, acciones VOD/series vacías y EPG corto vacío responden sin error. Smarters IPTV Pro inicia sesión pero queda en carga indefinida de la lista.
+
+Se decide endurecer compatibilidad Xtream antes de seguir probando apps: devolver contraseña en `user_info` como esperan clientes Xtream, completar campos habituales de `server_info`/streams, responder explícitamente acciones sin contenido y añadir logging HTTP opcional para identificar peticiones de clientes externos. No se modifica la autorización por paquete ni la reproducción HLS.
