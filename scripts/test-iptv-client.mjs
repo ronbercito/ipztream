@@ -39,7 +39,12 @@ try {
   if (!playlist.text.startsWith('#EXTM3U')) throw new Error('La playlist M3U no es válida.');
   console.log('OK playlist M3U');
 
+  const xmltv = await getText(`/xmltv.php?${qs}`);
+  if (!xmltv.text.includes('<tv') || !xmltv.text.includes('<channel')) throw new Error('XMLTV no devolvió canales válidos.');
+  console.log('OK XMLTV / EPG');
+
   const streamId = streams[0].stream_id;
+  if (!String(streamId).length) throw new Error('El primer canal no tiene stream_id público.');
   const liveUrl = `/live/${encodeURIComponent(username)}/${encodeURIComponent(password)}/${encodeURIComponent(streamId)}.m3u8`;
   const live = await getText(liveUrl);
   if (!live.text.includes('#EXTM3U')) throw new Error('El primer canal no devolvió un manifiesto HLS.');
