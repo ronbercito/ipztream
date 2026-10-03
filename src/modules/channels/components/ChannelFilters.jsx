@@ -1,11 +1,47 @@
-import React from'react';
-import{Search,SlidersHorizontal,ListFilter}from'lucide-react';
+import React from 'react';
+import { Columns3, ListFilter, Search, Server, SlidersHorizontal, Tv2 } from 'lucide-react';
 
-export default function ChannelFilters({query,setQuery,status,setStatus,category,setCategory,categories}){
- return <div className="xui-stream-toolbar modern-stream-toolbar">
-   <label className="stream-search-box"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar canal, categoría, servidor..."/></label>
-   <div className="stream-filter-control"><span><SlidersHorizontal size={14}/> Estado</span><select value={status} onChange={e=>setStatus(e.target.value)}><option>Todos</option><option>Activo</option><option>Inactivo</option></select></div>
-   <div className="stream-filter-control"><span><ListFilter size={14}/> Categoría</span><select value={category} onChange={e=>setCategory(e.target.value)}>{categories.map(c=><option key={c}>{c}</option>)}</select></div>
-   <div className="stream-page-size"><span>Mostrar</span><select defaultValue="25"><option>10</option><option>25</option><option>50</option><option>100</option></select><span>filas</span></div>
- </div>
+export default function ChannelFilters({
+  query,
+  setQuery,
+  status,
+  setStatus,
+  server,
+  setServer,
+  type,
+  setType,
+  category,
+  setCategory,
+  servers,
+  types,
+  categories,
+  columns,
+  onToggleColumn
+}) {
+  const [columnsOpen, setColumnsOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const close = () => setColumnsOpen(false);
+    window.addEventListener('click', close);
+    return () => window.removeEventListener('click', close);
+  }, []);
+
+  return <div className="xui-stream-toolbar modern-stream-toolbar">
+    <label className="stream-search-box"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar canal, categoría, servidor..."/></label>
+
+    <div className="stream-filter-control"><span><SlidersHorizontal size={13}/> Estado</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option>Todos</option><option>Activo</option><option>Inactivo</option></select></div>
+    <div className="stream-filter-control"><span><Server size={13}/> Servidor</span><select value={server} onChange={(event) => setServer(event.target.value)}>{servers.map((value) => <option key={value}>{value}</option>)}</select></div>
+    <div className="stream-filter-control"><span><Tv2 size={13}/> Tipo</span><select value={type} onChange={(event) => setType(event.target.value)}>{types.map((value) => <option key={value}>{value}</option>)}</select></div>
+    <div className="stream-filter-control"><span><ListFilter size={13}/> Categoría</span><select value={category} onChange={(event) => setCategory(event.target.value)}>{categories.map((value) => <option key={value}>{value}</option>)}</select></div>
+
+    <div className="stream-columns-wrap" onClick={(event) => event.stopPropagation()}>
+      <button className="stream-columns-button" onClick={() => setColumnsOpen((value) => !value)}><Columns3 size={15}/> Columnas</button>
+      {columnsOpen && <div className="stream-columns-menu">
+        <strong>Columnas opcionales</strong>
+        <label><input type="checkbox" checked={columns.bitrate} onChange={() => onToggleColumn('bitrate')}/> Bitrate</label>
+        <label><input type="checkbox" checked={columns.resolution} onChange={() => onToggleColumn('resolution')}/> Resolución</label>
+        <label><input type="checkbox" checked={columns.clients} onChange={() => onToggleColumn('clients')}/> Clientes</label>
+      </div>}
+    </div>
+  </div>;
 }
