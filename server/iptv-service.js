@@ -71,19 +71,24 @@ export async function liveStreamsForUser(user, categoryName = '') {
   const channels = await channelsForUser(user);
   const categoryNames = [...new Set(channels.map((item) => String(item.category || 'Sin categoría')))];
   const filtered = categoryName ? channels.filter((item) => String(item.category || 'Sin categoría') === categoryName) : channels;
-  return filtered.map((channel, index) => ({
-    num: index + 1,
-    name: channel.name,
-    stream_type: 'live',
-    stream_id: String(channel.number || channel.id),
-    stream_icon: channel.logo || '',
-    epg_channel_id: channel.epgId || '',
-    added: '0',
-    category_id: String(Math.max(1, categoryNames.indexOf(String(channel.category || 'Sin categoría')) + 1)),
-    tv_archive: 0,
-    direct_source: '',
-    tv_archive_duration: 0
-  }));
+  return filtered.map((channel, index) => {
+    const categoryId = String(Math.max(1, categoryNames.indexOf(String(channel.category || 'Sin categoría')) + 1));
+    return {
+      num: index + 1,
+      name: channel.name,
+      stream_type: 'live',
+      stream_id: String(channel.number || channel.id),
+      stream_icon: channel.logo || '',
+      epg_channel_id: channel.epgId || '',
+      added: '0',
+      category_id: categoryId,
+      category_ids: [Number(categoryId)],
+      custom_sid: '',
+      tv_archive: 0,
+      direct_source: '',
+      tv_archive_duration: 0
+    };
+  });
 }
 
 export async function epgForChannel(channelId, limit = 10) {
