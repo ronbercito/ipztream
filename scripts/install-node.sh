@@ -55,6 +55,17 @@ fi
 for command in node ffmpeg curl python3 free df awk systemctl; do
   command -v "${command}" >/dev/null 2>&1 || { echo "Falta dependencia requerida: ${command}" >&2; exit 1; }
 done
+if ! node -e 'process.exit(Number(process.versions.node.split(".")[0]) < 20)'; then
+  if ! command -v apt-get >/dev/null 2>&1; then
+    echo "Node.js 20+ es requerido para el agente SUB." >&2
+    exit 1
+  fi
+  echo "==> Actualizando Node.js a 22 LTS..."
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg
+  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+  DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
+fi
 
 if ! id -u "${AGENT_USER}" >/dev/null 2>&1; then
   useradd --system --home "${STATE_DIR}" --create-home --shell /usr/sbin/nologin "${AGENT_USER}"
@@ -81,6 +92,7 @@ IPZTREAM_NODE_API_BASE_URL=${NODE_API_BASE_URL}
 IPZTREAM_NODE_CAPACITY=${NODE_CAPACITY}
 IPZTREAM_NODE_AGENT_HOST=0.0.0.0
 IPZTREAM_NODE_AGENT_PORT=${NODE_AGENT_PORT}
+IPZTREAM_NODE_SYNC_INTERVAL_MS=${IPZTREAM_NODE_SYNC_INTERVAL_MS:-15000}
 IPZTREAM_NODE_STREAM_ROOT=${STREAM_DIR}
 IPZTREAM_NODE_STATE_FILE=${STATE_DIR}/desired-streams.json
 IPZTREAM_FFMPEG_BIN=/usr/bin/ffmpeg
