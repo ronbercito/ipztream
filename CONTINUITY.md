@@ -188,3 +188,22 @@ Reglas:
 - La identidad del nodo debe ser estable: si un registro llega con el mismo IP/host, se reutiliza el ID existente para que una reinstalación no rompa el heartbeat.
 
 Antes de continuar a ejecución distribuida de FFmpeg, esta etapa debe validar: alta manual, registro remoto, heartbeat, transición online→offline→online, reinicio del main y conservación de datos.
+
+#### Implementación 0.4.3
+- `server/db.js` crea y usa `stream_nodes` + `stream_node_heartbeats`.
+- Migración legacy protegida por `app_meta.stream_nodes_migrated_v1`, para que un nodo eliminado no reaparezca al reiniciar.
+- `/api/stream-nodes` es la API canónica; `/api/nodes` permanece como compatibilidad sobre las mismas tablas.
+- GET de historial: `/api/stream-nodes/:id/heartbeats?limit=N`.
+- Offline automático por timeout, con worker liviano y retención acotada de heartbeats.
+- El gateway seguro reenvía correctamente el body de registro/heartbeat y RBAC asigna `stream-nodes` a permisos `nodes.*`.
+- El instalador Main genera/preserva el token de nodos y configura timeout/retención.
+- El instalador de subnodo mide CPU por delta real, RAM/disco/load, procesos FFmpeg activos, genera JSON seguro y adopta el ID canónico del Main.
+- La UI dejó de mostrar nodos demo/localStorage como fallback operativo; si la API no tiene nodos, muestra inventario vacío real.
+- Versión: `0.4.3`.
+
+Validación aislada realizada en checkout limpio:
+- `node --check` aprobado para `server/db.js`, `server/index.js`, `server/auth.js` y `server/secure-entry.js`.
+- `bash -n` aprobado para `install.sh` y `scripts/install-node.sh`.
+- `npm run build` aprobado con Vite 8.3.2, 1933 módulos transformados. Solo quedan warnings no bloqueantes de tamaño de bundle/directivas de lucide-react.
+
+Pendiente de validación real: arrancar 0.4.3 contra MariaDB de desarrollo, instalar un subnodo autorizado y confirmar online→offline→online e historial. No declarar producción hasta completar esa prueba.
