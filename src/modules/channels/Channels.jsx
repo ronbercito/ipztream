@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CheckCircle2, FolderOpen, Layers3, PauseCircle, Play, Plus, Radio, RadioTower, RefreshCw, RotateCw, Square, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FolderOpen, Layers3, PauseCircle, Play, Plus, Radio, RadioTower, RotateCw, Square, Trash2 } from 'lucide-react';
 import ChannelDetailDrawer from './components/ChannelDetailDrawer.jsx';
 import ChannelFilters from './components/ChannelFilters.jsx';
 import ChannelForm from './components/ChannelForm.jsx';
