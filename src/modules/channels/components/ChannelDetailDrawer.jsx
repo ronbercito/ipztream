@@ -1,6 +1,6 @@
 import React from 'react';
 import Hls from 'hls.js';
-import { Activity, BarChart3, Clock3, Edit3, Gauge, Link2, LoaderCircle, Monitor, Play, RefreshCw, RotateCw, Server, Square, Users, Video, Volume2, X } from 'lucide-react';
+import { Activity, Clock3, Edit3, Gauge, Link2, LoaderCircle, Monitor, Play, RefreshCw, RotateCw, Server, Square, Users, Video, Volume2, X } from 'lucide-react';
 import { probeChannelSource, startChannelPreview, stopChannelPreview } from '../services/channelsApi.js';
 
 function uptime(startedAt, now = Date.now()) {
