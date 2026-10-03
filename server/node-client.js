@@ -41,7 +41,7 @@ async function request(node,path,{method='GET',body}={}){
   if(!response.ok)throw Object.assign(new Error(payload?.message||`Nodo remoto respondió HTTP ${response.status}.`),{status:response.status>=500?502:response.status});
   return payload;
 }
-export async function resolveChannelTarget(channelId){
+export async function resolveChannelTarget(channelId,{allowOffline=false}={}){
   const channel=await getItem(TABLES.channels,String(channelId));
   if(!channel)throw Object.assign(new Error('Canal no encontrado.'),{status:404});
   const nodeId=String(channel.nodeId||'').trim();
@@ -50,7 +50,7 @@ export async function resolveChannelTarget(channelId){
   if(!node)throw Object.assign(new Error(`El nodo asignado ${nodeId} no existe.`),{status:409});
   if(node.role==='main')return{type:'local',channel,node};
   if(!['sub','edge'].includes(node.role))throw Object.assign(new Error('El nodo asignado no puede procesar streams.'),{status:409});
-  if(node.status==='Fuera de línea')throw Object.assign(new Error(`El nodo ${node.name} está fuera de línea.`),{status:409});
+  if(node.status==='Fuera de línea'&&!allowOffline)throw Object.assign(new Error(`El nodo ${node.name} está fuera de línea.`),{status:409});
   return{type:'remote',channel,node};
 }
 function remotePath(id,action){return`/v1/streams/${encodeURIComponent(String(id))}/${action}`}
