@@ -176,6 +176,16 @@ function validateChannel(channel, channels, idValue = null) {
   return null;
 }
 
+async function validateChannelNode(channel) {
+  const nodeId=String(channel?.nodeId||'').trim();
+  if(!nodeId)return null;
+  const node=await getStreamNode(nodeId);
+  if(!node)return `El nodo asignado ${nodeId} no existe.`;
+  if(!['main','sub','edge'].includes(node.role))return `El nodo ${node.name||nodeId} no tiene un rol válido para streaming.`;
+  if(['sub','edge'].includes(node.role)&&!(node.capabilities||[]).includes('ffmpeg'))return `El nodo ${node.name||nodeId} no declara capacidad FFmpeg.`;
+  return null;
+}
+
 function normalizeGeneric(type, input, current = {}) {
   const value = { ...current, ...input, id: current.id || input.id || makeId(type) };
   if (type === 'vod') return { id: value.id, title: String(value.title || '').trim(), description: String(value.description || '').trim(), category: String(value.category || '').trim(), year: Number(value.year) || new Date().getFullYear(), duration: String(value.duration || '').trim(), poster: String(value.poster || '').trim(), url: String(value.url || '').trim(), status: value.status === 'Inactivo' ? 'Inactivo' : 'Activo' };
@@ -387,7 +397,7 @@ async function handle(req, res) {
     const existing = await listItems(TABLES.channels), created = [], errors = [];
     for (let i=0;i<input.length;i++) {
       const item = normalizeChannel(input[i]);
-      const validation = validateChannel(item, [...existing,...created]);
+      const validation = validateChannel(item, [...existing,...created]) || await validateChannelNode(item);
       if (validation) { errors.push({ index:i, name:item.name, message:validation }); continue; }
       await saveNew(TABLES.channels,item,'channels'); created.push(item);
     }
@@ -409,7 +419,7 @@ async function handle(req, res) {
       if(action==='node')patch.nodeId=String(payload.nodeId||'').trim();
       if(action==='profile')patch.streamProfile=String(payload.streamProfile||'remux-copy');
       if(action==='reorder')patch.sortOrder=Number(payload.orders?.[id]??patch.sortOrder??patch.number);
-      const item=normalizeChannel(patch,current); await saveUpdate(TABLES.channels,id,item,'channels');updated.push(item);
+      const item=normalizeChannel(patch,current); const validation=await validateChannelNode(item); if(validation)return send(res,400,{message:validation}); await saveUpdate(TABLES.channels,id,item,'channels');updated.push(item);
     }
     return send(res,200,{updated,missing});
   }
@@ -419,7 +429,7 @@ async function handle(req, res) {
     if (req.method === 'POST') {
       const channels = await listItems(TABLES.channels);
       const item = normalizeChannel(await readBody(req));
-      const validation = validateChannel(item, channels);
+      const validation = validateChannel(item, channels) || await validateChannelNode(item);
       if (validation) return send(res, 400, { message: validation });
       return send(res, 201, await saveNew(TABLES.channels, item, 'channels'));
     }
@@ -433,7 +443,7 @@ async function handle(req, res) {
     if (req.method === 'PUT') {
       const channels = await listItems(TABLES.channels);
       const item = normalizeChannel(await readBody(req), current);
-      const validation = validateChannel(item, channels, id);
+      const validation = validateChannel(item, channels, id) || await validateChannelNode(item);
       if (validation) return send(res, 400, { message: validation });
       return send(res, 200, await saveUpdate(TABLES.channels, id, item, 'channels'));
     }
