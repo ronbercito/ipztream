@@ -213,3 +213,11 @@ Pendiente de validación real: arrancar 0.4.3 contra MariaDB de desarrollo, inst
 PR #3 mezclado en `main`.
 Merge commit: `31864aa1ec6cf6aa81c4fe72f4da5f2cb5216286`.
 La base queda en `0.4.3`; la siguiente continuidad debe partir desde este commit y validar un subnodo real antes de avanzar al agente FFmpeg distribuido.
+
+
+## 0.4.4 — Rediseño visual vivo de Streams/Canales
+Se integra en el panel real el rediseño solicitado, sin usar imágenes generadas. La pantalla Streams/Canales incorpora una cabecera más clara, cuatro tarjetas de estado alimentadas por los estados reales de cada stream, filtros más legibles, tipografía de mayor peso, contraste reforzado e iconografía Lucide con colores operativos diferenciados.
+
+La tabla conserva las funciones existentes Start/Stop/Restart, Watch, Power, Edit y Delete, pero aumenta jerarquía visual, tamaño útil de filas, lectura de estados y separación de acciones. El shell global recibe mayor contraste en sidebar/topbar y textos más nítidos.
+
+No se modifica FFmpeg, HLS, MariaDB, el modelo de nodos 0.4.3 ni los endpoints existentes. La versión visual pasa a `0.4.4` para no colisionar con la entrega 0.4.3 de persistencia Main/Sub.

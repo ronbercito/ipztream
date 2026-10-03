@@ -198,3 +198,18 @@ PR #3 **Persist stream nodes and heartbeats in MariaDB** mezclado correctamente.
 - Versión en `main`: `0.4.3`.
 - Backup previo: `backup/pre-stream-node-persistence-0.4.3-20261002`.
 - La prueba real Main + MariaDB + subnodo sigue pendiente antes de considerar producción.
+
+
+## 0.4.4 — UI Streams más viva, clara y profesional
+Se aplica directamente al panel la mejora visual solicitada: colores más vivos, mayor contraste, iconos claros y coloridos, letras más fuertes y nítidas y mejor jerarquía del módulo Streams/Canales.
+
+Cambios:
+- tarjetas reales para Total de Streams, Funcionando, Con error y Detenidos;
+- nueva cabecera Streams / Canales;
+- búsqueda y filtros más legibles;
+- acciones por stream con colores claramente diferenciados;
+- filas, nombres, estados y métricas operativas con mayor tamaño útil;
+- sidebar y topbar global con más contraste;
+- polling real de estados cada 3 segundos preservado.
+
+El cambio es frontend. No altera el trabajo 0.4.3 de nodos, MariaDB, FFmpeg/HLS ni la API. Versión: `0.4.4`.
