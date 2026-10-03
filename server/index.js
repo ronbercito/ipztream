@@ -22,7 +22,8 @@ import {
   markOfflineStreamNodes,
   pruneStreamNodeHeartbeats,
   streamNodeOfflineAfterSeconds,
-  streamNodeHeartbeatRetentionDays
+  streamNodeHeartbeatRetentionDays,
+  getStreamDesiredState
 } from './db.js';
 import { ensureUserSchema, listUsers, getUser, createUser, updateUser, deleteUser } from './user-service.js';
 
@@ -416,7 +417,7 @@ async function handle(req, res) {
       if(action==='activate')patch.status='Activo'; if(action==='deactivate')patch.status='Inactivo';
       if(action==='category')patch.category=String(payload.category||'').trim();
       if(action==='bouquet')patch.bouquet=String(payload.bouquet||'').trim();
-      if(action==='node')patch.nodeId=String(payload.nodeId||'').trim();
+      if(action==='node'){const nextNodeId=String(payload.nodeId||'').trim();if(nextNodeId!==String(current.nodeId||'').trim()&&await getStreamDesiredState(id)==='running')return send(res,409,{message:`Detén el stream ${current.name||id} antes de moverlo a otro nodo.`});patch.nodeId=nextNodeId}
       if(action==='profile')patch.streamProfile=String(payload.streamProfile||'remux-copy');
       if(action==='reorder')patch.sortOrder=Number(payload.orders?.[id]??patch.sortOrder??patch.number);
       const item=normalizeChannel(patch,current); const validation=await validateChannelNode(item); if(validation)return send(res,400,{message:validation}); await saveUpdate(TABLES.channels,id,item,'channels');updated.push(item);
@@ -443,6 +444,7 @@ async function handle(req, res) {
     if (req.method === 'PUT') {
       const channels = await listItems(TABLES.channels);
       const item = normalizeChannel(await readBody(req), current);
+      if(String(item.nodeId||'').trim()!==String(current.nodeId||'').trim()&&await getStreamDesiredState(id)==='running')return send(res,409,{message:'Detén el stream antes de moverlo a otro nodo.'});
       const validation = validateChannel(item, channels, id) || await validateChannelNode(item);
       if (validation) return send(res, 400, { message: validation });
       return send(res, 200, await saveUpdate(TABLES.channels, id, item, 'channels'));
