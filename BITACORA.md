@@ -300,3 +300,18 @@ PR #8 **Add real SUB node agent and distributed stream control** mezclado correc
 - Backup previo: `backup/pre-subnode-agent-0.4.7-20261003`.
 - La prueba física con un segundo servidor continúa pendiente por decisión del operador.
 - No declarar streaming distribuido en producción hasta completar Main + SUB real.
+
+
+## 0.4.8 — Corrección de 128 Kbps en Bitrate
+Se corrige el caso donde streams 720p/1080p mostraban 128 Kbps porque ese valor correspondía únicamente a la pista AAC.
+
+Ahora:
+- ffprobe muestrea paquetes reales;
+- se suman bytes de video, audio, subtítulos y datos;
+- el cálculo usa la duración real de la muestra;
+- el valor principal representa el bitrate total combinado;
+- el drawer expone también bitrate de video y audio por separado;
+- la actualización automática cada 5 s se mantiene;
+- si la medición real no es válida, se evita mostrar un fallback engañoso de solo audio.
+
+Versión preparada: `0.4.8`.
