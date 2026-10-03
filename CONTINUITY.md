@@ -221,3 +221,22 @@ Se integra en el panel real el rediseño solicitado, sin usar imágenes generada
 La tabla conserva las funciones existentes Start/Stop/Restart, Watch, Power, Edit y Delete, pero aumenta jerarquía visual, tamaño útil de filas, lectura de estados y separación de acciones. El shell global recibe mayor contraste en sidebar/topbar y textos más nítidos.
 
 No se modifica FFmpeg, HLS, MariaDB, el modelo de nodos 0.4.3 ni los endpoints existentes. La versión visual pasa a `0.4.4` para no colisionar con la entrega 0.4.3 de persistencia Main/Sub.
+
+
+## 0.4.5 — Corrección estructural de Streams/Canales
+Se corrige la diferencia visual detectada entre el panel instalado y el diseño aprobado. El cambio deja de ser solamente cosmético y reorganiza la pantalla para acercarla a la referencia real de trabajo.
+
+Cambios principales:
+- tarjetas de resumen más compactas y blancas, con iconos/acentos de color en lugar de fondos pastel completos;
+- toolbar en una sola zona con búsqueda, Estado, Servidor, Tipo, Categoría y selector real de Columnas;
+- tabla ampliada con Categoría, Origen, Servidor, Estado, Bitrate, Resolución, Clientes, Tiempo activo, Reinicios y Acciones;
+- logos reales cuando el canal tiene `logo`, con fallback por inicial;
+- acciones visibles reducidas a Start, Stop, Restart, Detalle/Preview y menú Más;
+- panel lateral derecho real para detalle del canal con pestañas Resumen, Estadísticas, Clientes y Logs;
+- preview HLS dentro del drawer, reutilizando el motor temporal existente;
+- `ffprobe` bajo demanda al abrir el detalle para mostrar bitrate, resolución, FPS y codecs sin inventar telemetría;
+- las columnas de bitrate/resolución se completan después de una medición real; clientes muestra `—` si el runtime todavía no entrega viewers por stream;
+- al abrir el drawer, el contenido se comprime en escritorio y el panel pasa a overlay en resoluciones menores;
+- topbar de Streams muestra auto actualización real cada 3 s.
+
+Se preservan FFmpeg/HLS, MariaDB, Main/Sub, nodos y endpoints existentes. La versión pasa a `0.4.5`.
