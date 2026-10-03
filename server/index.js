@@ -1,5 +1,6 @@
 import http from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { isIP } from 'node:net';
 import {
   pool,
   TABLES,
@@ -64,7 +65,9 @@ function validIPv4(ip) {
 
 function validNodeHost(value) {
   const host = String(value || '').trim();
-  return validIPv4(host) || /^[a-z0-9.-]+$/i.test(host);
+  if (!host) return false;
+  if (isIP(host)) return true;
+  return /^(?=.{1,253}$)(?!-)[a-z0-9-]+(?:\.(?!-)[a-z0-9-]+)*\.?$/i.test(host);
 }
 
 function normalizeCapabilities(value = []) {
@@ -74,14 +77,26 @@ function normalizeCapabilities(value = []) {
 }
 
 function normalizeMetrics(value = {}) {
-  const numberOrNull = (input) => input === null || input === '' || input === undefined ? null : Number(input);
+  const finiteOrNull = (input) => {
+    if (input === null || input === '' || input === undefined) return null;
+    const parsed = Number(input);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+  const percent = (input) => {
+    const parsed = finiteOrNull(input);
+    return parsed === null ? null : Math.min(100, Math.max(0, parsed));
+  };
+  const nonNegative = (input, fallback = 0) => {
+    const parsed = finiteOrNull(input);
+    return parsed === null ? fallback : Math.max(0, parsed);
+  };
   return {
-    cpu: numberOrNull(value.cpu),
-    ram: numberOrNull(value.ram),
-    disk: numberOrNull(value.disk),
-    load: numberOrNull(value.load),
-    activeStreams: Math.max(0, Number(value.activeStreams || 0)),
-    uptime: Math.max(0, Number(value.uptime || 0))
+    cpu: percent(value.cpu),
+    ram: percent(value.ram),
+    disk: percent(value.disk),
+    load: nonNegative(value.load, 0),
+    activeStreams: Math.trunc(nonNegative(value.activeStreams, 0)),
+    uptime: Math.trunc(nonNegative(value.uptime, 0))
   };
 }
 
