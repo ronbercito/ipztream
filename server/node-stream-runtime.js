@@ -10,6 +10,7 @@ const HLS_LIST_SIZE=Math.max(3,Number(process.env.IPZTREAM_HLS_LIST_SIZE||6));
 const RETRY_MS=Math.max(3000,Number(process.env.IPZTREAM_STREAM_RETRY_MS||10000));
 const processes=new Map();
 const desired=new Map();
+const counters=new Map();
 const retryTimers=new Map();
 let shuttingDown=false;
 
@@ -26,6 +27,7 @@ function ffmpegArgs(channel,url,dir){
   return[...common,...codec,'-avoid_negative_ts','make_zero','-max_interleave_delta','0','-f','hls','-hls_segment_type','mpegts','-hls_time',String(HLS_TIME),'-hls_list_size',String(HLS_LIST_SIZE),'-hls_flags','delete_segments+independent_segments+temp_file+program_date_time','-hls_segment_filename',path.join(dir,'segment_%06d.ts'),path.join(dir,'index.m3u8')];
 }
 function state(id,entry){
+  const stats=counter(id);
   return{
     channelId:id,
     nodeRuntime:true,
@@ -40,8 +42,20 @@ function state(id,entry){
     desiredState:desired.has(id)?'running':'stopped',
     profile:entry?.profile||desired.get(id)?.streamProfile||'remux-copy',
     hlsUrl:['running','starting','recovering'].includes(entry?.status)?`/streams/${safeStreamId(id)}/index.m3u8`:null,
+    startCount:stats.startCount,
+    restartCount:stats.restartCount,
+    history:stats.history.slice(-50).reverse(),
     logs:(entry?.logs||[]).slice(-30)
   };
+}
+function counter(id){
+  if(!counters.has(id))counters.set(id,{startCount:0,restartCount:0,history:[]});
+  return counters.get(id);
+}
+export function clearNodeStreamHistory(channelId){
+  const id=String(channelId),item=counter(id);
+  item.startCount=0;item.restartCount=0;item.history=[];
+  return getNodeStream(id);
 }
 function addLog(entry,value){const lines=String(value||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);entry.logs.push(...lines);if(entry.logs.length>150)entry.logs.splice(0,entry.logs.length-150)}
 async function persistDesired(){
@@ -86,8 +100,14 @@ export async function startNodeStream(channel,options={}){
   const dir=path.join(STREAM_ROOT,safeStreamId(id));
   await rm(dir,{recursive:true,force:true});
   await mkdir(dir,{recursive:true,mode:0o750});
-  const entry={status:'starting',process:null,startedAt:new Date().toISOString(),stoppedAt:null,error:null,exitCode:null,signal:null,logs:[],profile:channel.streamProfile||'remux-copy'};
+  const startedAt=new Date().toISOString();
+  const entry={status:'starting',process:null,startedAt,stoppedAt:null,error:null,exitCode:null,signal:null,logs:[],profile:channel.streamProfile||'remux-copy'};
   processes.set(id,entry);
+  const stats=counter(id);
+  stats.startCount+=1;
+  if(options.restart)stats.restartCount+=1;
+  stats.history.push({type:options.restart?'Reinicio':'Inicio',at:startedAt,automatic:Boolean(options.automatic),profile:entry.profile});
+  if(stats.history.length>100)stats.history.splice(0,stats.history.length-100);
   let child;
   try{child=spawn(FFMPEG_BIN,ffmpegArgs(channel,source.url,dir),{cwd:dir,env:{...process.env},stdio:['ignore','ignore','pipe']})}
   catch(error){entry.status='recovering';entry.error=error.message;scheduleRetry(id);return state(id,entry)}
