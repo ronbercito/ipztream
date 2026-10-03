@@ -1,13 +1,338 @@
-import React from'react';import{Plus,Radio,RefreshCw,Play,Square,RotateCw,Trash2,FolderOpen,Layers3,RadioTower,CheckCircle2,AlertTriangle,PauseCircle}from'lucide-react';import ChannelFilters from'./components/ChannelFilters.jsx';import ChannelForm from'./components/ChannelForm.jsx';import ChannelTable from'./components/ChannelTable.jsx';import{createChannel,deleteChannel,loadChannels,loadStream,startChannelStream,stopChannelStream,restartChannelStream,updateChannel,clearChannelStreamHistory,bulkChannelAction,createChannelsBulk}from'./services/channelsApi.js';import'./styles/channels.css';
-export default function Channels(){const[channels,setChannels]=React.useState([]),[selected,setSelected]=React.useState([]),[streams,setStreams]=React.useState({}),[loading,setLoading]=React.useState(true),[saving,setSaving]=React.useState(false),[streamBusy,setStreamBusy]=React.useState(''),[notice,setNotice]=React.useState(''),[error,setError]=React.useState(''),[formOpen,setFormOpen]=React.useState(false),[editing,setEditing]=React.useState(null),[massOpen,setMassOpen]=React.useState(false),[massText,setMassText]=React.useState(''),[query,setQuery]=React.useState(''),[status,setStatus]=React.useState('Todos'),[category,setCategory]=React.useState('Todas');
-const refreshStreams=React.useCallback(async list=>{const target=list||channels;if(!target.length)return setStreams({});setStreams(Object.fromEntries(await Promise.all(target.map(async c=>{try{return[c.id,await loadStream(c.id)]}catch{return[c.id,null]}}))))},[channels]);const refresh=React.useCallback(async()=>{setLoading(true);try{const list=await loadChannels();setChannels(list);await refreshStreams(list)}catch(e){setError(e.message)}finally{setLoading(false)}},[refreshStreams]);React.useEffect(()=>{refresh()},[]);React.useEffect(()=>{if(!channels.length)return;const t=setInterval(()=>refreshStreams(),3000);return()=>clearInterval(t)},[channels,refreshStreams]);
-const categories=React.useMemo(()=>['Todas',...new Set(channels.map(c=>c.category).filter(Boolean))],[channels]),filtered=React.useMemo(()=>channels.filter(c=>[c.number,c.name,c.category,c.status,c.nodeId,c.bouquet,c.epgId,...(c.sources||[]).flatMap(s=>[s.url,s.originType,s.protocol])].join(' ').toLowerCase().includes(query.toLowerCase())&&(status==='Todos'||c.status===status)&&(category==='Todas'||c.category===category)).sort((a,b)=>Number(a.sortOrder||a.number)-Number(b.sortOrder||b.number)),[channels,query,status,category]);
-const streamStats=React.useMemo(()=>{let running=0,errors=0,stopped=0;for(const c of channels){const s=streams[c.id]?.status;if(s==='running')running+=1;else if(s==='error')errors+=1;else if(!['starting','recovering'].includes(s))stopped+=1}return{running,errors,stopped}},[channels,streams]);
-const save=async data=>{setSaving(true);setError('');try{const edit=Boolean(editing),old=edit?streams[editing.id]:null,r=edit?await updateChannel(editing.id,data):await createChannel(data);setChannels(p=>edit?p.map(i=>i.id===editing.id?r:i):[r,...p]);let s;if(r.status==='Activo'){if(edit&&['running','starting'].includes(old?.status))await stopChannelStream(r.id);s=await startChannelStream(r.id)}else if(edit&&['running','starting','recovering'].includes(old?.status))s=await stopChannelStream(r.id);if(s)setStreams(p=>({...p,[r.id]:s}));setFormOpen(false);setEditing(null);setNotice(r.status==='Activo'?r.name+' guardado. Emisión iniciada.':r.name+' guardado como inactivo.');setTimeout(()=>refreshStreams(),1200);return true}catch(e){setError(e.message);return false}finally{setSaving(false)}};
-const remove=async c=>{if(!confirm('¿Eliminar el stream '+c.name+'?'))return;try{if(['running','starting','recovering'].includes(streams[c.id]?.status))await stopChannelStream(c.id);await deleteChannel(c.id);setChannels(p=>p.filter(i=>i.id!==c.id));setSelected(p=>p.filter(id=>id!==c.id))}catch(e){setError(e.message)}};
-const toggle=async c=>{try{const on=c.status!=='Activo',r=await updateChannel(c.id,{...c,status:on?'Activo':'Inactivo'});setChannels(p=>p.map(i=>i.id===c.id?r:i));const s=on?await startChannelStream(c.id):await stopChannelStream(c.id);setStreams(p=>({...p,[c.id]:s}))}catch(e){setError(e.message)}};
-const streamAction=async(c,a)=>{setStreamBusy(c.id);try{const s=a==='start'?await startChannelStream(c.id):a==='restart'?await restartChannelStream(c.id):await stopChannelStream(c.id);setStreams(p=>({...p,[c.id]:s}));setNotice(a==='restart'?'Stream reiniciado.':a==='start'?'Stream iniciado.':'Stream detenido.')}catch(e){setError(e.message)}finally{setStreamBusy('')}};
-const bulk=async action=>{if(!selected.length)return;let payload={};if(action==='category'){const v=prompt('Nueva categoría:');if(v===null)return;payload.category=v}if(action==='bouquet'){const v=prompt('Bouquet / paquete:');if(v===null)return;payload.bouquet=v}if(action==='delete'&&!confirm('¿Eliminar '+selected.length+' stream(s)?'))return;try{if(['start','stop','restart'].includes(action)){for(const id of selected){const c=channels.find(x=>x.id===id);if(c)await streamAction(c,action)}setSelected([]);return}await bulkChannelAction(selected,action,payload);setSelected([]);await refresh();setNotice('Operación masiva completada.')}catch(e){setError(e.message)}};
-const massCreate=async()=>{const rows=massText.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);if(!rows.length)return;const items=rows.map((line,i)=>{const p=line.split('|').map(x=>x.trim());return{number:Number(p[0])||i+1,name:p[1]||'Canal '+(i+1),category:p[2]||'General',status:'Activo',sources:[{url:p[3]||'',protocol:'HLS',status:'Activa',priority:1}]}});try{const r=await createChannelsBulk(items);setMassOpen(false);setMassText('');await refresh();setNotice((r.created?.length||0)+' stream(s) creados; '+(r.errors?.length||0)+' omitidos.')}catch(e){setError(e.message)}};
-const clearHistory=async c=>{try{const s=await clearChannelStreamHistory(c.id);setStreams(p=>({...p,[c.id]:s}));setNotice('Historial de '+c.name+' borrado.')}catch(e){setError(e.message)}};
-return <div className="channels-page xui-streams modern-streams"><div className="stream-page-hero"><div className="stream-page-title"><span className="stream-page-icon"><RadioTower size={26}/></span><div><h1>Streams / Canales</h1><span>Administra, supervisa y controla tus señales IPTV en tiempo real</span></div></div><div className="xui-title-actions modern-title-actions"><button className="stream-refresh-button" onClick={refresh} title="Actualizar ahora"><RefreshCw size={15}/> Actualizar</button><button onClick={()=>setMassOpen(true)}><Layers3 size={15}/> Añadir múltiples</button><button className="xui-primary" onClick={()=>{setEditing(null);setFormOpen(true)}}><Plus size={15}/> Añadir Stream</button></div></div><div className="stream-summary-grid"><div className="stream-summary-card tone-blue"><span className="stream-summary-icon"><Radio size={23}/></span><div><span>Total de Streams</span><strong>{channels.length}</strong><small>Canales configurados</small></div></div><div className="stream-summary-card tone-green"><span className="stream-summary-icon"><CheckCircle2 size={23}/></span><div><span>Funcionando</span><strong>{streamStats.running}</strong><small>{channels.length?Math.round(streamStats.running/channels.length*100):0}% en línea</small></div></div><div className="stream-summary-card tone-red"><span className="stream-summary-icon"><AlertTriangle size={23}/></span><div><span>Con error</span><strong>{streamStats.errors}</strong><small>{channels.length?Math.round(streamStats.errors/channels.length*100):0}% con problemas</small></div></div><div className="stream-summary-card tone-orange"><span className="stream-summary-icon"><PauseCircle size={23}/></span><div><span>Detenidos</span><strong>{streamStats.stopped}</strong><small>Sin emisión activa</small></div></div></div>{(notice||error)&&<div className={'channels-notice '+(error?'error':'success')} onClick={()=>{setNotice('');setError('')}}>{error||notice}</div>}<div className="xui-panel"><div className="xui-panel-head modern-panel-head"><div><Radio size={16}/><strong>Streams en tiempo real</strong><span className="stream-live-label">FFmpeg / HLS</span></div><span>{filtered.length} de {channels.length} · actualización automática cada 3 s</span></div><ChannelFilters query={query} setQuery={setQuery} status={status} setStatus={setStatus} category={category} setCategory={setCategory} categories={categories}/>{selected.length>0&&<div className="xui-bulkbar"><b>{selected.length} seleccionados</b><button onClick={()=>bulk('start')}><Play size={13}/> Iniciar</button><button onClick={()=>bulk('stop')}><Square size={13}/> Detener</button><button onClick={()=>bulk('restart')}><RotateCw size={13}/> Reiniciar</button><button onClick={()=>bulk('activate')}>Activar</button><button onClick={()=>bulk('deactivate')}>Desactivar</button><button onClick={()=>bulk('category')}><FolderOpen size={13}/> Categoría</button><button onClick={()=>bulk('bouquet')}><Layers3 size={13}/> Bouquet</button><button className="danger" onClick={()=>bulk('delete')}><Trash2 size={13}/> Eliminar</button></div>}<ChannelTable selected={selected} onSelected={setSelected} channels={filtered} streams={streams} streamBusy={streamBusy} loading={loading} onEdit={c=>{setEditing(c);setFormOpen(true)}} onDelete={remove} onToggle={toggle} onStream={streamAction} onClearHistory={clearHistory}/></div>{formOpen&&<ChannelForm initial={editing} stream={editing?streams[editing.id]:null} categories={categories.filter(c=>c!=='Todas')} saving={saving} externalError={error} onSave={save} onCancel={()=>{setFormOpen(false);setEditing(null)}}/>}{massOpen&&<div className="modal-backdrop"><div className="modal xui-mass-modal"><div className="xui-modal-head"><div><Layers3 size={17}/><strong>Añadir múltiples Streams</strong></div><button onClick={()=>setMassOpen(false)}>×</button></div><div className="xui-modal-body"><p>Un stream por línea. Formato: <b>NÚMERO | NOMBRE | CATEGORÍA | URL</b></p><textarea value={massText} onChange={e=>setMassText(e.target.value)} placeholder={"1 | Canal Uno | TV | http://servidor/stream.m3u8\n2 | Canal Dos | Deportes | http://servidor/stream2.m3u8"}/></div><div className="xui-modal-foot"><button onClick={()=>setMassOpen(false)}>Cancelar</button><button className="xui-primary" onClick={massCreate}><Plus size={14}/> Añadir Streams</button></div></div></div>}</div>}
+import React from 'react';
+import { AlertTriangle, CheckCircle2, FolderOpen, Layers3, PauseCircle, Play, Plus, Radio, RadioTower, RefreshCw, RotateCw, Square, Trash2 } from 'lucide-react';
+import ChannelDetailDrawer from './components/ChannelDetailDrawer.jsx';
+import ChannelFilters from './components/ChannelFilters.jsx';
+import ChannelForm from './components/ChannelForm.jsx';
+import ChannelTable from './components/ChannelTable.jsx';
+import { bulkChannelAction, clearChannelStreamHistory, createChannel, createChannelsBulk, deleteChannel, loadChannels, loadStream, restartChannelStream, startChannelStream, stopChannelStream, updateChannel } from './services/channelsApi.js';
+import './styles/channels.css';
+
+function primarySource(channel) {
+  const sources = channel?.sources || [];
+  const active = sources.filter((source) => source.status === 'Activa');
+  return [...(active.length ? active : sources)].sort((a, b) => Number(a.priority || 99) - Number(b.priority || 99))[0] || null;
+}
+
+function sourceType(channel) {
+  return primarySource(channel)?.originType || 'HTTP';
+}
+
+export default function Channels() {
+  const [channels, setChannels] = React.useState([]);
+  const [selected, setSelected] = React.useState([]);
+  const [streams, setStreams] = React.useState({});
+  const [mediaByChannel, setMediaByChannel] = React.useState({});
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+  const [streamBusy, setStreamBusy] = React.useState('');
+  const [notice, setNotice] = React.useState('');
+  const [error, setError] = React.useState('');
+  const [formOpen, setFormOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState(null);
+  const [massOpen, setMassOpen] = React.useState(false);
+  const [massText, setMassText] = React.useState('');
+  const [detail, setDetail] = React.useState(null);
+  const [query, setQuery] = React.useState('');
+  const [status, setStatus] = React.useState('Todos');
+  const [server, setServer] = React.useState('Todos');
+  const [type, setType] = React.useState('Todos');
+  const [category, setCategory] = React.useState('Todas');
+  const [columns, setColumns] = React.useState({ bitrate: true, resolution: true, clients: true });
+
+  const refreshStreams = React.useCallback(async (list) => {
+    const target = list || channels;
+    if (!target.length) {
+      setStreams({});
+      return;
+    }
+    const entries = await Promise.all(target.map(async (channel) => {
+      try {
+        return [channel.id, await loadStream(channel.id)];
+      } catch {
+        return [channel.id, null];
+      }
+    }));
+    setStreams(Object.fromEntries(entries));
+  }, [channels]);
+
+  const refresh = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const list = await loadChannels();
+      setChannels(list);
+      await refreshStreams(list);
+    } catch (refreshError) {
+      setError(refreshError.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshStreams]);
+
+  React.useEffect(() => {
+    refresh();
+  }, []);
+
+  React.useEffect(() => {
+    if (!channels.length) return undefined;
+    const timer = setInterval(() => refreshStreams(), 3000);
+    return () => clearInterval(timer);
+  }, [channels, refreshStreams]);
+
+  const categories = React.useMemo(() => ['Todas', ...new Set(channels.map((channel) => channel.category).filter(Boolean))], [channels]);
+  const servers = React.useMemo(() => ['Todos', ...new Set(channels.map((channel) => channel.nodeId || 'Local'))], [channels]);
+  const types = React.useMemo(() => ['Todos', ...new Set(channels.map(sourceType).filter(Boolean))], [channels]);
+
+  const filtered = React.useMemo(() => channels.filter((channel) => {
+    const haystack = [channel.number, channel.name, channel.category, channel.status, channel.nodeId, channel.bouquet, channel.epgId, ...(channel.sources || []).flatMap((source) => [source.url, source.originType, source.protocol])].join(' ').toLowerCase();
+    const matchesQuery = haystack.includes(query.toLowerCase());
+    const matchesStatus = status === 'Todos' || channel.status === status;
+    const matchesCategory = category === 'Todas' || channel.category === category;
+    const matchesServer = server === 'Todos' || (channel.nodeId || 'Local') === server;
+    const matchesType = type === 'Todos' || sourceType(channel) === type;
+    return matchesQuery && matchesStatus && matchesCategory && matchesServer && matchesType;
+  }).sort((a, b) => Number(a.sortOrder || a.number) - Number(b.sortOrder || b.number)), [channels, query, status, category, server, type]);
+
+  const streamStats = React.useMemo(() => {
+    let running = 0;
+    let errors = 0;
+    let stopped = 0;
+    for (const channel of channels) {
+      const streamStatus = streams[channel.id]?.status;
+      if (streamStatus === 'running') running += 1;
+      else if (streamStatus === 'error') errors += 1;
+      else if (!['starting', 'recovering'].includes(streamStatus)) stopped += 1;
+    }
+    return { running, errors, stopped };
+  }, [channels, streams]);
+
+  const detailChannel = detail ? channels.find((channel) => channel.id === detail.id) || null : null;
+
+  const openEdit = React.useCallback((channel) => {
+    setDetail(null);
+    setEditing(channel);
+    setFormOpen(true);
+  }, []);
+
+  const save = async (data) => {
+    setSaving(true);
+    setError('');
+    try {
+      const edit = Boolean(editing);
+      const old = edit ? streams[editing.id] : null;
+      const result = edit ? await updateChannel(editing.id, data) : await createChannel(data);
+      setChannels((previous) => edit ? previous.map((item) => item.id === editing.id ? result : item) : [result, ...previous]);
+      setMediaByChannel((previous) => {
+        if (!edit) return previous;
+        const next = { ...previous };
+        delete next[editing.id];
+        return next;
+      });
+      let stream;
+      if (result.status === 'Activo') {
+        if (edit && ['running', 'starting'].includes(old?.status)) await stopChannelStream(result.id);
+        stream = await startChannelStream(result.id);
+      } else if (edit && ['running', 'starting', 'recovering'].includes(old?.status)) {
+        stream = await stopChannelStream(result.id);
+      }
+      if (stream) setStreams((previous) => ({ ...previous, [result.id]: stream }));
+      setFormOpen(false);
+      setEditing(null);
+      setNotice(result.status === 'Activo' ? result.name + ' guardado. Emisión iniciada.' : result.name + ' guardado como inactivo.');
+      setTimeout(() => refreshStreams(), 1200);
+      return true;
+    } catch (saveError) {
+      setError(saveError.message);
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (channel) => {
+    if (!confirm('¿Eliminar el stream ' + channel.name + '?')) return;
+    try {
+      if (['running', 'starting', 'recovering'].includes(streams[channel.id]?.status)) await stopChannelStream(channel.id);
+      await deleteChannel(channel.id);
+      setChannels((previous) => previous.filter((item) => item.id !== channel.id));
+      setSelected((previous) => previous.filter((id) => id !== channel.id));
+      setMediaByChannel((previous) => {
+        const next = { ...previous };
+        delete next[channel.id];
+        return next;
+      });
+      if (detail?.id === channel.id) setDetail(null);
+    } catch (removeError) {
+      setError(removeError.message);
+    }
+  };
+
+  const toggle = async (channel) => {
+    try {
+      const active = channel.status !== 'Activo';
+      const result = await updateChannel(channel.id, { ...channel, status: active ? 'Activo' : 'Inactivo' });
+      setChannels((previous) => previous.map((item) => item.id === channel.id ? result : item));
+      const stream = active ? await startChannelStream(channel.id) : await stopChannelStream(channel.id);
+      setStreams((previous) => ({ ...previous, [channel.id]: stream }));
+    } catch (toggleError) {
+      setError(toggleError.message);
+    }
+  };
+
+  const streamAction = async (channel, action) => {
+    setStreamBusy(channel.id);
+    try {
+      const stream = action === 'start' ? await startChannelStream(channel.id) : action === 'restart' ? await restartChannelStream(channel.id) : await stopChannelStream(channel.id);
+      setStreams((previous) => ({ ...previous, [channel.id]: stream }));
+      setNotice(action === 'restart' ? 'Stream reiniciado.' : action === 'start' ? 'Stream iniciado.' : 'Stream detenido.');
+      return stream;
+    } catch (streamError) {
+      setError(streamError.message);
+      return null;
+    } finally {
+      setStreamBusy('');
+    }
+  };
+
+  const bulk = async (action) => {
+    if (!selected.length) return;
+    let payload = {};
+    if (action === 'category') {
+      const value = prompt('Nueva categoría:');
+      if (value === null) return;
+      payload.category = value;
+    }
+    if (action === 'bouquet') {
+      const value = prompt('Bouquet / paquete:');
+      if (value === null) return;
+      payload.bouquet = value;
+    }
+    if (action === 'delete' && !confirm('¿Eliminar ' + selected.length + ' stream(s)?')) return;
+    try {
+      if (['start', 'stop', 'restart'].includes(action)) {
+        for (const id of selected) {
+          const channel = channels.find((item) => item.id === id);
+          if (channel) await streamAction(channel, action);
+        }
+        setSelected([]);
+        return;
+      }
+      await bulkChannelAction(selected, action, payload);
+      setSelected([]);
+      await refresh();
+      setNotice('Operación masiva completada.');
+    } catch (bulkError) {
+      setError(bulkError.message);
+    }
+  };
+
+  const massCreate = async () => {
+    const rows = massText.split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
+    if (!rows.length) return;
+    const items = rows.map((line, index) => {
+      const parts = line.split('|').map((value) => value.trim());
+      return { number: Number(parts[0]) || index + 1, name: parts[1] || 'Canal ' + (index + 1), category: parts[2] || 'General', status: 'Activo', sources: [{ url: parts[3] || '', protocol: 'HLS', status: 'Activa', priority: 1 }] };
+    });
+    try {
+      const result = await createChannelsBulk(items);
+      setMassOpen(false);
+      setMassText('');
+      await refresh();
+      setNotice((result.created?.length || 0) + ' stream(s) creados; ' + (result.errors?.length || 0) + ' omitidos.');
+    } catch (massError) {
+      setError(massError.message);
+    }
+  };
+
+  const clearHistory = async (channel) => {
+    try {
+      const stream = await clearChannelStreamHistory(channel.id);
+      setStreams((previous) => ({ ...previous, [channel.id]: stream }));
+      setNotice('Historial de ' + channel.name + ' borrado.');
+    } catch (historyError) {
+      setError(historyError.message);
+    }
+  };
+
+  return <div className={'channels-page xui-streams modern-streams' + (detailChannel ? ' details-open' : '')}>
+    <div className="stream-page-hero">
+      <div className="stream-page-title"><span className="stream-page-icon"><RadioTower size={26}/></span><div><h1>Streams / Canales</h1><span>Administra, monitorea y controla tus señales en tiempo real</span></div></div>
+      <div className="xui-title-actions modern-title-actions">
+        <button className="stream-refresh-button" onClick={refresh} title="Actualizar ahora"><RefreshCw size={15}/> Actualizar</button>
+        <button onClick={() => setMassOpen(true)}><Layers3 size={15}/> Añadir múltiples</button>
+        <button className="xui-primary" onClick={() => { setEditing(null); setFormOpen(true); }}><Plus size={15}/> Añadir Stream</button>
+      </div>
+    </div>
+
+    <div className="stream-summary-grid">
+      <div className="stream-summary-card tone-blue"><span className="stream-summary-icon"><Radio size={22}/></span><div><span>Total de Streams</span><strong>{channels.length}</strong><small>Canales configurados</small></div><i className="summary-signal"><b></b><b></b><b></b></i></div>
+      <div className="stream-summary-card tone-green"><span className="stream-summary-icon"><CheckCircle2 size={22}/></span><div><span>Funcionando</span><strong>{streamStats.running}</strong><small>{channels.length ? Math.round(streamStats.running / channels.length * 100) : 0}% del total</small></div><i className="summary-signal"><b></b><b></b><b></b></i></div>
+      <div className="stream-summary-card tone-red"><span className="stream-summary-icon"><AlertTriangle size={22}/></span><div><span>Con error</span><strong>{streamStats.errors}</strong><small>{channels.length ? Math.round(streamStats.errors / channels.length * 100) : 0}% del total</small></div><i className="summary-signal"><b></b><b></b><b></b></i></div>
+      <div className="stream-summary-card tone-orange"><span className="stream-summary-icon"><PauseCircle size={22}/></span><div><span>Detenidos</span><strong>{streamStats.stopped}</strong><small>Sin emisión activa</small></div><i className="summary-signal"><b></b><b></b><b></b></i></div>
+    </div>
+
+    {(notice || error) && <div className={'channels-notice ' + (error ? 'error' : 'success')} onClick={() => { setNotice(''); setError(''); }}>{error || notice}</div>}
+
+    <div className="xui-panel modern-stream-panel">
+      <ChannelFilters
+        query={query}
+        setQuery={setQuery}
+        status={status}
+        setStatus={setStatus}
+        server={server}
+        setServer={setServer}
+        type={type}
+        setType={setType}
+        category={category}
+        setCategory={setCategory}
+        servers={servers}
+        types={types}
+        categories={categories}
+        columns={columns}
+        onToggleColumn={(name) => setColumns((previous) => ({ ...previous, [name]: !previous[name] }))}
+      />
+
+      {selected.length > 0 && <div className="xui-bulkbar">
+        <b>{selected.length} seleccionados</b>
+        <button onClick={() => bulk('start')}><Play size={13}/> Iniciar</button>
+        <button onClick={() => bulk('stop')}><Square size={13}/> Detener</button>
+        <button onClick={() => bulk('restart')}><RotateCw size={13}/> Reiniciar</button>
+        <button onClick={() => bulk('activate')}>Activar</button>
+        <button onClick={() => bulk('deactivate')}>Desactivar</button>
+        <button onClick={() => bulk('category')}><FolderOpen size={13}/> Categoría</button>
+        <button onClick={() => bulk('bouquet')}><Layers3 size={13}/> Bouquet</button>
+        <button className="danger" onClick={() => bulk('delete')}><Trash2 size={13}/> Eliminar</button>
+      </div>}
+
+      <ChannelTable
+        selected={selected}
+        onSelected={setSelected}
+        channels={filtered}
+        streams={streams}
+        mediaByChannel={mediaByChannel}
+        columns={columns}
+        streamBusy={streamBusy}
+        loading={loading}
+        onEdit={openEdit}
+        onDelete={remove}
+        onToggle={toggle}
+        onStream={streamAction}
+        onClearHistory={clearHistory}
+        onInspect={(channel, autoPreview) => setDetail({ id: channel.id, autoPreview: Boolean(autoPreview) })}
+      />
+    </div>
+
+    {detailChannel && <ChannelDetailDrawer
+      channel={detailChannel}
+      stream={streams[detailChannel.id]}
+      media={mediaByChannel[detailChannel.id]}
+      autoPreview={detail.autoPreview}
+      onClose={() => setDetail(null)}
+      onMedia={(id, media) => setMediaByChannel((previous) => ({ ...previous, [id]: media }))}
+      onEdit={openEdit}
+      onStream={streamAction}
+    />}
+
+    {formOpen && <ChannelForm initial={editing} stream={editing ? streams[editing.id] : null} categories={categories.filter((value) => value !== 'Todas')} saving={saving} externalError={error} onSave={save} onCancel={() => { setFormOpen(false); setEditing(null); }}/>}
+    {massOpen && <div className="modal-backdrop"><div className="modal xui-mass-modal"><div className="xui-modal-head"><div><Layers3 size={17}/><strong>Añadir múltiples Streams</strong></div><button onClick={() => setMassOpen(false)}>×</button></div><div className="xui-modal-body"><p>Un stream por línea. Formato: <b>NÚMERO | NOMBRE | CATEGORÍA | URL</b></p><textarea value={massText} onChange={(event) => setMassText(event.target.value)} placeholder={'1 | Canal Uno | TV | http://servidor/stream.m3u8\n2 | Canal Dos | Deportes | http://servidor/stream2.m3u8'}/></div><div className="xui-modal-foot"><button onClick={() => setMassOpen(false)}>Cancelar</button><button className="xui-primary" onClick={massCreate}><Plus size={14}/> Añadir Streams</button></div></div></div>}
+  </div>;
+}
