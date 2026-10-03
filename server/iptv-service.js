@@ -144,7 +144,14 @@ export async function listPlaybackConnections({ includeClosed = false } = {}) {
     channel_name AS channelName, node_id AS nodeId, ip_address AS ip, user_agent AS userAgent,
     status, started_at AS startedAt, last_seen_at AS lastSeenAt, closed_at AS closedAt
     FROM iptv_playback_sessions ${where} ORDER BY last_seen_at DESC LIMIT 1000`);
-  return result.rows;
+  return result.rows.map((row) => ({
+    ...row,
+    device: row.userAgent || 'App IPTV',
+    content: row.channelName,
+    node: row.nodeId || 'MAIN',
+    lastActivity: row.lastSeenAt,
+    status: row.status === 'Activa' ? 'Activo' : 'Cerrada'
+  }));
 }
 
 export async function closePlaybackConnection(id, actor = 'system') {
