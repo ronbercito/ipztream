@@ -124,13 +124,14 @@ async function authenticateCredentials(req, username, password) {
 async function authenticate(req, url) {
   return authenticateCredentials(req, url.searchParams.get('username') || '', url.searchParams.get('password') || '');
 }
-function userInfo(user, activeCons = 0) {
+function userInfo(user, activeCons = 0, password = '') {
   const exp = user.expiresAt ? Math.floor(new Date(`${user.expiresAt}T23:59:59Z`).getTime() / 1000) : null;
   return {
     auth: 1,
     status: 'Active',
     username: user.username,
-    password: '',
+    password: String(password || ''),
+    message: '',
     exp_date: exp ? String(exp) : null,
     is_trial: '0',
     active_cons: String(activeCons),
@@ -141,7 +142,13 @@ function userInfo(user, activeCons = 0) {
 }
 function serverInfo(req) {
   const base = new URL(publicBase(req));
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const timeNow = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
   return {
+    xui: true,
+    version: 'IPZStream 0.5.2',
+    revision: 'smarters-compat',
     url: base.hostname,
     port: base.port || (base.protocol === 'https:' ? '443' : '80'),
     https_port: base.protocol === 'https:' ? (base.port || '443') : '443',
@@ -149,20 +156,27 @@ function serverInfo(req) {
     rtmp_port: '0',
     timezone: 'America/Lima',
     timestamp_now: Math.floor(Date.now() / 1000),
-    time_now: new Date().toISOString()
+    time_now: timeNow
   };
 }
 async function handlePlayerApi(req, res, url) {
   const user = await authenticate(req, url);
   if (!user) return sendJson(res, 200, { user_info: { auth: 0, status: 'Disabled' }, server_info: serverInfo(req) });
   const action = url.searchParams.get('action') || '';
-  if (!action) return sendJson(res, 200, { user_info: userInfo(user, await activeConnectionCount(user.id)), server_info: serverInfo(req) });
+  if (!action) return sendJson(res, 200, {
+    user_info: userInfo(user, await activeConnectionCount(user.id), url.searchParams.get('password') || ''),
+    server_info: serverInfo(req)
+  });
   if (action === 'get_live_categories') return sendJson(res, 200, await liveCategoriesForUser(user));
   if (action === 'get_live_streams') {
     const categories = await liveCategoriesForUser(user);
     const categoryId = String(url.searchParams.get('category_id') || '');
     const category = categories.find((item) => String(item.category_id) === categoryId);
+    if (categoryId && !category) return sendJson(res, 200, []);
     return sendJson(res, 200, await liveStreamsForUser(user, category?.category_name || ''));
+  }
+  if (['get_vod_categories', 'get_vod_streams', 'get_series_categories', 'get_series', 'get_series_info', 'get_vod_info'].includes(action)) {
+    return sendJson(res, 200, []);
   }
   if (action === 'get_simple_data_table') {
     const streamId = String(url.searchParams.get('stream_id') || '');
@@ -278,6 +292,9 @@ async function serveLive(req, res, url, streamRoot) {
 
 export async function handleIptvHttp(req, res, url, { streamRoot }) {
   if (!['GET', 'HEAD'].includes(req.method)) return false;
+  if (process.env.IPZTREAM_IPTV_HTTP_LOG === 'true' && ['/player_api.php', '/panel_api.php', '/get.php', '/xmltv.php'].includes(url.pathname)) {
+    console.log(`[IPTV] ${req.method} ${url.pathname} action=${url.searchParams.get('action') || '-'} user=${url.searchParams.get('username') || '-'} ip=${clientIp(req)}`);
+  }
   if (url.pathname === '/player_api.php' || url.pathname === '/panel_api.php') return handlePlayerApi(req, res, url);
   if (url.pathname === '/get.php') return handlePlaylist(req, res, url);
   if (url.pathname === '/xmltv.php') return handleXmltv(req, res, url);

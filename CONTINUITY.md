@@ -447,3 +447,9 @@ La rama todavía debe pasar CI y revisión de PR. Después del merge, instalar 0
 PR #12 mezclado en `main` después de GitHub Actions CI exitoso: instalación npm, `node --check` de backend y build Vite aprobados. Merge commit: `50f02ccd7f1c351af89fc3142ad3f0f1af0d4b7b`.
 
 La siguiente validación ya no es de código sino de runtime: instalar 0.5.1 desde el Centro de actualización, ejecutar `scripts/test-iptv-client.mjs` contra el servidor y abrir un canal desde una app IPTV real. La prueba física con segundo SUB sigue pendiente para certificar distribución remota completa.
+
+
+## 2026-10-03 — Compatibilidad Smarters 0.5.2 — INICIADA
+Validación real completada: el cliente de prueba interno 0.5.1 autentica, obtiene categorías/canales/M3U/XMLTV y reproduce HLS; desde otro host de la LAN también responden correctamente `player_api.php`, `get_live_categories` y `get_live_streams`. Smarters IPTV Pro logra autenticarse pero queda cargando al construir la interfaz.
+
+Se abre la rama `feature/smarters-compat-0.5.2` con respaldo `backup/pre-smarters-compat-0.5.2-20261003`. Objetivo: aumentar fidelidad de las respuestas Xtream usadas por clientes externos, conservar VOD/series vacíos de forma explícita, mejorar metadatos de usuario/servidor y añadir diagnóstico HTTP opcional sin alterar el motor HLS ni Main/Sub.

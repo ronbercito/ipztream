@@ -57,3 +57,10 @@ La entrega se considera validada cuando una app externa:
 - XMLTV disponible en `/xmltv.php?username=USUARIO&password=CONTRASENA`.
 - Alias `/panel_api.php` disponible además de `/player_api.php`.
 - El motor rota automáticamente entre fuentes activas por prioridad cuando FFmpeg pierde señal.
+
+
+## Compatibilidad Smarters / Xtream 0.5.2
+La respuesta base de `player_api.php` devuelve ahora las credenciales esperadas por clientes Xtream, metadatos de servidor más completos y respuestas explícitas vacías para VOD/Series cuando esos módulos no están habilitados. Para diagnóstico opcional se puede definir `IPZTREAM_IPTV_HTTP_LOG=true`; el log registra ruta, acción, usuario e IP, pero nunca la contraseña.
+
+Prueba recomendada después de actualizar:
+`node scripts/test-iptv-client.mjs http://127.0.0.1:3100 USUARIO CONTRASENA`.
