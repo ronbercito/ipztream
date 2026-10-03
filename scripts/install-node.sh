@@ -133,7 +133,13 @@ if [[ "${heartbeat_code}" == "404" ]]; then
     -H "Content-Type: application/json" \
     -H "X-IPZStream-Node-Token: ${IPZTREAM_NODE_REGISTRATION_TOKEN}" \
     -d "${payload}" >/dev/null
-elif [[ "${heartbeat_code}" != "200" ]]; then
+elif [[ "${heartbeat_code}" == "200" ]]; then
+  canonical_id="$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("canonicalId") or d.get("node",{}).get("id") or "")' "${heartbeat_tmp}" 2>/dev/null || true)"
+  if [[ -n "${canonical_id}" && "${canonical_id}" != "${IPZTREAM_NODE_ID}" ]]; then
+    sed -i "s#^IPZTREAM_NODE_ID=.*#IPZTREAM_NODE_ID=${canonical_id}#" /etc/ipztream/ipztream-node.env
+    IPZTREAM_NODE_ID="${canonical_id}"
+  fi
+else
   cat "${heartbeat_tmp}" >&2 || true
   echo "Heartbeat rechazado por Main (HTTP ${heartbeat_code})." >&2
   exit 1
