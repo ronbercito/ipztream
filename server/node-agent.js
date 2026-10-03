@@ -44,7 +44,7 @@ function tokenEqual(received){
 }
 function requireToken(req){
   if(!TOKEN)throw Object.assign(new Error('Token del agente no configurado.'),{status:503});
-  if(!tokenEqual(req.headers['x-ipztream-node-token']))throw Object.assign(new Error('Token de nodo inválido.'),{status:401});
+  if(!tokenEqual(req.headers['x-ipzstream-node-token']||req.headers['x-ipztream-node-token']))throw Object.assign(new Error('Token de nodo inválido.'),{status:401});
 }
 function mediaType(file){
   if(file.endsWith('.m3u8'))return'application/vnd.apple.mpegurl';
