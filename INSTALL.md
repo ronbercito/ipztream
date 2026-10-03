@@ -76,3 +76,22 @@ El Main guarda en `/etc/ipztream/ipztream-api.env`:
 - `IPZTREAM_NODE_HEARTBEAT_RETENTION_DAYS`: retención del histórico de métricas; default 7 días.
 
 Para instalar un subnodo, obtén el token de forma segura en el Main y úsalo solo en el servidor autorizado. El agente reporta cada 60 segundos y el Main conserva el último estado y el histórico acotado de heartbeats.
+
+
+## Agente SUB real — 0.4.5
+
+Desde 0.4.5 el instalador de subnodo instala dos servicios:
+- `ipztream-node-agent.service`: API de control y runtime FFmpeg/HLS del SUB.
+- `ipztream-node-heartbeat.timer`: telemetría y presencia hacia el Main.
+
+El agente escucha por defecto en TCP `3200` y el Main usa `channel.nodeId` para decidir si ejecuta un canal localmente o en un SUB/EDGE. El formulario de canal muestra los nodos registrados.
+
+Variables principales del SUB:
+- `IPZTREAM_NODE_AGENT_PORT` (default 3200)
+- `IPZTREAM_NODE_API_BASE_URL` (default `http://IP_SUB:3200`)
+- `IPZTREAM_NODE_STREAM_ROOT`
+- `IPZTREAM_NODE_REGISTRATION_TOKEN`
+
+La prueba con un segundo servidor real sigue pendiente por decisión del operador. Por ello 0.4.5 es una base de desarrollo validada por build/sintaxis, no una aprobación de producción distribuida.
+
+El puerto del agente debe ser alcanzable **desde el Main hacia el SUB**. No se abre firewall automáticamente.
