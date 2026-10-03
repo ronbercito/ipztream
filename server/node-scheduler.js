@@ -20,6 +20,18 @@ function supportsLive(node){
   if(!caps.length)return true;
   return caps.some((cap)=>['live','ffmpeg','remux','transcode','hls'].includes(String(cap).toLowerCase()));
 }
+function supportsChannel(node,channel){
+  const caps=(Array.isArray(node.capabilities)?node.capabilities:[]).map((cap)=>String(cap).toLowerCase());
+  if(!caps.length)return true;
+  const profile=String(channel?.streamProfile||'').toLowerCase();
+  if(profile.includes('transcode'))return caps.includes('transcode')||caps.includes('ffmpeg');
+  return caps.some((cap)=>['live','ffmpeg','remux','hls'].includes(cap));
+}
+function hasCapacity(node,plannedCount=0){
+  const capacity=parseCapacity(node.capacity);
+  if(!capacity)return true;
+  return Math.max(0,numberOr(node.activeStreams,0))+plannedCount<capacity;
+}
 function eligibleNode(node,region=''){
   if(!['main','sub','edge'].includes(node.role))return false;
   if(!['En línea','Degradado'].includes(node.status))return false;
@@ -80,7 +92,12 @@ export async function buildSchedulerPlan({
       continue;
     }
 
-    const ranked=[...nodes].sort((a,b)=>{
+    const available=nodes.filter((node)=>supportsChannel(node,channel)&&hasCapacity(node,plannedCounts.get(node.id)||0));
+    if(!available.length){
+      skipped.push({channelId,name:channel.name||channelId,reason:'no-capacity-or-capability',nodeId:currentNodeId});
+      continue;
+    }
+    const ranked=[...available].sort((a,b)=>{
       const sa=scoreNode(a,plannedCounts.get(a.id)||0);
       const sb=scoreNode(b,plannedCounts.get(b.id)||0);
       return sa-sb||String(a.name).localeCompare(String(b.name));
