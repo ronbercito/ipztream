@@ -156,6 +156,12 @@ async function createSchema() {
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_audit_logs_created_at (created_at)
     )`,
+    `CREATE TABLE IF NOT EXISTS app_meta (
+      meta_key VARCHAR(128) PRIMARY KEY,
+      meta_value TEXT NOT NULL,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`,
+
     `CREATE TABLE IF NOT EXISTS stream_runtime (
       channel_id VARCHAR(191) PRIMARY KEY,
       desired_state ENUM('running','stopped') NOT NULL DEFAULT 'stopped',
@@ -224,6 +230,11 @@ async function migrateSeed(name) {
 }
 
 async function migrateLegacyStreamNodes() {
+  const marker = await mariaPool.query(
+    "SELECT meta_value FROM app_meta WHERE meta_key='stream_nodes_migrated_v1' LIMIT 1"
+  );
+  if (marker[0]?.meta_value === '1') return;
+
   const rows = await mariaPool.query(`SELECT payload FROM ${TABLES.nodes} ORDER BY created_at ASC`);
   for (const row of rows) {
     const item = decodePayload(row.payload);
@@ -253,6 +264,10 @@ async function migrateLegacyStreamNodes() {
       lastSeenAt: item.lastSeenAt || null
     });
   }
+
+  await mariaPool.query(
+    "INSERT INTO app_meta (meta_key,meta_value) VALUES ('stream_nodes_migrated_v1','1') ON DUPLICATE KEY UPDATE meta_value='1'"
+  );
 }
 
 export async function initDatabase() {
