@@ -1,7 +1,7 @@
-# Prueba de cliente IPTV — IPZStream 0.5.0
+# Prueba de cliente IPTV — IPZStream 0.5.1
 
 ## Requisitos
-- IPZStream 0.5.0 instalado y servicio API activo.
+- IPZStream 0.5.1 instalado y servicio API activo.
 - Al menos un canal en estado Activo y ejecutándose mediante FFmpeg/HLS.
 - Un paquete IPTV activo.
 - Un usuario IPTV activo, no vencido, con contraseña y paquete asignado.
@@ -20,7 +20,7 @@ La prueba valida:
 3. listado de streams.
 4. playlist M3U.
 5. manifiesto HLS del primer canal permitido.
-6. compatibilidad de URL `.ts`.
+6. XMLTV/EPG autenticado.\n7. compatibilidad de URL `.ts`.\n8. autoarranque HLS bajo demanda del primer canal permitido.
 
 ## Datos para una app compatible con Xtream Codes API
 - Servidor: `http://IP-O-DOMINIO:PUERTO`
@@ -47,3 +47,13 @@ La entrega se considera validada cuando una app externa:
 - aparece como conexión activa en el panel;
 - respeta el máximo de conexiones;
 - deja de reproducir temporalmente al usar Cerrar conexión desde el panel.
+
+
+## Mejoras 0.5.1
+- El `stream_id` público puede ser numérico mientras IPZStream conserva el UUID interno.
+- MAIN entrega el HLS correcto aunque el canal esté ejecutándose en un SUB.
+- Si el canal permitido aún no tiene manifiesto HLS, IPZStream intenta arrancarlo bajo demanda.
+- La misma app/IP puede cambiar de canal sin consumir otra conexión simultánea.
+- XMLTV disponible en `/xmltv.php?username=USUARIO&password=CONTRASENA`.
+- Alias `/panel_api.php` disponible además de `/player_api.php`.
+- El motor rota automáticamente entre fuentes activas por prioridad cuando FFmpeg pierde señal.

@@ -6,7 +6,7 @@ const statusClass = value => /activo/i.test(value) ? 'success' : /vencido/i.test
 export default function UserTable({ users, onEdit, onDelete }) {
   return (
     <div className="card module-table users-table-card">
-      <div className="table-info"><span>{users.length} registros</span><span>Datos de demostración</span></div>
+      <div className="table-info"><span>{users.length} registros</span><span>Conexiones IPTV reales</span></div>
       <div className="table-scroll">
         <table>
           <thead><tr><th>Usuario</th><th>Nombre</th><th>Estado</th><th>Paquete</th><th>Conexiones</th><th>Vencimiento</th><th>Acciones</th></tr></thead>

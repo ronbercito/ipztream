@@ -362,3 +362,13 @@ Objetivo de esta entrega: exponer autenticación y catálogo compatibles con app
 Se implementó la primera entrega enfocada en consumo desde apps IPTV externas: API pública estilo Xtream, playlist M3U autenticada, live HLS, compatibilidad de URL .ts, control por paquete/canales, sesiones reales de reproducción, límite de conexiones simultáneas y cierre administrativo temporal. La pantalla Paquetes permite seleccionar canales permitidos y se corrigió el alta de paquete nuevo. La pantalla Conexiones Activas pasa a leer las sesiones reales.
 
 Se añadió prueba automática `scripts/test-iptv-client.mjs` y guía `docs/iptv-client-test.md`. La versión pasa a 0.5.0. Aún falta validación runtime en el servidor de desarrollo y reproducción desde una app externa; no se declara estable hasta completar esa prueba.
+
+
+## 2026-10-03 — Inicio endurecimiento IPTV 0.5.1
+Se crea respaldo `backup/pre-iptv-hardening-0.5.1-20261003` y rama `feature/iptv-hardening-0.5.1`. El trabajo queda concentrado en mejorar el servidor IPTV 0.5.x: compatibilidad de apps, EPG/XMLTV, playlists, sesiones/conexiones, diagnóstico y UX de paquetes/conexiones. No se declara producción hasta validar en servidor y app real.
+
+
+## 2026-10-03 — Endurecimiento IPTV 0.5.1 implementado
+Se completó la rama 0.5.1 con mejoras centradas en operación real: corrección de stream IDs públicos vs UUID internos, autoarranque HLS bajo demanda, entrega transparente de canales locales y SUB a través del MAIN, proxy de segmentos remotos, XMLTV, alias panel_api, conteo real de conexiones, límite básico de intentos fallidos, sesión estable al cambiar de canal, consola de conexiones con refresco cada 5 segundos, usuarios con conexiones reales, paquetes con selección/búsqueda masiva de canales y failover automático entre fuentes activas en MAIN y SUB.
+
+También se agregó `.github/workflows/ci.yml` para validar sintaxis Node y build Vite en PR/push, más ampliación de `scripts/test-iptv-client.mjs`. Versión preparada: 0.5.1. Pendiente: CI del PR, merge y validación runtime en servidor/app; la prueba física del segundo SUB sigue pendiente.

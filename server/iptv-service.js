@@ -102,8 +102,36 @@ export async function getAllowedChannel(user, channelId) {
   return channels.find((channel) => String(channel.id) === String(channelId) || String(channel.number || '') === String(channelId)) || null;
 }
 
+export async function activeConnectionCount(userId) {
+  await expirePlaybackSessions();
+  const result = await pool.query(`SELECT COUNT(*) AS count FROM iptv_playback_sessions
+    WHERE user_id = ? AND status = 'Activa'
+      AND last_seen_at >= DATE_SUB(CURRENT_TIMESTAMP(3), INTERVAL ? SECOND)`,
+    [userId, PLAYBACK_TTL_SECONDS]);
+  return Number(result.rows[0]?.count || 0);
+}
+
+export async function iptvStatus() {
+  await expirePlaybackSessions();
+  const [users, channels, sessions] = await Promise.all([
+    pool.query(`SELECT COUNT(*) AS total FROM ${TABLES.users}`),
+    pool.query(`SELECT COUNT(*) AS total FROM ${TABLES.channels}`),
+    pool.query(`SELECT COUNT(*) AS active FROM iptv_playback_sessions WHERE status = 'Activa'`)
+  ]);
+  return {
+    ok: true,
+    service: 'iptv',
+    playbackTtlSeconds: PLAYBACK_TTL_SECONDS,
+    disconnectBlockSeconds: DISCONNECT_BLOCK_SECONDS,
+    users: Number(users.rows[0]?.total || 0),
+    channels: Number(channels.rows[0]?.total || 0),
+    activeConnections: Number(sessions.rows[0]?.active || 0),
+    checkedAt: new Date().toISOString()
+  };
+}
+
 function playbackKey(userId, channelId, ip, userAgent) {
-  return createHash('sha256').update([userId, channelId, ip || '', userAgent || ''].join('|')).digest('hex');
+  return createHash('sha256').update([userId, ip || '', userAgent || ''].join('|')).digest('hex');
 }
 
 export async function expirePlaybackSessions() {
@@ -118,8 +146,8 @@ export async function touchPlayback(user, channel, metadata = {}) {
   const key = playbackKey(user.id, channel.id, metadata.ip, metadata.userAgent);
   const existing = await pool.query(`SELECT id, status, blocked_until AS blockedUntil FROM iptv_playback_sessions WHERE session_key = ? LIMIT 1`, [key]);
   if (existing.rows[0]?.status === 'Activa') {
-    await pool.query(`UPDATE iptv_playback_sessions SET last_seen_at = CURRENT_TIMESTAMP(3), node_id = ?, channel_name = ? WHERE id = ?`,
-      [String(channel.nodeId || ''), String(channel.name || ''), existing.rows[0].id]);
+    await pool.query(`UPDATE iptv_playback_sessions SET last_seen_at = CURRENT_TIMESTAMP(3), channel_id = ?, channel_name = ?, node_id = ? WHERE id = ?`,
+      [String(channel.id), String(channel.name || ''), String(channel.nodeId || ''), existing.rows[0].id]);
     return existing.rows[0].id;
   }
   if (existing.rows[0]?.blockedUntil && new Date(existing.rows[0].blockedUntil).getTime() > Date.now()) {
@@ -136,7 +164,7 @@ export async function touchPlayback(user, channel, metadata = {}) {
     throw error;
   }
   if (existing.rows[0]) {
-    await pool.query(`UPDATE iptv_playback_sessions SET status = 'Activa', started_at = CURRENT_TIMESTAMP(3), last_seen_at = CURRENT_TIMESTAMP(3), closed_at = NULL, blocked_until = NULL, node_id = ?, channel_name = ?, ip_address = ?, user_agent = ? WHERE id = ?`, [String(channel.nodeId || ''), String(channel.name || ''), String(metadata.ip || '').slice(0, 64), String(metadata.userAgent || '').slice(0, 512), existing.rows[0].id]);
+    await pool.query(`UPDATE iptv_playback_sessions SET status = 'Activa', started_at = CURRENT_TIMESTAMP(3), last_seen_at = CURRENT_TIMESTAMP(3), closed_at = NULL, blocked_until = NULL, channel_id = ?, channel_name = ?, node_id = ?, ip_address = ?, user_agent = ? WHERE id = ?`, [String(channel.id), String(channel.name || ''), String(channel.nodeId || ''), String(metadata.ip || '').slice(0, 64), String(metadata.userAgent || '').slice(0, 512), existing.rows[0].id]);
     return existing.rows[0].id;
   }
   const id = randomUUID();
@@ -155,7 +183,8 @@ export async function listPlaybackConnections({ includeClosed = false } = {}) {
   const where = includeClosed ? '' : `WHERE status = 'Activa'`;
   const result = await pool.query(`SELECT id, username, user_id AS userId, channel_id AS channelId,
     channel_name AS channelName, node_id AS nodeId, ip_address AS ip, user_agent AS userAgent,
-    status, started_at AS startedAt, last_seen_at AS lastSeenAt, closed_at AS closedAt
+    status, started_at AS startedAt, last_seen_at AS lastSeenAt, closed_at AS closedAt,
+    TIMESTAMPDIFF(SECOND, started_at, COALESCE(closed_at, CURRENT_TIMESTAMP(3))) AS durationSeconds
     FROM iptv_playback_sessions ${where} ORDER BY last_seen_at DESC LIMIT 1000`);
   return result.rows.map((row) => ({
     ...row,

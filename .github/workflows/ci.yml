@@ -1,0 +1,30 @@
+name: IPZStream CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: npm install --package-lock=false
+      - name: Syntax
+        run: |
+          node --check server/index.js
+          node --check server/secure-entry.js
+          node --check server/iptv-http.js
+          node --check server/iptv-service.js
+          node --check server/stream-manager.js
+          node --check server/node-stream-runtime.js
+          node --check server/client-auth.js
+      - name: Build
+        run: npm run build

@@ -27,7 +27,7 @@ import {
 } from './db.js';
 import { ensureUserSchema, listUsers, getUser, createUser, updateUser, deleteUser } from './user-service.js';
 import { buildSchedulerPlan, applySchedulerPlan } from './node-scheduler.js';
-import { listPlaybackConnections, closePlaybackConnection } from './iptv-service.js';
+import { listPlaybackConnections, closePlaybackConnection, iptvStatus } from './iptv-service.js';
 
 const PORT = Number(process.env.IPZTREAM_API_PORT || 3100);
 const HOST = process.env.IPZTREAM_API_HOST || '127.0.0.1';
@@ -262,6 +262,8 @@ async function handle(req, res) {
   if (req.method === 'GET' && pathname === '/api/health') {
     try { return send(res, 200, await dbHealth()); } catch (error) { return send(res, 503, { ok: false, database: 'mariadb', message: error.message }); }
   }
+
+  if (req.method === 'GET' && pathname === '/api/iptv/status') return send(res, 200, await iptvStatus());
 
   if (req.method === 'GET' && pathname === '/api/audit') {
     const result = await pool.query('SELECT id, action, module, actor, detail, metadata, created_at AS "createdAt" FROM audit_logs ORDER BY created_at DESC LIMIT 500');

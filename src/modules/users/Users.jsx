@@ -17,8 +17,8 @@ export default function UsersPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
 
-  const load = React.useCallback(async () => {
-    setLoading(true);
+  const load = React.useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError('');
     try {
       const [userData, packageData] = await Promise.all([listUsers(), listPackages()]);
@@ -27,11 +27,15 @@ export default function UsersPage() {
     } catch (err) {
       setError(err.message || 'No se pudieron cargar los usuarios.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => {
+    load();
+    const timer = setInterval(() => load(true), 5000);
+    return () => clearInterval(timer);
+  }, [load]);
 
   const filtered = users.filter(user => {
     const text = [user.username, user.name, user.package, user.status].join(' ').toLowerCase();

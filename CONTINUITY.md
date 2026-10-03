@@ -402,3 +402,42 @@ Antes de declarar 0.5.0 estable: actualizar servidor de desarrollo, crear paquet
 
 ### Pendiente obligatorio antes de declarar estable
 No existe CI en GitHub para este repositorio y esta entrega todavía no fue ejecutada en el servidor de desarrollo. Debe instalarse 0.5.0 desde el Centro de actualización, validar arranque/MariaDB, ejecutar `scripts/test-iptv-client.mjs` con un usuario real y después probar reproducción desde una app IPTV externa. La prueba física Main/Sub sigue pendiente y es independiente de esta validación local de cliente.
+
+
+## 0.5.1 — Endurecimiento completo del núcleo IPTV
+Se continúa exclusivamente sobre el servidor IPTV. Esta etapa mejora compatibilidad de clientes, operación diaria y robustez sin reabrir VOD, reseller, MAG ni módulos secundarios.
+
+### Objetivos
+- Ampliar compatibilidad estilo Xtream para apps IPTV: datos de cuenta más completos, conexiones activas reales, XMLTV/EPG y URLs live consistentes.
+- Mejorar playlists M3U y stream IDs públicos numéricos.
+- Añadir estado/diagnóstico del servicio IPTV para soporte y pruebas.
+- Endurecer sesiones de reproducción: conteo real, expiración, cierre administrativo y protección contra abuso de autenticación.
+- Mejorar Paquetes para seleccionar/buscar canales y aplicar todos/ninguno de forma cómoda.
+- Mejorar Conexiones Activas con refresco automático, duración y detalle útil.
+- Mantener FFmpeg/HLS, Main/Sub y MariaDB actuales sin declarar producción hasta validar runtime real.
+
+### Regla de entrega
+La rama debe pasar revisión de diff y merge protegido. La validación real seguirá siendo: instalar desde Centro de actualización, ejecutar prueba automática y reproducir desde una app IPTV externa con un canal real activo.
+
+
+### Resultado técnico 0.5.1
+Implementado en la rama de endurecimiento:
+- corrección del desacople entre `stream_id` público numérico y carpeta HLS interna por UUID;
+- autoarranque bajo demanda cuando una app abre un canal permitido sin manifiesto HLS disponible;
+- entrega transparente desde MAIN tanto para canales locales como para canales ejecutados en SUB;
+- proxy de segmentos HLS remotos a través del MAIN, sin obligar a la app a conocer la IP del SUB;
+- XMLTV autenticado en `/xmltv.php` y alias `/panel_api.php`;
+- `active_cons` real en la API compatible;
+- limitación básica de intentos fallidos de autenticación IPTV;
+- una sesión por combinación usuario+IP+app para permitir cambio de canal sin consumir conexiones adicionales;
+- Usuarios IPTV muestra conexiones activas reales y refresca cada 5 segundos;
+- Conexiones IPTV refresca cada 5 segundos, muestra historial, duración, IP, app, canal y nodo;
+- Paquetes IPTV incorpora búsqueda, selección masiva visible, limpieza y conteo de canales autorizados;
+- failover de múltiples fuentes por prioridad en MAIN y SUB: ante caída de FFmpeg se rota a la siguiente fuente activa;
+- endpoint administrativo `/api/iptv/status` con diagnóstico del servicio;
+- GitHub Actions CI agregado para `node --check` de backend y `npm run build`;
+- prueba `scripts/test-iptv-client.mjs` ampliada para validar XMLTV además de login, catálogo, M3U y reproducción;
+- versión preparada: `0.5.1`.
+
+### Validación pendiente
+La rama todavía debe pasar CI y revisión de PR. Después del merge, instalar 0.5.1 desde el Centro de actualización y validar con un canal real y una app IPTV externa. La prueba física de un segundo SUB sigue pendiente para certificar el recorrido MAIN→SUB→MAIN→app en hardware real.
