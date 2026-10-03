@@ -190,3 +190,11 @@ Validación técnica en checkout limpio:
 `node --check` backend/gateway OK · `bash -n` instaladores OK · `npm run build` OK (Vite 8.3.2, 1933 módulos).
 
 Estado: **código listo para merge y prueba real de MariaDB/subnodo; producción todavía no aprobada**.
+
+
+#### Integración en main
+PR #3 **Persist stream nodes and heartbeats in MariaDB** mezclado correctamente.
+- Merge commit: `31864aa1ec6cf6aa81c4fe72f4da5f2cb5216286`.
+- Versión en `main`: `0.4.3`.
+- Backup previo: `backup/pre-stream-node-persistence-0.4.3-20261002`.
+- La prueba real Main + MariaDB + subnodo sigue pendiente antes de considerar producción.
