@@ -5,6 +5,7 @@ import path from 'node:path';
 import { timingSafeEqual } from 'node:crypto';
 import {
   assertNodeFfmpeg,
+  clearNodeStreamHistory,
   getNodeStream,
   listNodeStreams,
   nodeStreamRoot,
@@ -83,11 +84,12 @@ async function handle(req,res){
     return send(res,200,{ok:true,nodeId:NODE_ID,role:'sub-agent',ffmpeg,streams:listNodeStreams().length});
   }
   if(pathname==='/v1/streams'&&req.method==='GET')return send(res,200,{streams:listNodeStreams()});
-  const match=pathname.match(/^\/v1\/streams\/([^/]+)(?:\/(start|stop|restart|status))?$/);
+  const match=pathname.match(/^\/v1\/streams\/([^/]+)(?:\/(start|stop|restart|status|history))?$/);
   if(!match)return send(res,404,{message:'Ruta del agente no encontrada.'});
   const channelId=decodeURIComponent(match[1]),action=match[2]||'status';
 
   if(action==='status'&&req.method==='GET')return send(res,200,{stream:getNodeStream(channelId)});
+  if(action==='history'&&req.method==='DELETE')return send(res,200,{stream:clearNodeStreamHistory(channelId)});
   if(action==='stop'&&req.method==='POST')return send(res,200,{stream:await stopNodeStream(channelId)});
   if((action==='start'||action==='restart')&&req.method==='POST'){
     const body=await readBody(req),channel=body.channel;
