@@ -5,6 +5,7 @@ import ChannelFilters from './components/ChannelFilters.jsx';
 import ChannelForm from './components/ChannelForm.jsx';
 import ChannelTable from './components/ChannelTable.jsx';
 import { bulkChannelAction, clearChannelStreamHistory, createChannel, createChannelsBulk, deleteChannel, loadChannels, loadStream, restartChannelStream, startChannelStream, stopChannelStream, updateChannel } from './services/channelsApi.js';
+import { loadNodes } from '../nodes/services/nodesApi.js';
 import './styles/channels.css';
 
 function primarySource(channel) {
@@ -19,6 +20,7 @@ function sourceType(channel) {
 
 export default function Channels() {
   const [channels, setChannels] = React.useState([]);
+  const [nodes, setNodes] = React.useState([]);
   const [selected, setSelected] = React.useState([]);
   const [streams, setStreams] = React.useState({});
   const [mediaByChannel, setMediaByChannel] = React.useState({});
@@ -58,8 +60,9 @@ export default function Channels() {
   const refresh = React.useCallback(async () => {
     setLoading(true);
     try {
-      const list = await loadChannels();
+      const [list, nodeList] = await Promise.all([loadChannels(), loadNodes([])]);
       setChannels(list);
+      setNodes(nodeList);
       await refreshStreams(list);
     } catch (refreshError) {
       setError(refreshError.message);
@@ -118,9 +121,15 @@ export default function Channels() {
   const save = async (data) => {
     setSaving(true);
     setError('');
+    const edit = Boolean(editing);
+    const old = edit ? streams[editing.id] : null;
+    const wasRunning = edit && ['running', 'starting', 'recovering'].includes(old?.status);
+    let stoppedForEdit = false;
     try {
-      const edit = Boolean(editing);
-      const old = edit ? streams[editing.id] : null;
+      if (wasRunning) {
+        await stopChannelStream(editing.id);
+        stoppedForEdit = true;
+      }
       const result = edit ? await updateChannel(editing.id, data) : await createChannel(data);
       setChannels((previous) => edit ? previous.map((item) => item.id === editing.id ? result : item) : [result, ...previous]);
       setMediaByChannel((previous) => {
@@ -129,20 +138,21 @@ export default function Channels() {
         delete next[editing.id];
         return next;
       });
-      let stream;
+      let stream = null;
+      let runtimeError = '';
       if (result.status === 'Activo') {
-        if (edit && ['running', 'starting'].includes(old?.status)) await stopChannelStream(result.id);
-        stream = await startChannelStream(result.id);
-      } else if (edit && ['running', 'starting', 'recovering'].includes(old?.status)) {
-        stream = await stopChannelStream(result.id);
+        try { stream = await startChannelStream(result.id); } catch (startError) { runtimeError = startError.message; }
+      } else if (wasRunning) {
+        try { stream = await loadStream(result.id); } catch {}
       }
       if (stream) setStreams((previous) => ({ ...previous, [result.id]: stream }));
       setFormOpen(false);
       setEditing(null);
-      setNotice(result.status === 'Activo' ? result.name + ' guardado. Emisión iniciada.' : result.name + ' guardado como inactivo.');
+      setNotice(runtimeError ? result.name + ' guardado. No se pudo iniciar: ' + runtimeError : result.status === 'Activo' ? result.name + ' guardado. Emisión iniciada.' : result.name + ' guardado como inactivo.');
       setTimeout(() => refreshStreams(), 1200);
       return true;
     } catch (saveError) {
+      if (stoppedForEdit && edit) startChannelStream(editing.id).catch(() => {});
       setError(saveError.message);
       return false;
     } finally {
@@ -171,10 +181,22 @@ export default function Channels() {
   const toggle = async (channel) => {
     try {
       const active = channel.status !== 'Activo';
+      const current = streams[channel.id];
+      const wasRunning = ['running', 'starting', 'recovering'].includes(current?.status);
+      let stopped = false;
+      if (!active && wasRunning) {
+        await stopChannelStream(channel.id);
+        stopped = true;
+      }
       const result = await updateChannel(channel.id, { ...channel, status: active ? 'Activo' : 'Inactivo' });
       setChannels((previous) => previous.map((item) => item.id === channel.id ? result : item));
-      const stream = active ? await startChannelStream(channel.id) : await stopChannelStream(channel.id);
-      setStreams((previous) => ({ ...previous, [channel.id]: stream }));
+      let stream = null;
+      if (active) {
+        try { stream = await startChannelStream(channel.id); } catch (startError) { setNotice(result.name + ' activado, pero no pudo iniciar: ' + startError.message); }
+      } else if (stopped) {
+        try { stream = await loadStream(channel.id); } catch {}
+      }
+      if (stream) setStreams((previous) => ({ ...previous, [channel.id]: stream }));
     } catch (toggleError) {
       setError(toggleError.message);
     }
@@ -218,7 +240,18 @@ export default function Channels() {
         setSelected([]);
         return;
       }
+      if (['deactivate', 'delete'].includes(action)) {
+        for (const id of selected) {
+          const current = streams[id];
+          if (['running', 'starting', 'recovering'].includes(current?.status)) await stopChannelStream(id);
+        }
+      }
       await bulkChannelAction(selected, action, payload);
+      if (action === 'activate') {
+        for (const id of selected) {
+          try { await startChannelStream(id); } catch {}
+        }
+      }
       setSelected([]);
       await refresh();
       setNotice('Operación masiva completada.');
@@ -334,7 +367,7 @@ export default function Channels() {
       onStream={streamAction}
     />}
 
-    {formOpen && <ChannelForm initial={editing} stream={editing ? streams[editing.id] : null} categories={categories.filter((value) => value !== 'Todas')} saving={saving} externalError={error} onSave={save} onCancel={() => { setFormOpen(false); setEditing(null); }}/>}
+    {formOpen && <ChannelForm initial={editing} stream={editing ? streams[editing.id] : null} nodes={nodes} categories={categories.filter((value) => value !== 'Todas')} saving={saving} externalError={error} onSave={save} onCancel={() => { setFormOpen(false); setEditing(null); }}/>}
     {massOpen && <div className="modal-backdrop"><div className="modal xui-mass-modal"><div className="xui-modal-head"><div><Layers3 size={17}/><strong>Añadir múltiples Streams</strong></div><button onClick={() => setMassOpen(false)}>×</button></div><div className="xui-modal-body"><p>Un stream por línea. Formato: <b>NÚMERO | NOMBRE | CATEGORÍA | URL</b></p><textarea value={massText} onChange={(event) => setMassText(event.target.value)} placeholder={'1 | Canal Uno | TV | http://servidor/stream.m3u8\n2 | Canal Dos | Deportes | http://servidor/stream2.m3u8'}/></div><div className="xui-modal-foot"><button onClick={() => setMassOpen(false)}>Cancelar</button><button className="xui-primary" onClick={massCreate}><Plus size={14}/> Añadir Streams</button></div></div></div>}
   </div>;
 }
