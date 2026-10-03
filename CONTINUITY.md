@@ -169,3 +169,41 @@ Se continúa la fundación main/sub con el primer instalador de nodo secundario 
 - Conectar la navegación `Servidores` con `NodesPage` real.
 - Adaptar la pantalla de nodos para roles `main/sub/edge`, capacidades, métricas, último heartbeat y endpoint API.
 - Mantener compatibilidad con `/api/nodes` existente.
+
+
+### 15.3 — Persistencia real de nodos en MariaDB
+Respaldo previo: `backup/pre-stream-node-persistence-0.4.3-20261002`.
+
+Se reemplaza la persistencia provisional de nodos basada en la tabla JSON genérica `nodes` por estructuras dedicadas:
+- `stream_nodes`: identidad, rol, IP/host, API, región, capacidad, capacidades, versión, estado, métricas actuales y último heartbeat.
+- `stream_node_heartbeats`: historial temporal de métricas por nodo para diagnóstico y futura telemetría.
+
+Reglas:
+- `/api/stream-nodes` pasa a ser la API canónica de inventario.
+- `/api/nodes` se conserva como compatibilidad y usa el mismo backend dedicado, evitando dos fuentes de verdad.
+- Registro y heartbeat continúan protegidos por `IPZTREAM_NODE_REGISTRATION_TOKEN`.
+- Un nodo se marca automáticamente `Fuera de línea` si deja de reportar durante el umbral configurable `IPZTREAM_NODE_OFFLINE_AFTER_SECONDS`.
+- Los registros históricos de heartbeat se retienen por un período configurable para evitar crecimiento ilimitado.
+- Los nodos existentes en la tabla legacy `nodes` se migran de forma no destructiva al arrancar.
+- La identidad del nodo debe ser estable: si un registro llega con el mismo IP/host, se reutiliza el ID existente para que una reinstalación no rompa el heartbeat.
+
+Antes de continuar a ejecución distribuida de FFmpeg, esta etapa debe validar: alta manual, registro remoto, heartbeat, transición online→offline→online, reinicio del main y conservación de datos.
+
+#### Implementación 0.4.3
+- `server/db.js` crea y usa `stream_nodes` + `stream_node_heartbeats`.
+- Migración legacy protegida por `app_meta.stream_nodes_migrated_v1`, para que un nodo eliminado no reaparezca al reiniciar.
+- `/api/stream-nodes` es la API canónica; `/api/nodes` permanece como compatibilidad sobre las mismas tablas.
+- GET de historial: `/api/stream-nodes/:id/heartbeats?limit=N`.
+- Offline automático por timeout, con worker liviano y retención acotada de heartbeats.
+- El gateway seguro reenvía correctamente el body de registro/heartbeat y RBAC asigna `stream-nodes` a permisos `nodes.*`.
+- El instalador Main genera/preserva el token de nodos y configura timeout/retención.
+- El instalador de subnodo mide CPU por delta real, RAM/disco/load, procesos FFmpeg activos, genera JSON seguro y adopta el ID canónico del Main.
+- La UI dejó de mostrar nodos demo/localStorage como fallback operativo; si la API no tiene nodos, muestra inventario vacío real.
+- Versión: `0.4.3`.
+
+Validación aislada realizada en checkout limpio:
+- `node --check` aprobado para `server/db.js`, `server/index.js`, `server/auth.js` y `server/secure-entry.js`.
+- `bash -n` aprobado para `install.sh` y `scripts/install-node.sh`.
+- `npm run build` aprobado con Vite 8.3.2, 1933 módulos transformados. Solo quedan warnings no bloqueantes de tamaño de bundle/directivas de lucide-react.
+
+Pendiente de validación real: arrancar 0.4.3 contra MariaDB de desarrollo, instalar un subnodo autorizado y confirmar online→offline→online e historial. No declarar producción hasta completar esa prueba.

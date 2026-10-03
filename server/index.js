@@ -1,5 +1,6 @@
 import http from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { isIP } from 'node:net';
 import {
   pool,
   TABLES,
@@ -10,7 +11,18 @@ import {
   insertItem,
   updateItem,
   deleteItem,
-  addAudit
+  addAudit,
+  listStreamNodes,
+  getStreamNode,
+  findStreamNodeByIp,
+  upsertStreamNode,
+  recordStreamNodeHeartbeat,
+  listStreamNodeHeartbeats,
+  deleteStreamNode,
+  markOfflineStreamNodes,
+  pruneStreamNodeHeartbeats,
+  streamNodeOfflineAfterSeconds,
+  streamNodeHeartbeatRetentionDays
 } from './db.js';
 import { ensureUserSchema, listUsers, getUser, createUser, updateUser, deleteUser } from './user-service.js';
 
@@ -53,7 +65,9 @@ function validIPv4(ip) {
 
 function validNodeHost(value) {
   const host = String(value || '').trim();
-  return validIPv4(host) || /^[a-z0-9.-]+$/i.test(host);
+  if (!host) return false;
+  if (isIP(host)) return true;
+  return /^(?=.{1,253}$)(?!-)[a-z0-9-]+(?:\.(?!-)[a-z0-9-]+)*\.?$/i.test(host);
 }
 
 function normalizeCapabilities(value = []) {
@@ -63,14 +77,26 @@ function normalizeCapabilities(value = []) {
 }
 
 function normalizeMetrics(value = {}) {
-  const numberOrNull = (input) => input === null || input === '' || input === undefined ? null : Number(input);
+  const finiteOrNull = (input) => {
+    if (input === null || input === '' || input === undefined) return null;
+    const parsed = Number(input);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+  const percent = (input) => {
+    const parsed = finiteOrNull(input);
+    return parsed === null ? null : Math.min(100, Math.max(0, parsed));
+  };
+  const nonNegative = (input, fallback = 0) => {
+    const parsed = finiteOrNull(input);
+    return parsed === null ? fallback : Math.max(0, parsed);
+  };
   return {
-    cpu: numberOrNull(value.cpu),
-    ram: numberOrNull(value.ram),
-    disk: numberOrNull(value.disk),
-    load: numberOrNull(value.load),
-    activeStreams: Math.max(0, Number(value.activeStreams || 0)),
-    uptime: Math.max(0, Number(value.uptime || 0))
+    cpu: percent(value.cpu),
+    ram: percent(value.ram),
+    disk: percent(value.disk),
+    load: nonNegative(value.load, 0),
+    activeStreams: Math.trunc(nonNegative(value.activeStreams, 0)),
+    uptime: Math.trunc(nonNegative(value.uptime, 0))
   };
 }
 
@@ -249,8 +275,26 @@ async function handle(req, res) {
   }
 
   if (pathname === '/api/stream-nodes' && req.method === 'GET') {
-    const nodes = await listItems(TABLES.nodes);
-    return send(res, 200, { nodes: nodes.map((node) => normalizeNode(node, node)).filter((node) => ['main', 'sub', 'edge'].includes(node.role)) });
+    const nodes = await listStreamNodes();
+    return send(res, 200, {
+      nodes,
+      offlineAfterSeconds: streamNodeOfflineAfterSeconds(),
+      heartbeatRetentionDays: streamNodeHeartbeatRetentionDays()
+    });
+  }
+
+  if (pathname === '/api/stream-nodes' && req.method === 'POST') {
+    const body = await readBody(req);
+    const item = normalizeNode({ ...body, status: body.status || 'Fuera de línea' });
+    if (!item.name || !item.ip || !item.region || !item.capacity) {
+      return send(res, 400, { message: 'Nombre, IP, región y capacidad son obligatorios.' });
+    }
+    if (!validNodeHost(item.ip)) return send(res, 400, { message: 'Ingresa una IP o hostname válido.' });
+    const existing = await findStreamNodeByIp(item.ip);
+    if (existing) return send(res, 409, { message: `La IP ${item.ip} ya está registrada en otro nodo.` });
+    const { node } = await upsertStreamNode({ ...item, status: item.status || 'Fuera de línea' }, { matchByIp: false });
+    await addAudit({ action: 'CREATE', module: 'stream-nodes', detail: `Nodo ${node.id} creado manualmente`, metadata: { nodeId: node.id, ip: node.ip, role: node.role } });
+    return send(res, 201, { node });
   }
 
   if (pathname === '/api/stream-nodes/register' && req.method === 'POST') {
@@ -259,43 +303,82 @@ async function handle(req, res) {
     const item = normalizeNode({ ...body, status: body.status || 'En línea', lastSeenAt: new Date().toISOString() });
     if (!item.name || !item.ip || !item.region) return send(res, 400, { message: 'Nombre, IP/host y región son obligatorios.' });
     if (!validNodeHost(item.ip)) return send(res, 400, { message: 'IP/host de nodo inválido.' });
-    const nodes = await listItems(TABLES.nodes);
-    const existing = nodes.find((node) => node.id === item.id || String(node.ip || '').toLowerCase() === item.ip.toLowerCase());
-    if (existing) {
-      const merged = normalizeNode({ ...existing, ...item, id: existing.id }, existing);
-      return send(res, 200, { node: await saveUpdate(TABLES.nodes, existing.id, merged, 'stream-nodes'), registered: false });
-    }
-    return send(res, 201, { node: await saveNew(TABLES.nodes, item, 'stream-nodes'), registered: true });
+
+    const result = await upsertStreamNode(item, { matchByIp: true });
+    await addAudit({
+      action: result.created ? 'REGISTER' : 'REREGISTER',
+      module: 'stream-nodes',
+      detail: `Nodo ${result.node.id} registrado por agente`,
+      metadata: { nodeId: result.node.id, requestedId: item.id, ip: result.node.ip, role: result.node.role }
+    });
+    return send(res, result.created ? 201 : 200, {
+      node: result.node,
+      registered: result.created,
+      canonicalId: result.canonicalId
+    });
+  }
+
+  const streamNodeHeartbeats = pathname.match(/^\/api\/stream-nodes\/([^/]+)\/heartbeats$/);
+  if (streamNodeHeartbeats && req.method === 'GET') {
+    const nodeId = decodeURIComponent(streamNodeHeartbeats[1]);
+    const node = await getStreamNode(nodeId);
+    if (!node) return send(res, 404, { message: 'Nodo no encontrado.' });
+    const limit = Math.min(1000, Math.max(1, Number(url.searchParams.get('limit') || 120)));
+    return send(res, 200, { node, heartbeats: await listStreamNodeHeartbeats(nodeId, limit) });
   }
 
   const streamNodeHeartbeat = pathname.match(/^\/api\/stream-nodes\/([^/]+)\/heartbeat$/);
   if (streamNodeHeartbeat && req.method === 'POST') {
     requireNodeToken(req);
-    const id = decodeURIComponent(streamNodeHeartbeat[1]);
-    const current = await getItem(TABLES.nodes, id);
-    if (!current) return send(res, 404, { message: 'Nodo no encontrado.' });
+    const requestedId = decodeURIComponent(streamNodeHeartbeat[1]);
     const body = await readBody(req);
-    const node = normalizeNode({ ...current, ...body, status: body.status || 'En línea', lastSeenAt: new Date().toISOString() }, current);
-    return send(res, 200, { node: await saveUpdate(TABLES.nodes, id, node, 'stream-nodes') });
+    const current = await getStreamNode(requestedId) || (body.ip ? await findStreamNodeByIp(body.ip) : null);
+    if (!current) return send(res, 404, { message: 'Nodo no encontrado. Registra el nodo antes de enviar heartbeat.' });
+
+    const node = normalizeNode(
+      { ...current, ...body, id: current.id, status: body.status || 'En línea', lastSeenAt: new Date().toISOString() },
+      current
+    );
+    const saved = await recordStreamNodeHeartbeat(current.id, node);
+    return send(res, 200, { node: saved, canonicalId: saved.id });
   }
 
+  const streamNodeMatch = pathname.match(/^\/api\/stream-nodes\/([^/]+)$/);
+  if (streamNodeMatch) {
+    const id = decodeURIComponent(streamNodeMatch[1]);
+    if (req.method === 'GET') {
+      const node = await getStreamNode(id);
+      return node ? send(res, 200, { node }) : send(res, 404, { message: 'Nodo no encontrado.' });
+    }
+    if (req.method === 'DELETE') {
+      const ok = await deleteStreamNode(id);
+      if (ok) await addAudit({ action: 'DELETE', module: 'stream-nodes', detail: `Nodo ${id} eliminado`, metadata: { nodeId: id } });
+      return send(res, ok ? 200 : 404, { ok });
+    }
+  }
+
+  // Compatibilidad con la API histórica. Desde 0.4.3 comparte exactamente
+  // la misma fuente dedicada que /api/stream-nodes para evitar doble verdad.
   if (pathname === '/api/nodes') {
-    if (req.method === 'GET') return send(res, 200, { nodes: await listItems(TABLES.nodes) });
+    if (req.method === 'GET') return send(res, 200, { nodes: await listStreamNodes() });
     if (req.method === 'POST') {
-      const item = normalizeNode(await readBody(req));
+      const body = await readBody(req);
+      const item = normalizeNode({ ...body, status: body.status || 'Fuera de línea' });
       if (!item.name || !item.ip || !item.region || !item.capacity) return send(res, 400, { message: 'Nombre, IP, región y capacidad son obligatorios.' });
       if (!validNodeHost(item.ip)) return send(res, 400, { message: 'Ingresa una IP o hostname válido.' });
-      if ((item.cpu !== null && (!Number.isFinite(item.cpu) || item.cpu < 0 || item.cpu > 100)) || (item.ram !== null && (!Number.isFinite(item.ram) || item.ram < 0 || item.ram > 100))) return send(res, 400, { message: 'CPU y RAM deben estar entre 0 y 100.' });
-      const nodes = await listItems(TABLES.nodes);
-      if (nodes.some((node) => node.ip.toLowerCase() === item.ip.toLowerCase())) return send(res, 409, { message: `La IP ${item.ip} ya está registrada en otro nodo.` });
-      return send(res, 201, await saveNew(TABLES.nodes, item, 'nodes'));
+      if (await findStreamNodeByIp(item.ip)) return send(res, 409, { message: `La IP ${item.ip} ya está registrada en otro nodo.` });
+      const { node } = await upsertStreamNode(item, { matchByIp: false });
+      await addAudit({ action: 'CREATE', module: 'stream-nodes', detail: `Nodo ${node.id} creado por API compatible`, metadata: { nodeId: node.id, ip: node.ip } });
+      return send(res, 201, node);
     }
   }
 
   const nodeMatch = pathname.match(/^\/api\/nodes\/([^/]+)$/);
-  if (nodeMatch) {
+  if (nodeMatch && req.method === 'DELETE') {
     const id = decodeURIComponent(nodeMatch[1]);
-    if (req.method === 'DELETE') return send(res, (await saveDelete(TABLES.nodes, id, 'nodes')) ? 200 : 404, { ok: true });
+    const ok = await deleteStreamNode(id);
+    if (ok) await addAudit({ action: 'DELETE', module: 'stream-nodes', detail: `Nodo ${id} eliminado por API compatible`, metadata: { nodeId: id } });
+    return send(res, ok ? 200 : 404, { ok });
   }
 
   if (pathname === '/api/channels/bulk-create' && req.method === 'POST') {
@@ -438,6 +521,18 @@ async function handle(req, res) {
 async function start() {
   await initDatabase();
   await ensureUserSchema();
+
+  const offlineEveryMs = Math.max(15000, Math.min(60000, Math.floor(streamNodeOfflineAfterSeconds() * 500)));
+  const offlineTimer = setInterval(() => {
+    markOfflineStreamNodes().catch((error) => console.error('No se pudo actualizar estado offline de nodos:', error));
+  }, offlineEveryMs);
+  offlineTimer.unref();
+
+  const heartbeatPruneTimer = setInterval(() => {
+    pruneStreamNodeHeartbeats().catch((error) => console.error('No se pudo depurar historial de heartbeats:', error));
+  }, 60 * 60 * 1000);
+  heartbeatPruneTimer.unref();
+
   const server = http.createServer(async (req, res) => {
     try {
       await handle(req, res);

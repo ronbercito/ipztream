@@ -3,13 +3,10 @@ import { Plus, Search, Server, X, RefreshCw, Activity } from 'lucide-react';
 import NodeFilters from './components/NodeFilters.jsx';
 import NodeForm from './components/NodeForm.jsx';
 import NodeTable from './components/NodeTable.jsx';
-import { loadNodes, createNode, removeNode, loadLocalNodes, saveLocalNodes } from './services/nodesApi.js';
+import { loadNodes, createNode, removeNode } from './services/nodesApi.js';
 import './styles/nodes.css';
 
-const initialNodes = [
-  { id:'node-main', name:'Main - Control Central', role:'main', status:'En línea', ip:'127.0.0.1', apiBaseUrl:'http://127.0.0.1:3100', region:'Local', cpu:22, ram:41, disk:38, activeStreams:0, capacity:'Control', capabilities:['live','hls','ffmpeg'] },
-  { id:'node-sub-01', name:'Sub Nodo 01 - Lima', role:'sub', status:'Fuera de línea', ip:'192.168.10.21', apiBaseUrl:'http://192.168.10.21:3100', region:'Lima', cpu:null, ram:null, disk:null, activeStreams:0, capacity:'10 Gbps', capabilities:['live','hls','ffmpeg'] }
-];
+const initialNodes = [];
 
 function isOnline(node){return node.status==='En línea'}
 function metricAvg(nodes,key){const values=nodes.map(n=>Number(n[key])).filter(Number.isFinite);return values.length?Math.round(values.reduce((a,b)=>a+b,0)/values.length):0}
@@ -24,8 +21,7 @@ export default function Nodes(){
 
   const refresh=React.useCallback(async()=>{
     setLoading(true);
-    const localFallback=loadLocalNodes(initialNodes);
-    const result=await loadNodes(localFallback);
+    const result=await loadNodes(initialNodes);
     setNodes(result);
     setLoading(false);
   },[]);
@@ -44,7 +40,6 @@ export default function Nodes(){
       const node=created.node||created;
       const next=[node,...nodes];
       setNodes(next);
-      saveLocalNodes(next);
       setFormOpen(false);
       setNotice('Nodo agregado correctamente. Para nodos remotos usa scripts/install-node.sh con el token de registro.');
       return true;
@@ -59,7 +54,6 @@ export default function Nodes(){
       await removeNode(id);
       const next=nodes.filter(n=>n.id!==id);
       setNodes(next);
-      saveLocalNodes(next);
       setNotice('Nodo eliminado correctamente.');
     }catch(error){
       setNotice(error.message||'No se pudo eliminar el nodo.');

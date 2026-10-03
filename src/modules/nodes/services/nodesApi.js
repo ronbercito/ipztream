@@ -28,11 +28,15 @@ export async function loadNodes(fallback=[]){
 }
 
 export async function createNode(data){
-  return request(API_BASE,{method:'POST',body:JSON.stringify(data)});
+  return request(STREAM_NODE_BASE,{method:'POST',body:JSON.stringify(data)});
 }
 
 export async function removeNode(id){
-  return request(`${API_BASE}/${encodeURIComponent(id)}`,{method:'DELETE'});
+  return request(`${STREAM_NODE_BASE}/${encodeURIComponent(id)}`,{method:'DELETE'});
+}
+
+export async function loadNodeHeartbeats(id,limit=120){
+  return request(`${STREAM_NODE_BASE}/${encodeURIComponent(id)}/heartbeats?limit=${encodeURIComponent(limit)}`);
 }
 
 export function loadLocalNodes(fallback){

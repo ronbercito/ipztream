@@ -42,7 +42,7 @@ systemctl status mariadb --no-pager
 systemctl status ipztream-api --no-pager
 systemctl status nginx --no-pager
 curl http://127.0.0.1:3100/api/health
-curl http://127.0.0.1:3100/api/nodes
+curl -b cookies.txt http://127.0.0.1:3100/api/stream-nodes
 curl http://127.0.0.1:3100/api/channels
 curl http://127.0.0.1:3100/api/packages
 ```
@@ -64,3 +64,15 @@ Esta etapa ya permite una prueba operativa con persistencia real, pero todavía 
 
 ## Actualización futura
 La actualización de clientes se implementará mediante el sistema propio de releases/updater. GitHub seguirá siendo desarrollo/release y no debe ser un requisito para clientes finales.
+
+
+## Nodos Main/Sub
+
+Desde 0.4.3 los nodos usan tablas dedicadas `stream_nodes` y `stream_node_heartbeats`. La tabla legacy `nodes` se conserva únicamente para compatibilidad/migración.
+
+El Main guarda en `/etc/ipztream/ipztream-api.env`:
+- `IPZTREAM_NODE_REGISTRATION_TOKEN`: secreto de registro/heartbeat; no se imprime durante la instalación.
+- `IPZTREAM_NODE_OFFLINE_AFTER_SECONDS`: timeout para marcar un nodo sin heartbeat como fuera de línea; default 150 s.
+- `IPZTREAM_NODE_HEARTBEAT_RETENTION_DAYS`: retención del histórico de métricas; default 7 días.
+
+Para instalar un subnodo, obtén el token de forma segura en el Main y úsalo solo en el servidor autorizado. El agente reporta cada 60 segundos y el Main conserva el último estado y el histórico acotado de heartbeats.

@@ -157,3 +157,36 @@ Regla aplicada: primero continuidad/bitácora, luego código. No se incorporan P
 Se implementa el siguiente bloque main/sub: instalador base de nodo secundario, bypass seguro en `secure-entry` para registro/heartbeat por token, navegación real hacia `NodesPage` y UI de Servidores/Load Balancers con rol, capacidades, métricas y última señal.
 
 La implementación mantiene código propio IPZStream y evita copiar PHP/binarios de los paquetes de referencia. El nodo secundario queda preparado como servicio systemd liviano que reporta heartbeat al main; la ejecución distribuida de streams queda para el siguiente bloque.
+
+
+### 15.3 — Persistencia real de nodos en MariaDB — INICIADA
+Respaldo creado: `backup/pre-stream-node-persistence-0.4.3-20261002`.
+
+Objetivo autorizado:
+- crear tablas `stream_nodes` y `stream_node_heartbeats`;
+- migrar nodos existentes sin pérdida;
+- usar esas tablas en `/api/stream-nodes`;
+- mantener `/api/nodes` como compatibilidad sobre la misma fuente;
+- registrar cada heartbeat y conservar métricas actuales;
+- marcar offline automáticamente por timeout configurable;
+- evitar que una reinstalación con el mismo IP deje un ID distinto que provoque 404 en heartbeat;
+- dejar preparada la base para scheduler, balanceo y agente real del subnodo.
+
+La implementación se hará primero en rama `feature/ipztream-stream-node-persistence`. No se considera lista para producción hasta validar build, sintaxis y una prueba real con MariaDB.
+
+#### Resultado de implementación
+Quedó implementada la base 15.3 para versión `0.4.3`:
+- tablas dedicadas de nodos/heartbeats + migración única desde `nodes`;
+- API canónica y compatibilidad sin doble fuente de verdad;
+- offline automático y retención;
+- historial de heartbeat;
+- permisos correctos para `stream-nodes`;
+- corrección del gateway que antes descartaba el body de registro/heartbeat;
+- token de nodos generado/preservado por el instalador Main;
+- subnodo con métricas más reales, JSON seguro e ID canónico;
+- UI sin nodos demo falsos cuando la API falla/viene vacía.
+
+Validación técnica en checkout limpio:
+`node --check` backend/gateway OK · `bash -n` instaladores OK · `npm run build` OK (Vite 8.3.2, 1933 módulos).
+
+Estado: **código listo para merge y prueba real de MariaDB/subnodo; producción todavía no aprobada**.

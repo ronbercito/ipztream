@@ -1,4 +1,4 @@
--- IPZStream MariaDB schema v4
+-- IPZStream MariaDB schema v5
 -- La API crea estas estructuras automáticamente al iniciar.
 
 CREATE TABLE IF NOT EXISTS nodes (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
@@ -11,6 +11,54 @@ CREATE TABLE IF NOT EXISTS packages (id VARCHAR(191) PRIMARY KEY, payload JSON N
 CREATE TABLE IF NOT EXISTS connections (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS devices (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS users (id VARCHAR(191) PRIMARY KEY, payload JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS stream_nodes (
+  id VARCHAR(191) PRIMARY KEY,
+  name VARCHAR(191) NOT NULL,
+  role ENUM('main','sub','edge') NOT NULL DEFAULT 'sub',
+  status ENUM('En línea','Fuera de línea','Degradado','Mantenimiento') NOT NULL DEFAULT 'Fuera de línea',
+  ip_address VARCHAR(255) NOT NULL,
+  api_base_url VARCHAR(512) NOT NULL DEFAULT '',
+  region VARCHAR(128) NOT NULL DEFAULT '',
+  capacity VARCHAR(128) NOT NULL DEFAULT '',
+  capabilities JSON NOT NULL,
+  version VARCHAR(128) NOT NULL DEFAULT '',
+  notes TEXT NOT NULL,
+  cpu_percent DECIMAL(5,2) NULL,
+  ram_percent DECIMAL(5,2) NULL,
+  disk_percent DECIMAL(5,2) NULL,
+  load_avg DECIMAL(8,2) NULL,
+  active_streams INT UNSIGNED NOT NULL DEFAULT 0,
+  uptime_seconds BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  last_seen_at DATETIME(3) NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  INDEX idx_stream_nodes_role (role),
+  INDEX idx_stream_nodes_status (status),
+  INDEX idx_stream_nodes_ip (ip_address),
+  INDEX idx_stream_nodes_last_seen (last_seen_at)
+);
+CREATE TABLE IF NOT EXISTS stream_node_heartbeats (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  node_id VARCHAR(191) NOT NULL,
+  status ENUM('En línea','Fuera de línea','Degradado','Mantenimiento') NOT NULL DEFAULT 'En línea',
+  cpu_percent DECIMAL(5,2) NULL,
+  ram_percent DECIMAL(5,2) NULL,
+  disk_percent DECIMAL(5,2) NULL,
+  load_avg DECIMAL(8,2) NULL,
+  active_streams INT UNSIGNED NOT NULL DEFAULT 0,
+  uptime_seconds BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  version VARCHAR(128) NOT NULL DEFAULT '',
+  received_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  INDEX idx_stream_node_heartbeats_node_received (node_id, received_at),
+  CONSTRAINT fk_stream_node_heartbeats_node FOREIGN KEY (node_id) REFERENCES stream_nodes(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS app_meta (
+  meta_key VARCHAR(128) PRIMARY KEY,
+  meta_value TEXT NOT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS audit_logs (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, action VARCHAR(64) NOT NULL, module VARCHAR(128) NOT NULL, actor VARCHAR(191), detail TEXT, metadata JSON NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_audit_logs_created_at (created_at));
 
 -- Autenticación administrativa y RBAC.
