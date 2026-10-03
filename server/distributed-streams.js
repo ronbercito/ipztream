@@ -21,21 +21,22 @@ function localDecorate(stream,target){
   return{...stream,nodeId:target.node?.id||'',nodeName:target.node?.name||'Main',execution:'local'};
 }
 export async function getDistributedStream(channelId){
-  const target=await resolveChannelTarget(channelId);
+  const target=await resolveChannelTarget(channelId,{allowOffline:true});
   if(target.type==='local')return localDecorate(getStream(channelId),target);
+  if(target.node.status==='Fuera de línea')return{channelId:String(channelId),status:'error',desiredState:'unknown',nodeId:target.node.id,nodeName:target.node.name,execution:'remote',hlsUrl:null,error:'Nodo fuera de línea.',remotePending:true,logs:[]};
   return getRemoteStream(target.node,channelId);
 }
 export async function startDistributedStream(channelId,{persist=true}={}){
   const target=await resolveChannelTarget(channelId);
   if(target.type==='local')return localDecorate(await startStream(channelId,{persist}),target);
   if(persist)await setStreamDesiredState(channelId,'running');
-  try{return await startRemoteStream(target.node,target.channel)}
-  catch(error){if(persist)await setStreamDesiredState(channelId,'stopped');throw error}
+  return startRemoteStream(target.node,target.channel)
 }
 export async function stopDistributedStream(channelId,{persist=true}={}){
-  const target=await resolveChannelTarget(channelId);
+  const target=await resolveChannelTarget(channelId,{allowOffline:true});
   if(target.type==='local')return localDecorate(await stopStream(channelId),target);
   if(persist)await setStreamDesiredState(channelId,'stopped');
+  if(target.node.status==='Fuera de línea')return{channelId:String(channelId),status:'error',desiredState:'stopped',nodeId:target.node.id,nodeName:target.node.name,execution:'remote',hlsUrl:null,error:'Stop pendiente: nodo fuera de línea.',remotePending:true,logs:[]};
   return stopRemoteStream(target.node,channelId);
 }
 export async function restartDistributedStream(channelId){
@@ -45,8 +46,9 @@ export async function restartDistributedStream(channelId){
   return restartRemoteStream(target.node,target.channel);
 }
 export async function clearDistributedStreamHistory(channelId){
-  const target=await resolveChannelTarget(channelId);
+  const target=await resolveChannelTarget(channelId,{allowOffline:true});
   if(target.type==='local')return localDecorate(clearStreamHistory(channelId),target);
+  if(target.node.status==='Fuera de línea')return{channelId:String(channelId),status:'error',desiredState:'unknown',nodeId:target.node.id,nodeName:target.node.name,execution:'remote',hlsUrl:null,error:'Nodo fuera de línea.',remotePending:true,logs:[]};
   return getRemoteStream(target.node,channelId);
 }
 export async function restoreDistributedDesiredStreams(){
