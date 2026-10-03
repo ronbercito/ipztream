@@ -79,7 +79,7 @@ export default function ChannelTable({
   const colSpan = 10 + extraColumns;
 
   return <div className="card module-table channel-table stream-modern-table">
-    <div className="table-info"><span>Mostrando {channels.length} stream{channels.length === 1 ? '' : 's'}</span><span>Estado real FFmpeg/HLS · las métricas multimedia se analizan al abrir el detalle</span></div>
+    <div className="table-info"><span>Mostrando {channels.length} stream{channels.length === 1 ? '' : 's'}</span><span><i className="media-refresh-dot"></i> Bitrate / Resolución · actualización automática cada 5 s</span></div>
     <div className="table-scroll">
       <table>
         <thead><tr>
@@ -121,8 +121,8 @@ export default function ChannelTable({
               <td><div className="stream-origin-cell"><Link2 size={13}/><span>{source?.originType === 'ASTRA' ? 'Astra Cesbo' : source?.originType === 'M3U' ? 'M3U / M3U8' : 'HTTP directo'}</span></div></td>
               <td><div className="stream-server-cell"><Server size={13}/><div><strong>{channel.nodeId || 'Local'}</strong><span>{source ? (source.protocol || '—') + ' · P' + (source.priority || 1) : 'Sin fuente'}</span></div></div></td>
               <td><div className={'stream-state-cell ' + state.className}><span className="stream-state-badge"><i></i>{state.label}</span><small>{running ? 'FFmpeg PID ' + (stream?.pid || '—') : stream?.error || stream?.lastError || 'Sin emisión activa'}</small></div></td>
-              {columns.bitrate && <td><div className="stream-metric-cell"><Gauge size={13}/><strong>{formatBitrate(media)}</strong>{media?.bitrateKbps ? <span className="metric-bars"><i></i><i></i><i></i><i></i></span> : <small>al abrir detalle</small>}</div></td>}
-              {columns.resolution && <td><div className="stream-resolution-cell"><Monitor size={13}/><strong>{formatResolution(media)}</strong><span>{media?.fps ? media.fps.toFixed(2) + ' FPS' : '—'}</span></div></td>}
+              {columns.bitrate && <td><div className={'stream-metric-cell' + (media?.bitrateKbps ? ' metric-ready' : ' metric-pending')}><Gauge size={13}/><strong>{formatBitrate(media)}</strong>{media?.bitrateKbps ? <><span className="metric-bars"><i></i><i></i><i></i><i></i></span><small>cada 5 s</small></> : <small>actualizando…</small>}</div></td>}
+              {columns.resolution && <td><div className={'stream-resolution-cell' + (media?.width && media?.height ? ' metric-ready' : ' metric-pending')}><Monitor size={13}/><strong>{formatResolution(media)}</strong><span>{media?.fps ? media.fps.toFixed(2) + ' FPS' : 'actualizando…'}</span></div></td>}
               {columns.clients && <td><div className="stream-clients-cell"><Users size={14}/><strong>{clients === null ? '—' : clients}</strong></div></td>}
               <td><div className="stream-uptime"><Clock3 size={14}/><strong>{running ? uptime(stream?.startedAt, now) : '—'}</strong></div></td>
               <td><button className="restart-summary" title="Ver historial de inicios y reinicios" onClick={() => setHistoryId(historyOpen ? null : channel.id)}><RotateCcw size={14}/><b>{stream?.restartCount || 0}</b><span>{stream?.startCount || 0} inicio(s)</span><History size={13}/></button></td>
