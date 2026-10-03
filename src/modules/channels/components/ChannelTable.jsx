@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Clock3, Edit3, Folder, Gauge, History, Link2, Monitor, MonitorPlay, MoreVertical, Play, Power, RefreshCw, RotateCcw, Server, Square, Trash2, Users } from 'lucide-react';
+import { Clock3, Edit3, Folder, Gauge, History, Link2, Monitor, MonitorPlay, MoreVertical, Play, Power, RefreshCw, RotateCcw, Server, Square, Trash2, Users } from 'lucide-react';
 
 function uptime(startedAt, now) {
   if (!startedAt) return '—';
