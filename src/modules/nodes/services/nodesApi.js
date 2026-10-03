@@ -51,3 +51,16 @@ export function loadLocalNodes(fallback){
 export function saveLocalNodes(nodes){
   try{localStorage.setItem(LOCAL_KEY,JSON.stringify(nodes));}catch{}
 }
+
+export async function planNodeAssignments({channelIds=[],region='',includeAssigned=false}={}){
+  const params=new URLSearchParams();
+  if(channelIds.length)params.set('channelIds',channelIds.join(','));
+  if(region)params.set('region',region);
+  if(includeAssigned)params.set('includeAssigned','true');
+  const query=params.toString();
+  return request(`/api/node-scheduler/plan${query?`?${query}`:''}`);
+}
+
+export async function applyNodeAssignments(assignments){
+  return request('/api/node-scheduler/apply',{method:'POST',body:JSON.stringify({assignments})});
+}
