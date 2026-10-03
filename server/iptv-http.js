@@ -113,14 +113,16 @@ function recordAuthFailure(req, username) {
 function clearAuthFailure(req, username) {
   authFailures.delete(authKey(req, username));
 }
-async function authenticate(req, url) {
-  const username = url.searchParams.get('username') || '';
-  const password = url.searchParams.get('password') || '';
-  if (!username || !password || blockedAuth(req, username)) return null;
-  const user = await authenticateClient(username, password);
-  if (!user) recordAuthFailure(req, username);
-  else clearAuthFailure(req, username);
+async function authenticateCredentials(req, username, password) {
+  const cleanUsername = String(username || '');
+  if (!cleanUsername || !password || blockedAuth(req, cleanUsername)) return null;
+  const user = await authenticateClient(cleanUsername, String(password || ''));
+  if (!user) recordAuthFailure(req, cleanUsername);
+  else clearAuthFailure(req, cleanUsername);
   return user;
+}
+async function authenticate(req, url) {
+  return authenticateCredentials(req, url.searchParams.get('username') || '', url.searchParams.get('password') || '');
 }
 function userInfo(user, activeCons = 0) {
   const exp = user.expiresAt ? Math.floor(new Date(`${user.expiresAt}T23:59:59Z`).getTime() / 1000) : null;
@@ -235,8 +237,8 @@ async function handleXmltv(req, res, url) {
   return sendText(res, 200, parts.join('\n'), 'application/xml; charset=utf-8');
 }
 
-async function authPathUser(username, password) {
-  return authenticateClient(decodeURIComponent(username), decodeURIComponent(password));
+async function authPathUser(req, username, password) {
+  return authenticateCredentials(req, decodeURIComponent(username), decodeURIComponent(password));
 }
 async function serveLive(req, res, url, streamRoot) {
   const playlist = url.pathname.match(/^\/live\/([^/]+)\/([^/]+)\/([^/]+)\.m3u8$/);
@@ -245,12 +247,11 @@ async function serveLive(req, res, url, streamRoot) {
   const match = playlist || transport || segment;
   if (!match) return false;
   const [, rawUser, rawPass, rawChannel] = match;
-  const user = await authPathUser(rawUser, rawPass);
+  const user = await authPathUser(req, rawUser, rawPass);
   if (!user) return sendText(res, 401, 'Credenciales IPTV no válidas.');
   const channelId = decodeURIComponent(rawChannel);
   const channel = await getAllowedChannel(user, channelId);
   if (!channel) return sendText(res, 403, 'Canal no autorizado.');
-  await touchPlayback(user, channel, { ip: clientIp(req), userAgent: req.headers['user-agent'] || '' });
 
   if (transport) {
     const location = `/live/${rawUser}/${rawPass}/${encodeURIComponent(channelId)}.m3u8`;
@@ -261,6 +262,7 @@ async function serveLive(req, res, url, streamRoot) {
   if (playlist) {
     try {
       let body = await ensureManifest(channel, streamRoot);
+      await touchPlayback(user, channel, { ip: clientIp(req), userAgent: req.headers['user-agent'] || '' });
       const base = `/live/${rawUser}/${rawPass}/${encodeURIComponent(channelId)}`;
       body = body.replace(/^(segment_[0-9]{6}\.ts)$/gm, `${base}/$1`);
       return sendText(res, 200, body, 'application/vnd.apple.mpegurl');
@@ -270,6 +272,7 @@ async function serveLive(req, res, url, streamRoot) {
   }
 
   const file = match[4];
+  await touchPlayback(user, channel, { ip: clientIp(req), userAgent: req.headers['user-agent'] || '' });
   return serveSegmentFile(req, res, channel, file, streamRoot);
 }
 
