@@ -90,7 +90,7 @@ export default function ChannelTable({
           <th>Origen</th>
           <th>Servidor</th>
           <th>Estado</th>
-          {columns.bitrate && <th>Bitrate</th>}
+          {columns.bitrate && <th>Bitrate total</th>}
           {columns.resolution && <th>Resolución</th>}
           {columns.clients && <th>Clientes</th>}
           <th>Tiempo activo</th>
@@ -121,7 +121,7 @@ export default function ChannelTable({
               <td><div className="stream-origin-cell"><Link2 size={13}/><span>{source?.originType === 'ASTRA' ? 'Astra Cesbo' : source?.originType === 'M3U' ? 'M3U / M3U8' : 'HTTP directo'}</span></div></td>
               <td><div className="stream-server-cell"><Server size={13}/><div><strong>{channel.nodeId || 'Local'}</strong><span>{source ? (source.protocol || '—') + ' · P' + (source.priority || 1) : 'Sin fuente'}</span></div></div></td>
               <td><div className={'stream-state-cell ' + state.className}><span className="stream-state-badge"><i></i>{state.label}</span><small>{running ? 'FFmpeg PID ' + (stream?.pid || '—') : stream?.error || stream?.lastError || 'Sin emisión activa'}</small></div></td>
-              {columns.bitrate && <td><div className={'stream-metric-cell' + (media?.bitrateKbps ? ' metric-ready' : ' metric-pending')}><Gauge size={13}/><strong>{formatBitrate(media)}</strong>{media?.bitrateKbps ? <><span className="metric-bars"><i></i><i></i><i></i><i></i></span><small>cada 5 s</small></> : <small>actualizando…</small>}</div></td>}
+              {columns.bitrate && <td><div className={'stream-metric-cell' + (media?.bitrateKbps ? ' metric-ready' : ' metric-pending')}><Gauge size={13}/><strong>{formatBitrate(media)}</strong>{media?.bitrateKbps ? <><span className="metric-bars"><i></i><i></i><i></i><i></i></span><small>total · cada 5 s</small></> : <small>actualizando…</small>}</div></td>}
               {columns.resolution && <td><div className={'stream-resolution-cell' + (media?.width && media?.height ? ' metric-ready' : ' metric-pending')}><Monitor size={13}/><strong>{formatResolution(media)}</strong><span>{media?.fps ? media.fps.toFixed(2) + ' FPS' : 'actualizando…'}</span></div></td>}
               {columns.clients && <td><div className="stream-clients-cell"><Users size={14}/><strong>{clients === null ? '—' : clients}</strong></div></td>}
               <td><div className="stream-uptime"><Clock3 size={14}/><strong>{running ? uptime(stream?.startedAt, now) : '—'}</strong></div></td>
