@@ -350,3 +350,15 @@ Implementación completada en rama:
 - versión preparada: `0.4.9`.
 
 Validación disponible en GitHub: rama parte de `main` sin commits pendientes de base y no existe workflow CI configurado. El build/runtime deberá validarse desde el servidor de desarrollo. La prueba física con segundo servidor sigue pendiente.
+
+
+## 2026-10-03 — Inicio núcleo IPTV 0.5.0
+Se abre la etapa enfocada exclusivamente en servidor IPTV: canales/streams, usuarios IPTV, conexiones activas y Main/Sub. Se crea respaldo `backup/pre-iptv-core-0.5.0-20261003` y rama `feature/iptv-core-0.5.0`.
+
+Objetivo de esta entrega: exponer autenticación y catálogo compatibles con apps IPTV comunes mediante API propia estilo Xtream, playlist M3U autenticada y reproducción live protegida, registrar sesiones activas y aplicar límites de conexiones por usuario. La reproducción real deberá validarse posteriormente en el servidor de desarrollo con un canal FFmpeg/HLS activo.
+
+
+## 2026-10-03 — Núcleo IPTV 0.5.0 implementado
+Se implementó la primera entrega enfocada en consumo desde apps IPTV externas: API pública estilo Xtream, playlist M3U autenticada, live HLS, compatibilidad de URL .ts, control por paquete/canales, sesiones reales de reproducción, límite de conexiones simultáneas y cierre administrativo temporal. La pantalla Paquetes permite seleccionar canales permitidos y se corrigió el alta de paquete nuevo. La pantalla Conexiones Activas pasa a leer las sesiones reales.
+
+Se añadió prueba automática `scripts/test-iptv-client.mjs` y guía `docs/iptv-client-test.md`. La versión pasa a 0.5.0. Aún falta validación runtime en el servidor de desarrollo y reproducción desde una app externa; no se declara estable hasta completar esa prueba.

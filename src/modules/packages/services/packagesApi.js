@@ -28,3 +28,8 @@ export const updatePackage = (id, payload) => api(`/api/packages/${encodeURIComp
 export const deletePackage = (id) => api(`/api/packages/${encodeURIComponent(id)}`, {
   method: 'DELETE'
 });
+
+export const getPackageChannels = async () => {
+  const data = await api('/api/channels');
+  return Array.isArray(data.channels) ? data.channels : [];
+};
