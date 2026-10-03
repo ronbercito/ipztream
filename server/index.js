@@ -51,16 +51,59 @@ function validIPv4(ip) {
   return parts.length === 4 && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) >= 0 && Number(part) <= 255);
 }
 
+function validNodeHost(value) {
+  const host = String(value || '').trim();
+  return validIPv4(host) || /^[a-z0-9.-]+$/i.test(host);
+}
+
+function normalizeCapabilities(value = []) {
+  const allowed = new Set(['live', 'vod', 'timeshift', 'hls', 'rtmp', 'ffmpeg', 'transcode', 'remux']);
+  const list = Array.isArray(value) ? value : String(value || '').split(',');
+  return [...new Set(list.map((item) => String(item).trim().toLowerCase()).filter((item) => allowed.has(item)))];
+}
+
+function normalizeMetrics(value = {}) {
+  const numberOrNull = (input) => input === null || input === '' || input === undefined ? null : Number(input);
+  return {
+    cpu: numberOrNull(value.cpu),
+    ram: numberOrNull(value.ram),
+    disk: numberOrNull(value.disk),
+    load: numberOrNull(value.load),
+    activeStreams: Math.max(0, Number(value.activeStreams || 0)),
+    uptime: Math.max(0, Number(value.uptime || 0))
+  };
+}
+
 function normalizeNode(input, current = {}) {
+  const metrics = normalizeMetrics(input.metrics || {
+    cpu: input.cpu ?? current.cpu,
+    ram: input.ram ?? current.ram,
+    disk: input.disk ?? current.disk,
+    load: input.load ?? current.load,
+    activeStreams: input.activeStreams ?? current.activeStreams,
+    uptime: input.uptime ?? current.uptime
+  });
+  const status = input.status || current.status;
+  const role = ['main', 'sub', 'edge'].includes(input.role || current.role) ? (input.role || current.role) : 'sub';
   return {
     id: current.id || input.id || makeId('node'),
     name: String(input.name ?? current.name ?? '').trim(),
-    status: input.status === 'Fuera de línea' ? 'Fuera de línea' : 'En línea',
+    role,
+    status: ['En línea', 'Fuera de línea', 'Degradado', 'Mantenimiento'].includes(status) ? status : 'En línea',
     ip: String(input.ip ?? current.ip ?? '').trim(),
+    apiBaseUrl: String(input.apiBaseUrl ?? current.apiBaseUrl ?? '').trim(),
     region: String(input.region ?? current.region ?? '').trim(),
-    cpu: input.cpu === null || input.cpu === '' ? null : Number(input.cpu),
-    ram: input.ram === null || input.ram === '' ? null : Number(input.ram),
-    capacity: String(input.capacity ?? current.capacity ?? '').trim()
+    cpu: metrics.cpu,
+    ram: metrics.ram,
+    disk: metrics.disk,
+    load: metrics.load,
+    activeStreams: metrics.activeStreams,
+    uptime: metrics.uptime,
+    capacity: String(input.capacity ?? current.capacity ?? '').trim(),
+    capabilities: normalizeCapabilities(input.capabilities ?? current.capabilities ?? ['live', 'hls', 'ffmpeg']),
+    lastSeenAt: input.lastSeenAt ?? current.lastSeenAt ?? null,
+    version: String(input.version ?? current.version ?? '').trim(),
+    notes: String(input.notes ?? current.notes ?? '').trim()
   };
 }
 
@@ -115,6 +158,21 @@ function normalizeGeneric(type, input, current = {}) {
   if (type === 'm3u') return { id: value.id, name: String(value.name || '').trim(), profile: String(value.profile || '').trim(), status: value.status === 'Inactivo' ? 'Inactivo' : 'Activo', description: String(value.description || '').trim(), sourceUrl: String(value.sourceUrl || '').trim(), items: Math.max(0, Number(value.items) || 0) };
   if (type === 'packages') return { id: value.id || makeId('pkg'), name: String(value.name || '').trim(), description: String(value.description || '').trim(), price: Number(value.price) || 0, duration: Math.max(1, Number(value.duration) || 30), maxConnections: Math.max(1, Number(value.maxConnections) || 1), status: value.status === 'Inactivo' ? 'Inactivo' : 'Activo', userCount: Math.max(0, Number(value.userCount) || 0) };
   return { id: value.id || makeId(type), ...value };
+}
+
+function requireNodeToken(req) {
+  const expected = process.env.IPZTREAM_NODE_REGISTRATION_TOKEN || '';
+  if (!expected) {
+    const error = new Error('IPZTREAM_NODE_REGISTRATION_TOKEN no configurado.');
+    error.status = 503;
+    throw error;
+  }
+  const received = String(req.headers['x-ipztream-node-token'] || '').trim();
+  if (received !== expected) {
+    const error = new Error('Token de nodo inválido.');
+    error.status = 401;
+    throw error;
+  }
 }
 
 function validateGeneric(type, item, list, idValue = null) {
@@ -190,12 +248,43 @@ async function handle(req, res) {
     if (req.method === 'DELETE') return send(res, (await deleteUser(id, req.headers['x-ipztream-actor'] || 'system')) ? 200 : 404, { ok: true });
   }
 
+  if (pathname === '/api/stream-nodes' && req.method === 'GET') {
+    const nodes = await listItems(TABLES.nodes);
+    return send(res, 200, { nodes: nodes.map((node) => normalizeNode(node, node)).filter((node) => ['main', 'sub', 'edge'].includes(node.role)) });
+  }
+
+  if (pathname === '/api/stream-nodes/register' && req.method === 'POST') {
+    requireNodeToken(req);
+    const body = await readBody(req);
+    const item = normalizeNode({ ...body, status: body.status || 'En línea', lastSeenAt: new Date().toISOString() });
+    if (!item.name || !item.ip || !item.region) return send(res, 400, { message: 'Nombre, IP/host y región son obligatorios.' });
+    if (!validNodeHost(item.ip)) return send(res, 400, { message: 'IP/host de nodo inválido.' });
+    const nodes = await listItems(TABLES.nodes);
+    const existing = nodes.find((node) => node.id === item.id || String(node.ip || '').toLowerCase() === item.ip.toLowerCase());
+    if (existing) {
+      const merged = normalizeNode({ ...existing, ...item, id: existing.id }, existing);
+      return send(res, 200, { node: await saveUpdate(TABLES.nodes, existing.id, merged, 'stream-nodes'), registered: false });
+    }
+    return send(res, 201, { node: await saveNew(TABLES.nodes, item, 'stream-nodes'), registered: true });
+  }
+
+  const streamNodeHeartbeat = pathname.match(/^\/api\/stream-nodes\/([^/]+)\/heartbeat$/);
+  if (streamNodeHeartbeat && req.method === 'POST') {
+    requireNodeToken(req);
+    const id = decodeURIComponent(streamNodeHeartbeat[1]);
+    const current = await getItem(TABLES.nodes, id);
+    if (!current) return send(res, 404, { message: 'Nodo no encontrado.' });
+    const body = await readBody(req);
+    const node = normalizeNode({ ...current, ...body, status: body.status || 'En línea', lastSeenAt: new Date().toISOString() }, current);
+    return send(res, 200, { node: await saveUpdate(TABLES.nodes, id, node, 'stream-nodes') });
+  }
+
   if (pathname === '/api/nodes') {
     if (req.method === 'GET') return send(res, 200, { nodes: await listItems(TABLES.nodes) });
     if (req.method === 'POST') {
       const item = normalizeNode(await readBody(req));
       if (!item.name || !item.ip || !item.region || !item.capacity) return send(res, 400, { message: 'Nombre, IP, región y capacidad son obligatorios.' });
-      if (!validIPv4(item.ip)) return send(res, 400, { message: 'Ingresa una dirección IPv4 válida.' });
+      if (!validNodeHost(item.ip)) return send(res, 400, { message: 'Ingresa una IP o hostname válido.' });
       if ((item.cpu !== null && (!Number.isFinite(item.cpu) || item.cpu < 0 || item.cpu > 100)) || (item.ram !== null && (!Number.isFinite(item.ram) || item.ram < 0 || item.ram > 100))) return send(res, 400, { message: 'CPU y RAM deben estar entre 0 y 100.' });
       const nodes = await listItems(TABLES.nodes);
       if (nodes.some((node) => node.ip.toLowerCase() === item.ip.toLowerCase())) return send(res, 409, { message: `La IP ${item.ip} ya está registrada en otro nodo.` });
