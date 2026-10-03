@@ -75,7 +75,7 @@ export async function liveStreamsForUser(user, categoryName = '') {
     num: index + 1,
     name: channel.name,
     stream_type: 'live',
-    stream_id: String(channel.id),
+    stream_id: String(channel.number || channel.id),
     stream_icon: channel.logo || '',
     epg_channel_id: channel.epgId || '',
     added: '0',
@@ -99,7 +99,7 @@ export async function epgForChannel(channelId, limit = 10) {
 
 export async function getAllowedChannel(user, channelId) {
   const channels = await channelsForUser(user);
-  return channels.find((channel) => String(channel.id) === String(channelId)) || null;
+  return channels.find((channel) => String(channel.id) === String(channelId) || String(channel.number || '') === String(channelId)) || null;
 }
 
 function playbackKey(userId, channelId, ip, userAgent) {
