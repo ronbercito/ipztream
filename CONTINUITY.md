@@ -331,3 +331,19 @@ Implementado:
 - se conserva íntegramente la base distribuida 0.4.7 Main/SUB/EDGE.
 
 Versión: `0.4.8`.
+
+
+## 15.5 — Scheduler y balanceo automático de streams — INICIADA
+Decisión del operador: la prueba física con un segundo servidor continúa **pendiente** y no bloquea el siguiente desarrollo. No se declarará producción distribuida hasta completar esa validación real.
+
+Objetivo de la etapa 15.5 / versión 0.4.9:
+- añadir un scheduler propio en MAIN para recomendar/asignar nodos disponibles;
+- considerar estado del nodo, rol, capacidades, CPU, RAM y cantidad de streams activos;
+- excluir nodos Fuera de línea o en Mantenimiento;
+- mantener asignaciones manuales existentes y permitir modo automático solo cuando se solicite;
+- exponer una vista previa del plan de asignación antes de aplicarlo;
+- impedir movimientos automáticos de streams cuyo estado deseado sea running;
+- registrar cada aplicación del scheduler en auditoría;
+- preparar el terreno para rebalanceo controlado y políticas por región/capacidad en etapas posteriores.
+
+La primera implementación se hará en rama `feature/ipztream-node-scheduler-0.4.9`. El scheduler será conservador: no moverá streams activos ni iniciará/detendrá FFmpeg por sí mismo.
