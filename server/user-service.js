@@ -32,23 +32,25 @@ async function resolvePackage(input, packages) {
   if (!requested) return null;
   return packages.find((item) => item.id === requested || String(item.name || '').toLowerCase() === requested.toLowerCase()) || null;
 }
-function publicUser(item, credentialConfigured, packageItem) {
+function publicUser(item, credentialConfigured, packageItem, activeConnections = 0) {
   const expiresAt = item.expiresAt || null;
   const status = expiresAt && validDate(expiresAt) ? normalizeStatus(item.status, expiresAt) : item.status;
-  return { ...item, status, package: packageItem?.name || item.package || 'Sin paquete', packageId: packageItem?.id || item.packageId || null, maxConnections: Number(item.maxConnections || packageItem?.maxConnections || 1), activeConnections: Math.max(0, Number(item.activeConnections || 0)), passwordConfigured: Boolean(credentialConfigured) };
+  return { ...item, status, package: packageItem?.name || item.package || 'Sin paquete', packageId: packageItem?.id || item.packageId || null, maxConnections: Number(item.maxConnections || packageItem?.maxConnections || 1), activeConnections: Math.max(0, Number(activeConnections || 0)), passwordConfigured: Boolean(credentialConfigured) };
 }
 
 export async function listUsers() {
-  const [usersResult, credentialsResult, packages] = await Promise.all([
+  const [usersResult, credentialsResult, packages, activeResult] = await Promise.all([
     pool.query(`SELECT id, payload FROM ${TABLES.users} ORDER BY created_at ASC`),
     pool.query('SELECT user_id FROM user_credentials'),
-    getPackages()
+    getPackages(),
+    pool.query("SELECT user_id AS userId, COUNT(*) AS activeConnections FROM iptv_playback_sessions WHERE status = 'Activa' GROUP BY user_id")
   ]);
   const configured = new Set(credentialsResult.rows.map((row) => row.user_id));
+  const activeMap = new Map(activeResult.rows.map((row) => [String(row.userId), Number(row.activeConnections || 0)]));
   return usersResult.rows.map((row) => {
     const item = decode(row.payload);
     const packageItem = packages.find((pkg) => pkg.id === item.packageId || String(pkg.name || '').toLowerCase() === String(item.package || '').toLowerCase());
-    return publicUser(item, configured.has(item.id || row.id), packageItem);
+    return publicUser(item, configured.has(item.id || row.id), packageItem, activeMap.get(String(item.id || row.id)) || 0);
   });
 }
 
@@ -56,10 +58,13 @@ export async function getUser(id) {
   const result = await pool.query(`SELECT payload FROM ${TABLES.users} WHERE id = ? LIMIT 1`, [id]);
   if (!result.rows[0]) return null;
   const item = decode(result.rows[0].payload);
-  const credentials = await pool.query('SELECT user_id FROM user_credentials WHERE user_id = ? LIMIT 1', [id]);
-  const packages = await getPackages();
+  const [credentials, packages, active] = await Promise.all([
+    pool.query('SELECT user_id FROM user_credentials WHERE user_id = ? LIMIT 1', [id]),
+    getPackages(),
+    pool.query("SELECT COUNT(*) AS activeConnections FROM iptv_playback_sessions WHERE user_id = ? AND status = 'Activa'", [id])
+  ]);
   const packageItem = packages.find((pkg) => pkg.id === item.packageId || String(pkg.name || '').toLowerCase() === String(item.package || '').toLowerCase());
-  return publicUser(item, credentials.rows.length > 0, packageItem);
+  return publicUser(item, credentials.rows.length > 0, packageItem, Number(active.rows[0]?.activeConnections || 0));
 }
 
 async function normalize(input, current = {}, requirePassword = false) {
