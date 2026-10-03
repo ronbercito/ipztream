@@ -145,3 +145,10 @@ La captura real mostró tabla excesivamente pequeña y mucho espacio sin jerarqu
 
 ### 14.2.3 — Refinamiento publicado
 Aplicado ajuste de escala del listado instalado: títulos, toolbar, filas, textos y acciones ganan legibilidad conservando densidad clásica. Cada stream incorpora Restart explícito además de Start/Stop, Watch, Power, Edit y Delete. Watch Stream fue reforzado como player 16:9 oscuro con cabecera/estado clásico. Pendiente validar visualmente desde el Centro de actualización.
+
+### 15.1 — Fundación main/sub propia
+Se inicia implementación segura para reactivar IPZStream sin empezar de cero y sin introducir código heredado directamente. Se documenta el mapa funcional de los paquetes `main_xtreamcodes_reborn` y `sub_xtreamcodes_reborn` como referencia arquitectónica.
+
+Implementado en rama `feature/ipztream-main-sub-foundation`: versión 0.4.1, endpoints base para nodos streaming, registro inicial de nodos secundarios, heartbeat con métricas y normalización ampliada de `nodes`. La tabla existente `nodes` se conserva como almacenamiento JSON compatible, evitando migraciones destructivas.
+
+Regla aplicada: primero continuidad/bitácora, luego código. No se incorporan PHP ofuscados, binarios ni assets de Xtream Codes Reborn.
