@@ -291,3 +291,12 @@ Incluye:
 Pruebas aisladas: sintaxis OK, build OK (1942 módulos), health del agente OK y token autenticado OK. El runner no tiene FFmpeg; la ejecución HLS real y Main+SUB físico quedan pendientes para cuando haya segundo servidor.
 
 Estado: **0.4.7 preparado para integración, no declarado producción distribuida**.
+
+
+#### Integración 15.4 en main
+PR #8 **Add real SUB node agent and distributed stream control** mezclado correctamente.
+- Merge commit: `c9c1955a78a842c5ea64ffb291d14a94965a287b`.
+- Versión: `0.4.7`.
+- Backup previo: `backup/pre-subnode-agent-0.4.7-20261003`.
+- La prueba física con un segundo servidor continúa pendiente por decisión del operador.
+- No declarar streaming distribuido en producción hasta completar Main + SUB real.
