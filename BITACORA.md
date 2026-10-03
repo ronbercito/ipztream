@@ -233,3 +233,23 @@ Implementado:
 - versión `0.4.5`.
 
 No se modifica la lógica del motor de streaming ni el trabajo Main/Sub 0.4.3/0.4.4.
+
+
+## 0.4.6 — Streams: colores sólidos + Bitrate/Resolución cada 5 s
+Se corrige el acabado visual de la pantalla instalada y se elimina la dependencia de abrir el detalle para obtener información multimedia.
+
+Implementado:
+- mayor contraste general y colores sólidos;
+- iconos y estados más resaltantes;
+- toolbar compacta y alineada con la referencia;
+- botón Añadir Stream integrado en la toolbar;
+- acciones de fila con relleno sólido;
+- `probeChannelSource` automático para los primeros 25 streams visibles;
+- hasta 4 mediciones concurrentes para limitar carga;
+- actualización de bitrate, resolución y FPS cada 5 s;
+- bloqueo de ciclos superpuestos cuando ffprobe tarda más que el intervalo;
+- cache de última medición válida;
+- drawer sincronizado con las métricas automáticas;
+- indicador visual “Bitrate / Resolución · actualización automática cada 5 s”.
+
+Versión preparada: `0.4.6`.
