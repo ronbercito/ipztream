@@ -216,6 +216,7 @@ export default function ChannelDetailDrawer({
     return () => window.removeEventListener('keydown', key);
   }, [onClose]);
 
+  const markPreviewReady = React.useCallback(() => setPreviewReady(true), []);
   const media = probe?.media || cachedMedia || null;
   const state = stateFor(stream);
   const clients = runtimeClients(stream);
@@ -243,7 +244,7 @@ export default function ChannelDetailDrawer({
     <div className="drawer-scroll">
       <div className="drawer-player">
         {preview
-          ? <StreamVideo preview={preview} onReady={() => setPreviewReady(true)} onError={setPreviewError}/>
+          ? <StreamVideo preview={preview} onReady={markPreviewReady} onError={setPreviewError}/>
           : <div className="drawer-player-empty"><Video size={34}/><strong>Vista previa del stream</strong><span>{running ? 'H.264 / AAC · HLS temporal' : 'El stream debe estar en línea para reproducirse.'}</span><button disabled={!running || previewBusy} onClick={startPreview}>{previewBusy ? <LoaderCircle className="spin" size={16}/> : <Play size={16}/>} {previewBusy ? 'Preparando...' : 'Ver stream'}</button></div>}
         {preview && <span className={'drawer-live-chip ' + (previewReady ? 'ready' : '')}>{previewReady ? 'LIVE' : 'PREPARANDO'}</span>}
       </div>
