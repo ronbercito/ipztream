@@ -240,3 +240,23 @@ Cambios principales:
 - topbar de Streams muestra auto actualización real cada 3 s.
 
 Se preservan FFmpeg/HLS, MariaDB, Main/Sub, nodos y endpoints existentes. La versión pasa a `0.4.5`.
+
+
+## 0.4.6 — Contraste sólido y telemetría multimedia cada 5 s
+Se aplica la corrección visual solicitada sobre Streams/Canales para acercar aún más el panel instalado al diseño de referencia.
+
+Cambios:
+- colores más sólidos y mayor contraste en sidebar, topbar, tarjetas, tabla, badges y acciones;
+- tarjetas superiores blancas con borde superior de estado e iconos de color sólido;
+- título más limpio: las acciones operativas pasan a la misma toolbar que búsqueda y filtros;
+- toolbar unificada con Añadir múltiples, Actualizar, Columnas y Añadir Stream;
+- estados EN LÍNEA / INICIANDO / ERROR / DETENIDO con badges sólidos;
+- botones Start / Stop / Restart / Preview / Más con relleno sólido e iconos blancos;
+- Bitrate y Resolución ya no dependen de abrir el detalle: se consultan automáticamente mediante `/api/source-probe`;
+- ciclo de telemetría multimedia cada **5 segundos**, con máximo 4 probes concurrentes y hasta 25 streams visibles por ciclo;
+- si una ronda tarda más de 5 s, no se superpone otra ronda para evitar saturar FFmpeg/ffprobe;
+- se conserva la última medición válida ante fallos transitorios;
+- el drawer consume las mismas métricas actualizadas, por lo que bitrate/resolución permanecen sincronizados mientras está abierto;
+- estado FFmpeg/HLS mantiene su polling existente de 3 s.
+
+Versión: `0.4.6`.
