@@ -83,8 +83,9 @@ async function handlePlayerApi(req, res, url) {
   }
   if (action === 'get_short_epg') {
     const streamId = String(url.searchParams.get('stream_id') || '');
-    if (!(await getAllowedChannel(user, streamId))) return sendJson(res, 200, { epg_listings: [] });
-    const rows = await epgForChannel(streamId, Number(url.searchParams.get('limit') || 10));
+    const allowedChannel = await getAllowedChannel(user, streamId);
+    if (!allowedChannel) return sendJson(res, 200, { epg_listings: [] });
+    const rows = await epgForChannel(allowedChannel.id, Number(url.searchParams.get('limit') || 10));
     return sendJson(res, 200, { epg_listings: rows.map((item, index) => ({
       id: String(item.id || index + 1),
       epg_id: String(item.epgId || ''),
