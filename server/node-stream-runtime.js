@@ -12,12 +12,15 @@ const processes=new Map();
 const desired=new Map();
 const counters=new Map();
 const retryTimers=new Map();
+const sourceOffsets=new Map();
 let shuttingDown=false;
 
 export function safeStreamId(value){return String(value||'').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,120)}
 function protocol(value){try{return new URL(String(value)).protocol.toLowerCase()}catch{return''}}
 function validSource(value){return['http:','https:','rtmp:','rtmps:','rtsp:'].includes(protocol(value))}
-function chooseSource(channel){return[...(Array.isArray(channel?.sources)?channel.sources:[])].filter(s=>s?.status!=='Inactiva'&&validSource(s?.url)).sort((a,b)=>Number(a.priority||999)-Number(b.priority||999))[0]||null}
+function availableSources(channel){return[...(Array.isArray(channel?.sources)?channel.sources:[])].filter(s=>s?.status!=='Inactiva'&&validSource(s?.url)).sort((a,b)=>Number(a.priority||999)-Number(b.priority||999))}
+function chooseSource(channel,id){const list=availableSources(channel);if(!list.length)return null;const offset=Math.max(0,Number(sourceOffsets.get(String(id))||0))%list.length;return list[offset]}
+function advanceSource(channel,id){const list=availableSources(channel);if(list.length>1)sourceOffsets.set(String(id),(Number(sourceOffsets.get(String(id))||0)+1)%list.length)}
 function inputArgs(url){return['http:','https:'].includes(protocol(url))?['-reconnect','1','-reconnect_streamed','1','-reconnect_delay_max','5']:[]}
 function ffmpegArgs(channel,url,dir){
   const common=['-hide_banner','-nostdin','-loglevel','warning','-fflags','+genpts+discardcorrupt',...inputArgs(url),'-i',url,'-map','0:v:0','-map','0:a:0?'];
@@ -88,7 +91,7 @@ export async function startNodeStream(channel,options={}){
   const id=String(channel?.id||'').trim();
   if(!id)throw Object.assign(new Error('El canal requiere id.'),{status:400});
   if(channel?.status==='Inactivo')throw Object.assign(new Error('El canal está inactivo.'),{status:409});
-  const source=chooseSource(channel);
+  const source=chooseSource(channel,id);
   if(!source)throw Object.assign(new Error('El canal no tiene una fuente activa válida.'),{status:409});
   desired.set(id,JSON.parse(JSON.stringify(channel)));
   if(options.persist!==false)await persistDesired();
@@ -118,13 +121,14 @@ export async function startNodeStream(channel,options={}){
   child.on('exit',(code,signal)=>{
     entry.exitCode=code;entry.signal=signal;entry.stoppedAt=new Date().toISOString();entry.process=null;
     if(shuttingDown||entry.status==='stopping'||!desired.has(id)){entry.status='stopped';return}
-    entry.status='recovering';entry.error=code===0?'La fuente dejó de entregar señal.':`FFmpeg terminó con código ${code??'desconocido'}.`;scheduleRetry(id);
+    entry.status='recovering';advanceSource(channel,id);entry.error=code===0?'La fuente dejó de entregar señal.':`FFmpeg terminó con código ${code??'desconocido'}. Probando siguiente fuente.`;scheduleRetry(id);
   });
   return state(id,entry);
 }
 export async function stopNodeStream(channelId,{persist=true}={}){
   const id=String(channelId);
   desired.delete(id);
+  sourceOffsets.delete(id);
   if(persist)await persistDesired();
   cancelRetry(id);
   const entry=processes.get(id);
