@@ -76,3 +76,22 @@ El Main guarda en `/etc/ipztream/ipztream-api.env`:
 - `IPZTREAM_NODE_HEARTBEAT_RETENTION_DAYS`: retención del histórico de métricas; default 7 días.
 
 Para instalar un subnodo, obtén el token de forma segura en el Main y úsalo solo en el servidor autorizado. El agente reporta cada 60 segundos y el Main conserva el último estado y el histórico acotado de heartbeats.
+
+
+### Agente SUB 0.4.7
+
+Desde 0.4.7 el subnodo ya no es solo heartbeat: instala un agente Node.js real en el puerto `3200` por defecto.
+
+Servicios:
+- `ipztream-node-agent.service`: ejecuta órdenes start/stop/restart/status y sirve HLS local.
+- `ipztream-node-heartbeat.timer`: conserva registro y métricas hacia el Main.
+
+El Main usa `channel.nodeId` para decidir si un stream corre localmente o en un SUB/EDGE. La URL `apiBaseUrl` del nodo debe apuntar al agente, por ejemplo `http://10.0.0.20:3200`.
+
+Variables relevantes:
+- `IPZTREAM_NODE_AGENT_PORT` (default 3200).
+- `IPZTREAM_NODE_SYNC_INTERVAL_MS` (default 15000).
+- `IPZTREAM_NODE_COMMAND_TIMEOUT_MS` en el Main (default 8000).
+- `IPZTREAM_NODE_REGISTRATION_TOKEN` sigue siendo el secreto compartido transitorio hasta implementar token/HMAC por nodo.
+
+La validación física con un segundo servidor sigue pendiente. No declarar producción distribuida hasta completar esa prueba.

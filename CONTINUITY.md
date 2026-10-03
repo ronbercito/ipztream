@@ -260,3 +260,50 @@ Cambios:
 - estado FFmpeg/HLS mantiene su polling existente de 3 s.
 
 Versión: `0.4.6`.
+
+
+## 15.4 — Agente real SUB y control remoto de streams — INICIADA
+Respaldo previo: `backup/pre-subnode-agent-0.4.7-20261003`.
+
+Decisión del operador: la prueba física de 15.3 con un segundo servidor queda **pendiente**, no cancelada. Se continúa desarrollo sin declarar producción.
+
+Objetivo de esta etapa:
+- instalar un agente HTTP real en cada SUB/EDGE;
+- permitir start/stop/restart/status de FFmpeg/HLS remoto;
+- enrutar desde el MAIN según `channel.nodeId`;
+- conservar ejecución local cuando `nodeId` esté vacío o sea Main;
+- exponer HLS del SUB mediante su `apiBaseUrl`;
+- sincronizar asignaciones deseadas MAIN→SUB;
+- impedir mover/desactivar/eliminar un canal mientras su stream siga deseado en ejecución;
+- mantener token actual de nodo como mecanismo transitorio de control hasta implementar HMAC/token por nodo.
+
+La versión de integración será `0.4.7`, preservando íntegramente los cambios visuales y métricas de 0.4.6.
+
+Validación mínima antes de merge:
+- sintaxis Node/Bash;
+- build Vite;
+- pruebas aisladas del agente sin requerir todavía un segundo servidor físico;
+- revisión de que 0.4.6 no pierda polling multimedia ni acabado visual.
+
+
+### 15.4 — implementación técnica 0.4.7
+Implementado:
+- `server/node-agent.js`: agente HTTP SUB/EDGE.
+- `server/node-stream-runtime.js`: runtime FFmpeg/HLS remoto con retry y persistencia de estado deseado.
+- `server/node-client.js`: cliente Main→SUB con validación estricta de `apiBaseUrl` y timeout.
+- `server/distributed-streams.js`: orquestación local/remota transparente para la API existente.
+- sincronización periódica de asignaciones MAIN→SUB;
+- selección real Main/SUB/EDGE en formulario de canal;
+- estado de stream muestra nodo y ejecución local/remota;
+- instalador SUB crea usuario dedicado, systemd, directorio de estado y agente puerto 3200;
+- preservado polling multimedia cada 5 s y UI 0.4.6;
+- corregido un defecto previo: el código esperaba `x-ipztream-node-token` mientras los clientes envían `X-IPZStream-Node-Token`; ahora se acepta el header canónico y el alias legado.
+
+Validación aislada:
+- sintaxis Node y Bash aprobada;
+- `npm run build` SUCCESS con Vite 8.3.2 y 1942 módulos;
+- agente arrancó en localhost y respondió `/health`;
+- autenticación `X-IPZStream-Node-Token` validada contra `/v1/streams`;
+- el runner no dispone de FFmpeg, por lo que start/stop HLS real queda incluido en la prueba física pendiente con segundo servidor.
+
+Estado: **código técnicamente listo para merge; validación distribuida real sigue pendiente**.

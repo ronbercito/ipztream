@@ -22,7 +22,8 @@ import {
   markOfflineStreamNodes,
   pruneStreamNodeHeartbeats,
   streamNodeOfflineAfterSeconds,
-  streamNodeHeartbeatRetentionDays
+  streamNodeHeartbeatRetentionDays,
+  getStreamDesiredState
 } from './db.js';
 import { ensureUserSchema, listUsers, getUser, createUser, updateUser, deleteUser } from './user-service.js';
 
@@ -176,6 +177,16 @@ function validateChannel(channel, channels, idValue = null) {
   return null;
 }
 
+async function validateChannelNode(channel) {
+  const nodeId=String(channel?.nodeId||'').trim();
+  if(!nodeId)return null;
+  const node=await getStreamNode(nodeId);
+  if(!node)return `El nodo asignado ${nodeId} no existe.`;
+  if(!['main','sub','edge'].includes(node.role))return `El nodo ${node.name||nodeId} no tiene un rol válido para streaming.`;
+  if(['sub','edge'].includes(node.role)&&!(node.capabilities||[]).includes('ffmpeg'))return `El nodo ${node.name||nodeId} no declara capacidad FFmpeg.`;
+  return null;
+}
+
 function normalizeGeneric(type, input, current = {}) {
   const value = { ...current, ...input, id: current.id || input.id || makeId(type) };
   if (type === 'vod') return { id: value.id, title: String(value.title || '').trim(), description: String(value.description || '').trim(), category: String(value.category || '').trim(), year: Number(value.year) || new Date().getFullYear(), duration: String(value.duration || '').trim(), poster: String(value.poster || '').trim(), url: String(value.url || '').trim(), status: value.status === 'Inactivo' ? 'Inactivo' : 'Activo' };
@@ -193,7 +204,7 @@ function requireNodeToken(req) {
     error.status = 503;
     throw error;
   }
-  const received = String(req.headers['x-ipztream-node-token'] || '').trim();
+  const received = String(req.headers['x-ipzstream-node-token'] || req.headers['x-ipztream-node-token'] || '').trim();
   if (received !== expected) {
     const error = new Error('Token de nodo inválido.');
     error.status = 401;
@@ -318,6 +329,21 @@ async function handle(req, res) {
     });
   }
 
+  const streamNodeAssignments = pathname.match(/^\/api\/stream-nodes\/([^/]+)\/assignments$/);
+  if (streamNodeAssignments && req.method === 'GET') {
+    requireNodeToken(req);
+    const nodeId = decodeURIComponent(streamNodeAssignments[1]);
+    const node = await getStreamNode(nodeId);
+    if (!node) return send(res, 404, { message: 'Nodo no encontrado.' });
+    const channels = await listItems(TABLES.channels);
+    const assigned = channels.filter((channel) => String(channel.nodeId || '').trim() === nodeId);
+    const assignments = [];
+    for (const channel of assigned) {
+      assignments.push({ channel, desiredState: await getStreamDesiredState(channel.id) });
+    }
+    return send(res, 200, { nodeId, assignments });
+  }
+
   const streamNodeHeartbeats = pathname.match(/^\/api\/stream-nodes\/([^/]+)\/heartbeats$/);
   if (streamNodeHeartbeats && req.method === 'GET') {
     const nodeId = decodeURIComponent(streamNodeHeartbeats[1]);
@@ -387,7 +413,7 @@ async function handle(req, res) {
     const existing = await listItems(TABLES.channels), created = [], errors = [];
     for (let i=0;i<input.length;i++) {
       const item = normalizeChannel(input[i]);
-      const validation = validateChannel(item, [...existing,...created]);
+      const validation = validateChannel(item, [...existing,...created]) || await validateChannelNode(item);
       if (validation) { errors.push({ index:i, name:item.name, message:validation }); continue; }
       await saveNew(TABLES.channels,item,'channels'); created.push(item);
     }
@@ -399,6 +425,13 @@ async function handle(req, res) {
     if (!ids.length || ids.length>500) return send(res,400,{message:'Selecciona entre 1 y 500 canales.'});
     const allowed=['activate','deactivate','delete','category','bouquet','node','profile','reorder'];
     if(!allowed.includes(action)) return send(res,400,{message:'Acción masiva no válida.'});
+    if(['deactivate','delete','node'].includes(action)){
+      for(const id of ids){
+        const current=await getItem(TABLES.channels,id);
+        if(!current)continue;
+        if(await getStreamDesiredState(id)==='running')return send(res,409,{message:`Detén el stream ${current.name||id} antes de ${action==='node'?'moverlo de nodo':action==='delete'?'eliminarlo':'desactivarlo'}.`});
+      }
+    }
     const updated=[],missing=[];
     for(const id of ids){const current=await getItem(TABLES.channels,id);if(!current){missing.push(id);continue}
       if(action==='delete'){await saveDelete(TABLES.channels,id,'channels');updated.push({id,deleted:true});continue}
@@ -406,10 +439,10 @@ async function handle(req, res) {
       if(action==='activate')patch.status='Activo'; if(action==='deactivate')patch.status='Inactivo';
       if(action==='category')patch.category=String(payload.category||'').trim();
       if(action==='bouquet')patch.bouquet=String(payload.bouquet||'').trim();
-      if(action==='node')patch.nodeId=String(payload.nodeId||'').trim();
+      if(action==='node'){const nextNodeId=String(payload.nodeId||'').trim();if(nextNodeId!==String(current.nodeId||'').trim()&&await getStreamDesiredState(id)==='running')return send(res,409,{message:`Detén el stream ${current.name||id} antes de moverlo a otro nodo.`});patch.nodeId=nextNodeId}
       if(action==='profile')patch.streamProfile=String(payload.streamProfile||'remux-copy');
       if(action==='reorder')patch.sortOrder=Number(payload.orders?.[id]??patch.sortOrder??patch.number);
-      const item=normalizeChannel(patch,current); await saveUpdate(TABLES.channels,id,item,'channels');updated.push(item);
+      const item=normalizeChannel(patch,current); const validation=await validateChannelNode(item); if(validation)return send(res,400,{message:validation}); await saveUpdate(TABLES.channels,id,item,'channels');updated.push(item);
     }
     return send(res,200,{updated,missing});
   }
@@ -419,7 +452,7 @@ async function handle(req, res) {
     if (req.method === 'POST') {
       const channels = await listItems(TABLES.channels);
       const item = normalizeChannel(await readBody(req));
-      const validation = validateChannel(item, channels);
+      const validation = validateChannel(item, channels) || await validateChannelNode(item);
       if (validation) return send(res, 400, { message: validation });
       return send(res, 201, await saveNew(TABLES.channels, item, 'channels'));
     }
@@ -433,11 +466,17 @@ async function handle(req, res) {
     if (req.method === 'PUT') {
       const channels = await listItems(TABLES.channels);
       const item = normalizeChannel(await readBody(req), current);
-      const validation = validateChannel(item, channels, id);
+      const desiredState=await getStreamDesiredState(id);
+      if(String(item.nodeId||'').trim()!==String(current.nodeId||'').trim()&&desiredState==='running')return send(res,409,{message:'Detén el stream antes de moverlo a otro nodo.'});
+      if(item.status==='Inactivo'&&current.status!=='Inactivo'&&desiredState==='running')return send(res,409,{message:'Detén el stream antes de desactivar el canal.'});
+      const validation = validateChannel(item, channels, id) || await validateChannelNode(item);
       if (validation) return send(res, 400, { message: validation });
       return send(res, 200, await saveUpdate(TABLES.channels, id, item, 'channels'));
     }
-    if (req.method === 'DELETE') return send(res, (await saveDelete(TABLES.channels, id, 'channels')) ? 200 : 404, { ok: true });
+    if (req.method === 'DELETE') {
+      if(await getStreamDesiredState(id)==='running')return send(res,409,{message:'Detén el stream antes de eliminar el canal.'});
+      return send(res, (await saveDelete(TABLES.channels, id, 'channels')) ? 200 : 404, { ok: true });
+    }
   }
 
   if (pathname === '/api/packages') {

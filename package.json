@@ -1,7 +1,7 @@
 {
   "name": "ipztream-panel",
   "private": true,
-  "version": "0.4.6",
+  "version": "0.4.7",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -9,7 +9,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "api": "node server/secure-entry.js",
     "bootstrap-admin": "node server/bootstrap-admin.js",
-    "reset-admin-password": "node server/reset-admin-password.js"
+    "reset-admin-password": "node server/reset-admin-password.js",
+    "node-agent": "node server/node-agent.js"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",

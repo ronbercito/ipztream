@@ -5,6 +5,7 @@ import ChannelFilters from './components/ChannelFilters.jsx';
 import ChannelForm from './components/ChannelForm.jsx';
 import ChannelTable from './components/ChannelTable.jsx';
 import { bulkChannelAction, clearChannelStreamHistory, createChannel, createChannelsBulk, deleteChannel, loadChannels, loadStream, probeChannelSource, restartChannelStream, startChannelStream, stopChannelStream, updateChannel } from './services/channelsApi.js';
+import { loadNodes } from '../nodes/services/nodesApi.js';
 import './styles/channels.css';
 
 function primarySource(channel) {
@@ -19,6 +20,7 @@ function sourceType(channel) {
 
 export default function Channels() {
   const [channels, setChannels] = React.useState([]);
+  const [nodes, setNodes] = React.useState([]);
   const [selected, setSelected] = React.useState([]);
   const [streams, setStreams] = React.useState({});
   const [mediaByChannel, setMediaByChannel] = React.useState({});
@@ -60,8 +62,9 @@ export default function Channels() {
   const refresh = React.useCallback(async () => {
     setLoading(true);
     try {
-      const list = await loadChannels();
+      const [list, nodeList] = await Promise.all([loadChannels(), loadNodes([])]);
       setChannels(list);
+      setNodes(nodeList);
       await refreshStreams(list);
     } catch (refreshError) {
       setError(refreshError.message);
@@ -377,7 +380,7 @@ export default function Channels() {
       onStream={streamAction}
     />}
 
-    {formOpen && <ChannelForm initial={editing} stream={editing ? streams[editing.id] : null} categories={categories.filter((value) => value !== 'Todas')} saving={saving} externalError={error} onSave={save} onCancel={() => { setFormOpen(false); setEditing(null); }}/>}
+    {formOpen && <ChannelForm initial={editing} stream={editing ? streams[editing.id] : null} nodes={nodes} categories={categories.filter((value) => value !== 'Todas')} saving={saving} externalError={error} onSave={save} onCancel={() => { setFormOpen(false); setEditing(null); }}/>}
     {massOpen && <div className="modal-backdrop"><div className="modal xui-mass-modal"><div className="xui-modal-head"><div><Layers3 size={17}/><strong>Añadir múltiples Streams</strong></div><button onClick={() => setMassOpen(false)}>×</button></div><div className="xui-modal-body"><p>Un stream por línea. Formato: <b>NÚMERO | NOMBRE | CATEGORÍA | URL</b></p><textarea value={massText} onChange={(event) => setMassText(event.target.value)} placeholder={'1 | Canal Uno | TV | http://servidor/stream.m3u8\n2 | Canal Dos | Deportes | http://servidor/stream2.m3u8'}/></div><div className="xui-modal-foot"><button onClick={() => setMassOpen(false)}>Cancelar</button><button className="xui-primary" onClick={massCreate}><Plus size={14}/> Añadir Streams</button></div></div></div>}
   </div>;
 }
