@@ -260,3 +260,19 @@ Cambios:
 - estado FFmpeg/HLS mantiene su polling existente de 3 s.
 
 Versión: `0.4.6`.
+
+
+## 0.4.7 — Bitrate total real del stream
+Se corrige la medición de bitrate que en algunos HLS mostraba únicamente 128 Kbps porque ffprobe declaraba el bitrate del audio pero no el de video.
+
+Cambios:
+- `server/source-probe.js` ahora mide paquetes reales durante una ventana corta usando ffprobe;
+- el bitrate principal suma **todos los paquetes detectados**: video + audio + subtítulos + datos/otros;
+- se exponen además `videoBitrateKbps`, `audioBitrateKbps`, `subtitleBitrateKbps`, `dataBitrateKbps` y `otherBitrateKbps`;
+- `bitrateKbps` y `totalBitrateKbps` representan el total combinado;
+- se evita el falso 128 Kbps cuando existe video pero solo el audio declara `bit_rate`;
+- la tabla cambia la columna a **Bitrate total** y conserva el refresco automático cada 5 s;
+- el drawer muestra bitrate total y desglose de video/audio;
+- ante una muestra inválida se usa información declarada solo cuando es consistente; de lo contrario se muestra sin dato en vez de un valor engañoso.
+
+Versión: `0.4.7`.
