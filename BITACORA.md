@@ -213,3 +213,21 @@ Cambios:
 - polling real de estados cada 3 segundos preservado.
 
 El cambio es frontend. No altera el trabajo 0.4.3 de nodos, MariaDB, FFmpeg/HLS ni la API. Versión: `0.4.4`.
+
+
+### 15.4 — Agente real de subnodo y control remoto — INICIADA
+Respaldo: `backup/pre-subnode-agent-0.4.5-20261003`.
+
+Se continúa por decisión del operador aunque la prueba física de 15.3 con segundo servidor queda pendiente.
+
+Alcance:
+- servicio `ipztream-node-agent` en el SUB;
+- ejecución local FFmpeg/HLS por canal;
+- API remota start/stop/restart/status;
+- enrutamiento desde el Main por `nodeId`;
+- salida HLS desde el nodo asignado;
+- selector real de nodo en formulario de canal;
+- actualización del instalador SUB para Node.js + FFmpeg + systemd;
+- conservación del motor local del Main cuando no hay nodo remoto.
+
+No se considerará producción hasta probarlo con un segundo servidor real. La autenticación HMAC/per-node token queda para el bloque de seguridad posterior.
