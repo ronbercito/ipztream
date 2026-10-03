@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { pool, TABLES, addAudit } from './db.js';
 
 const PLAYBACK_TTL_SECONDS = Math.max(30, Number(process.env.IPZTREAM_PLAYBACK_TTL_SECONDS || 120));
+const DISCONNECT_BLOCK_SECONDS = Math.max(10, Number(process.env.IPZTREAM_DISCONNECT_BLOCK_SECONDS || 60));
 
 function decode(payload) {
   if (payload && typeof payload === 'object') return payload;
@@ -40,11 +41,13 @@ export async function ensureIptvSchema() {
     started_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     last_seen_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     closed_at DATETIME(3) NULL,
+    blocked_until DATETIME(3) NULL,
     INDEX idx_iptv_playback_user_status (user_id, status, last_seen_at),
     INDEX idx_iptv_playback_channel (channel_id, status),
     INDEX idx_iptv_playback_last_seen (last_seen_at),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   )`);
+  await pool.query(`ALTER TABLE iptv_playback_sessions ADD COLUMN IF NOT EXISTS blocked_until DATETIME(3) NULL`);
   await expirePlaybackSessions();
 }
 
@@ -113,11 +116,16 @@ export async function expirePlaybackSessions() {
 export async function touchPlayback(user, channel, metadata = {}) {
   await expirePlaybackSessions();
   const key = playbackKey(user.id, channel.id, metadata.ip, metadata.userAgent);
-  const existing = await pool.query(`SELECT id FROM iptv_playback_sessions WHERE session_key = ? AND status = 'Activa' LIMIT 1`, [key]);
-  if (existing.rows[0]) {
+  const existing = await pool.query(`SELECT id, status, blocked_until AS blockedUntil FROM iptv_playback_sessions WHERE session_key = ? LIMIT 1`, [key]);
+  if (existing.rows[0]?.status === 'Activa') {
     await pool.query(`UPDATE iptv_playback_sessions SET last_seen_at = CURRENT_TIMESTAMP(3), node_id = ?, channel_name = ? WHERE id = ?`,
       [String(channel.nodeId || ''), String(channel.name || ''), existing.rows[0].id]);
     return existing.rows[0].id;
+  }
+  if (existing.rows[0]?.blockedUntil && new Date(existing.rows[0].blockedUntil).getTime() > Date.now()) {
+    const error = new Error('Conexión cerrada temporalmente por el administrador.');
+    error.status = 403;
+    throw error;
   }
   const active = await pool.query(`SELECT COUNT(*) AS count FROM iptv_playback_sessions
     WHERE user_id = ? AND status = 'Activa' AND last_seen_at >= DATE_SUB(CURRENT_TIMESTAMP(3), INTERVAL ? SECOND)`,
@@ -126,6 +134,10 @@ export async function touchPlayback(user, channel, metadata = {}) {
     const error = new Error('Límite de conexiones simultáneas alcanzado.');
     error.status = 429;
     throw error;
+  }
+  if (existing.rows[0]) {
+    await pool.query(`UPDATE iptv_playback_sessions SET status = 'Activa', started_at = CURRENT_TIMESTAMP(3), last_seen_at = CURRENT_TIMESTAMP(3), closed_at = NULL, blocked_until = NULL, node_id = ?, channel_name = ?, ip_address = ?, user_agent = ? WHERE id = ?`, [String(channel.nodeId || ''), String(channel.name || ''), String(metadata.ip || '').slice(0, 64), String(metadata.userAgent || '').slice(0, 512), existing.rows[0].id]);
+    return existing.rows[0].id;
   }
   const id = randomUUID();
   await pool.query(`INSERT INTO iptv_playback_sessions
@@ -159,7 +171,7 @@ export async function closePlaybackConnection(id, actor = 'system') {
   const result = await pool.query(`SELECT id, username, channel_id AS channelId FROM iptv_playback_sessions WHERE id = ? LIMIT 1`, [id]);
   const item = result.rows[0];
   if (!item) return false;
-  await pool.query(`UPDATE iptv_playback_sessions SET status = 'Cerrada', closed_at = CURRENT_TIMESTAMP(3) WHERE id = ?`, [id]);
+  await pool.query(`UPDATE iptv_playback_sessions SET status = 'Cerrada', closed_at = CURRENT_TIMESTAMP(3), blocked_until = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL ? SECOND) WHERE id = ?`, [DISCONNECT_BLOCK_SECONDS, id]);
   await addAudit({ action: 'IPTV_PLAY_CLOSE', module: 'connections', actor, detail: `Sesión ${id}`, metadata: { sessionId: id, username: item.username, channelId: item.channelId } });
   return true;
 }
