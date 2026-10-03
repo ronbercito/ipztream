@@ -1,6 +1,10 @@
 import { createReadStream } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { Readable } from 'node:stream';
+import { getStreamNode } from './db.js';
+import { validatedNodeApiBase } from './node-client.js';
+import { startDistributedStream } from './distributed-streams.js';
 import { authenticateClient } from './client-auth.js';
 import {
   channelsForUser,
@@ -35,6 +39,59 @@ function safeStreamPath(root, channelId, file) {
   const dir = path.resolve(base, channelId);
   const target = path.resolve(dir, file);
   return target.startsWith(`${dir}${path.sep}`) ? target : null;
+}
+async function mediaLocation(channel, streamRoot) {
+  const nodeId = String(channel.nodeId || '').trim();
+  if (!nodeId) return { type: 'local', root: streamRoot };
+  const node = await getStreamNode(nodeId);
+  if (!node || node.role === 'main') return { type: 'local', root: streamRoot };
+  return { type: 'remote', base: validatedNodeApiBase(node), node };
+}
+async function readManifest(channel, streamRoot) {
+  const location = await mediaLocation(channel, streamRoot);
+  if (location.type === 'local') {
+    const filePath = safeStreamPath(location.root, String(channel.id), 'index.m3u8');
+    if (!filePath) throw Object.assign(new Error('Ruta de canal no válida.'), { status: 400 });
+    return readFile(filePath, 'utf8');
+  }
+  const response = await fetch(`${location.base}/streams/${encodeURIComponent(channel.id)}/index.m3u8`, { signal: AbortSignal.timeout(4000) });
+  if (!response.ok) throw Object.assign(new Error(`SUB respondió HTTP ${response.status}`), { status: response.status });
+  return response.text();
+}
+async function ensureManifest(channel, streamRoot) {
+  try { return await readManifest(channel, streamRoot); } catch {}
+  await startDistributedStream(channel.id);
+  let lastError = null;
+  for (let attempt = 0; attempt < 20; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    try { return await readManifest(channel, streamRoot); } catch (error) { lastError = error; }
+  }
+  throw Object.assign(new Error(lastError?.message || 'El stream no generó HLS a tiempo.'), { status: 503 });
+}
+async function serveSegmentFile(req, res, channel, file, streamRoot) {
+  const location = await mediaLocation(channel, streamRoot);
+  if (location.type === 'local') {
+    const filePath = safeStreamPath(location.root, String(channel.id), file);
+    if (!filePath) return sendText(res, 400, 'Segmento no válido.');
+    try {
+      const info = await stat(filePath);
+      res.writeHead(200, { 'Content-Type': 'video/mp2t', 'Content-Length': String(info.size), 'Cache-Control': 'public, max-age=5' });
+      return req.method === 'HEAD' ? res.end() : createReadStream(filePath).pipe(res);
+    } catch {
+      return sendText(res, 404, 'Segmento no disponible.');
+    }
+  }
+  try {
+    const response = await fetch(`${location.base}/streams/${encodeURIComponent(channel.id)}/${encodeURIComponent(file)}`, { signal: AbortSignal.timeout(8000) });
+    if (!response.ok || !response.body) return sendText(res, response.status || 502, 'Segmento remoto no disponible.');
+    const headers = { 'Content-Type': response.headers.get('content-type') || 'video/mp2t', 'Cache-Control': 'public, max-age=5' };
+    const length = response.headers.get('content-length');
+    if (length) headers['Content-Length'] = length;
+    res.writeHead(200, headers);
+    return req.method === 'HEAD' ? res.end() : Readable.fromWeb(response.body).pipe(res);
+  } catch {
+    return sendText(res, 502, 'No se pudo obtener el segmento desde el nodo asignado.');
+  }
 }
 const authFailures = new Map();
 function authKey(req, username) {
@@ -202,28 +259,18 @@ async function serveLive(req, res, url, streamRoot) {
   }
 
   if (playlist) {
-      const filePath = safeStreamPath(streamRoot, String(channel.id), 'index.m3u8');
-    if (!filePath) return sendText(res, 400, 'Ruta de canal no válida.');
     try {
-      let body = await readFile(filePath, 'utf8');
+      let body = await ensureManifest(channel, streamRoot);
       const base = `/live/${rawUser}/${rawPass}/${encodeURIComponent(channelId)}`;
       body = body.replace(/^(segment_[0-9]{6}\.ts)$/gm, `${base}/$1`);
       return sendText(res, 200, body, 'application/vnd.apple.mpegurl');
-    } catch {
-      return sendText(res, 404, 'Stream no disponible.');
+    } catch (error) {
+      return sendText(res, error.status || 503, error.message || 'Stream no disponible.');
     }
   }
 
   const file = match[4];
-  const filePath = safeStreamPath(streamRoot, String(channel.id), file);
-  if (!filePath) return sendText(res, 400, 'Segmento no válido.');
-  try {
-    const info = await stat(filePath);
-    res.writeHead(200, { 'Content-Type': 'video/mp2t', 'Content-Length': String(info.size), 'Cache-Control': 'public, max-age=5' });
-    return req.method === 'HEAD' ? res.end() : createReadStream(filePath).pipe(res);
-  } catch {
-    return sendText(res, 404, 'Segmento no disponible.');
-  }
+  return serveSegmentFile(req, res, channel, file, streamRoot);
 }
 
 export async function handleIptvHttp(req, res, url, { streamRoot }) {
