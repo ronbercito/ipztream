@@ -207,3 +207,9 @@ Validación aislada realizada en checkout limpio:
 - `npm run build` aprobado con Vite 8.3.2, 1933 módulos transformados. Solo quedan warnings no bloqueantes de tamaño de bundle/directivas de lucide-react.
 
 Pendiente de validación real: arrancar 0.4.3 contra MariaDB de desarrollo, instalar un subnodo autorizado y confirmar online→offline→online e historial. No declarar producción hasta completar esa prueba.
+
+
+#### Integración 15.3 en main
+PR #3 mezclado en `main`.
+Merge commit: `31864aa1ec6cf6aa81c4fe72f4da5f2cb5216286`.
+La base queda en `0.4.3`; la siguiente continuidad debe partir desde este commit y validar un subnodo real antes de avanzar al agente FFmpeg distribuido.
