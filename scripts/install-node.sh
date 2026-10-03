@@ -112,21 +112,32 @@ print(json.dumps(payload, separators=(",", ":")))
 PY
 )"
 
-register_response="$(curl -fsS -X POST "${IPZTREAM_MAIN_URL}/api/stream-nodes/register" \
+heartbeat_tmp="$(mktemp)"
+trap 'rm -f "${heartbeat_tmp}"' EXIT
+heartbeat_code="$(curl -sS -o "${heartbeat_tmp}" -w '%{http_code}' -X POST "${IPZTREAM_MAIN_URL}/api/stream-nodes/${IPZTREAM_NODE_ID}/heartbeat" \
   -H "Content-Type: application/json" \
   -H "X-IPZStream-Node-Token: ${IPZTREAM_NODE_REGISTRATION_TOKEN}" \
-  -d "${payload}")"
+  -d "${payload}" || true)"
 
-canonical_id="$(printf '%s' "${register_response}" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("canonicalId") or d.get("node",{}).get("id") or "")' 2>/dev/null || true)"
-if [[ -n "${canonical_id}" && "${canonical_id}" != "${IPZTREAM_NODE_ID}" ]]; then
-  sed -i "s#^IPZTREAM_NODE_ID=.*#IPZTREAM_NODE_ID=${canonical_id}#" /etc/ipztream/ipztream-node.env
-  IPZTREAM_NODE_ID="${canonical_id}"
+if [[ "${heartbeat_code}" == "404" ]]; then
+  register_response="$(curl -fsS -X POST "${IPZTREAM_MAIN_URL}/api/stream-nodes/register" \
+    -H "Content-Type: application/json" \
+    -H "X-IPZStream-Node-Token: ${IPZTREAM_NODE_REGISTRATION_TOKEN}" \
+    -d "${payload}")"
+  canonical_id="$(printf '%s' "${register_response}" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("canonicalId") or d.get("node",{}).get("id") or "")' 2>/dev/null || true)"
+  if [[ -n "${canonical_id}" && "${canonical_id}" != "${IPZTREAM_NODE_ID}" ]]; then
+    sed -i "s#^IPZTREAM_NODE_ID=.*#IPZTREAM_NODE_ID=${canonical_id}#" /etc/ipztream/ipztream-node.env
+    IPZTREAM_NODE_ID="${canonical_id}"
+  fi
+  curl -fsS -X POST "${IPZTREAM_MAIN_URL}/api/stream-nodes/${IPZTREAM_NODE_ID}/heartbeat" \
+    -H "Content-Type: application/json" \
+    -H "X-IPZStream-Node-Token: ${IPZTREAM_NODE_REGISTRATION_TOKEN}" \
+    -d "${payload}" >/dev/null
+elif [[ "${heartbeat_code}" != "200" ]]; then
+  cat "${heartbeat_tmp}" >&2 || true
+  echo "Heartbeat rechazado por Main (HTTP ${heartbeat_code})." >&2
+  exit 1
 fi
-
-curl -fsS -X POST "${IPZTREAM_MAIN_URL}/api/stream-nodes/${IPZTREAM_NODE_ID}/heartbeat" \
-  -H "Content-Type: application/json" \
-  -H "X-IPZStream-Node-Token: ${IPZTREAM_NODE_REGISTRATION_TOKEN}" \
-  -d "${payload}" >/dev/null
 EOF
 chmod 755 "${INSTALL_DIR}/heartbeat.sh"
 
