@@ -372,3 +372,7 @@ Se crea respaldo `backup/pre-iptv-hardening-0.5.1-20261003` y rama `feature/iptv
 Se completó la rama 0.5.1 con mejoras centradas en operación real: corrección de stream IDs públicos vs UUID internos, autoarranque HLS bajo demanda, entrega transparente de canales locales y SUB a través del MAIN, proxy de segmentos remotos, XMLTV, alias panel_api, conteo real de conexiones, límite básico de intentos fallidos, sesión estable al cambiar de canal, consola de conexiones con refresco cada 5 segundos, usuarios con conexiones reales, paquetes con selección/búsqueda masiva de canales y failover automático entre fuentes activas en MAIN y SUB.
 
 También se agregó `.github/workflows/ci.yml` para validar sintaxis Node y build Vite en PR/push, más ampliación de `scripts/test-iptv-client.mjs`. Versión preparada: 0.5.1. Pendiente: CI del PR, merge y validación runtime en servidor/app; la prueba física del segundo SUB sigue pendiente.
+
+
+## 2026-10-03 — 0.5.1 integrado en main
+PR #12 aprobado técnicamente por GitHub Actions CI: dependencias, sintaxis Node y build Vite correctos. Merge commit: `50f02ccd7f1c351af89fc3142ad3f0f1af0d4b7b`. Se actualiza continuidad con la validación pendiente en servidor/app real.
