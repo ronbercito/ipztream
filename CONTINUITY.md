@@ -159,3 +159,13 @@ Se retoma el proyecto paralizado `ipztream` para construir una arquitectura prop
 - Instalador de nodo secundario IPZStream.
 - Autenticación HMAC por nodo y rotación de token.
 - Asignación real de canales a nodos y scheduler de streams distribuidos.
+
+### 15.2 — Instalador de nodo y consola Servidores
+Se continúa la fundación main/sub con el primer instalador de nodo secundario propio y la consola visual de Servidores/Load Balancers dentro del panel clásico.
+
+#### Alcance
+- Crear script `scripts/install-node.sh` para preparar un nodo secundario IPZStream sin importar binarios heredados.
+- Permitir que `/api/stream-nodes/register` y `/api/stream-nodes/:id/heartbeat` pasen por `secure-entry` usando token de nodo, sin sesión administrativa.
+- Conectar la navegación `Servidores` con `NodesPage` real.
+- Adaptar la pantalla de nodos para roles `main/sub/edge`, capacidades, métricas, último heartbeat y endpoint API.
+- Mantener compatibilidad con `/api/nodes` existente.

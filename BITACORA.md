@@ -152,3 +152,8 @@ Se inicia implementación segura para reactivar IPZStream sin empezar de cero y 
 Implementado en rama `feature/ipztream-main-sub-foundation`: versión 0.4.1, endpoints base para nodos streaming, registro inicial de nodos secundarios, heartbeat con métricas y normalización ampliada de `nodes`. La tabla existente `nodes` se conserva como almacenamiento JSON compatible, evitando migraciones destructivas.
 
 Regla aplicada: primero continuidad/bitácora, luego código. No se incorporan PHP ofuscados, binarios ni assets de Xtream Codes Reborn.
+
+### 15.2 — Instalador de nodo y consola Servidores
+Se implementa el siguiente bloque main/sub: instalador base de nodo secundario, bypass seguro en `secure-entry` para registro/heartbeat por token, navegación real hacia `NodesPage` y UI de Servidores/Load Balancers con rol, capacidades, métricas y última señal.
+
+La implementación mantiene código propio IPZStream y evita copiar PHP/binarios de los paquetes de referencia. El nodo secundario queda preparado como servicio systemd liviano que reporta heartbeat al main; la ejecución distribuida de streams queda para el siguiente bloque.

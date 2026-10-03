@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Search, Server, X } from 'lucide-react';
+import { Plus, Search, Server, X, RefreshCw, Activity } from 'lucide-react';
 import NodeFilters from './components/NodeFilters.jsx';
 import NodeForm from './components/NodeForm.jsx';
 import NodeTable from './components/NodeTable.jsx';
@@ -7,11 +7,12 @@ import { loadNodes, createNode, removeNode, loadLocalNodes, saveLocalNodes } fro
 import './styles/nodes.css';
 
 const initialNodes = [
-  { id:'node-01', name:'Nodo 01 - Lima', status:'En línea', ip:'192.168.10.21', region:'Lima', cpu:22, ram:41, capacity:'10 Gbps' },
-  { id:'node-02', name:'Nodo 02 - Arequipa', status:'En línea', ip:'192.168.10.22', region:'Arequipa', cpu:18, ram:36, capacity:'10 Gbps' },
-  { id:'node-03', name:'Nodo 03 - Trujillo', status:'En línea', ip:'192.168.10.23', region:'Trujillo', cpu:27, ram:48, capacity:'5 Gbps' },
-  { id:'node-05', name:'Nodo 05 - Piura', status:'Fuera de línea', ip:'192.168.10.25', region:'Piura', cpu:null, ram:null, capacity:'5 Gbps' }
+  { id:'node-main', name:'Main - Control Central', role:'main', status:'En línea', ip:'127.0.0.1', apiBaseUrl:'http://127.0.0.1:3100', region:'Local', cpu:22, ram:41, disk:38, activeStreams:0, capacity:'Control', capabilities:['live','hls','ffmpeg'] },
+  { id:'node-sub-01', name:'Sub Nodo 01 - Lima', role:'sub', status:'Fuera de línea', ip:'192.168.10.21', apiBaseUrl:'http://192.168.10.21:3100', region:'Lima', cpu:null, ram:null, disk:null, activeStreams:0, capacity:'10 Gbps', capabilities:['live','hls','ffmpeg'] }
 ];
+
+function isOnline(node){return node.status==='En línea'}
+function metricAvg(nodes,key){const values=nodes.map(n=>Number(n[key])).filter(Number.isFinite);return values.length?Math.round(values.reduce((a,b)=>a+b,0)/values.length):0}
 
 export default function Nodes(){
   const [nodes,setNodes]=React.useState([]);
@@ -31,19 +32,21 @@ export default function Nodes(){
 
   React.useEffect(()=>{refresh();},[refresh]);
 
-  const regions=[...new Set(nodes.map(n=>n.region))].sort();
+  const regions=[...new Set(nodes.map(n=>n.region).filter(Boolean))].sort();
   const filtered=nodes.filter(n=>{
-    const text=`${n.name} ${n.ip} ${n.region} ${n.status}`.toLowerCase();
+    const text=`${n.name} ${n.ip} ${n.region} ${n.status} ${n.role} ${(n.capabilities||[]).join(' ')}`.toLowerCase();
     return text.includes(query.toLowerCase()) && (filters.status==='Todos'||n.status===filters.status) && (filters.region==='Todas'||n.region===filters.region);
   });
 
   const addNode=async(data)=>{
     try{
       const created=await createNode(data);
-      setNodes(prev=>[created,...prev]);
-      saveLocalNodes([created,...nodes]);
+      const node=created.node||created;
+      const next=[node,...nodes];
+      setNodes(next);
+      saveLocalNodes(next);
       setFormOpen(false);
-      setNotice('Nodo agregado correctamente. El cambio ya está disponible para los demás navegadores.');
+      setNotice('Nodo agregado correctamente. Para nodos remotos usa scripts/install-node.sh con el token de registro.');
       return true;
     }catch(error){
       if(error.status===409) return {error:error.message||'Ya existe un nodo con esa dirección IP.'};
@@ -64,21 +67,23 @@ export default function Nodes(){
   };
 
   const copyIp=(ip)=>navigator.clipboard?.writeText(ip).then(()=>setNotice(`IP ${ip} copiada.`)).catch(()=>setNotice('No se pudo copiar la IP.'));
+  const online=nodes.filter(isOnline).length;
 
-  return <div className="module-page nodes-page">
+  return <div className="module-page nodes-page xui-nodes">
     <div className="module-head">
-      <div className="module-title"><div className="module-icon"><Server size={22}/></div><div><h1>Servidores / Nodos</h1><p>Administra servidores de streaming, estado y capacidad.</p></div></div>
-      <button className="primary-button" onClick={()=>setFormOpen(true)}><Plus size={16}/>Agregar nodo</button>
+      <div className="module-title"><div className="module-icon"><Server size={22}/></div><div><h1>Servidores / Load Balancers</h1><p>Main/Sub IPZStream, estado, capacidades y heartbeat.</p></div></div>
+      <div className="nodes-actions"><button className="secondary-button" onClick={refresh}><RefreshCw size={15}/>Actualizar</button><button className="primary-button" onClick={()=>setFormOpen(true)}><Plus size={16}/>Agregar nodo</button></div>
     </div>
     {notice&&<div className="nodes-notice"><span>{notice}</span><button className="icon-button" onClick={()=>setNotice('')}><X size={15}/></button></div>}
     <div className="node-summary">
-      <div><span>Total de nodos</span><strong>{nodes.length}</strong></div>
-      <div><span>En línea</span><strong>{nodes.filter(n=>n.status==='En línea').length}</strong></div>
-      <div><span>Fuera de línea</span><strong>{nodes.filter(n=>n.status==='Fuera de línea').length}</strong></div>
-      <div><span>Capacidad total</span><strong>{nodes.reduce((a,n)=>a+(parseFloat(n.capacity)||0),0)} Gbps</strong></div>
+      <div><span>Total de nodos</span><strong>{nodes.length}</strong><small>Main/Sub registrados</small></div>
+      <div><span>En línea</span><strong>{online}</strong><small>{nodes.length-online} fuera de línea</small></div>
+      <div><span>CPU promedio</span><strong>{metricAvg(nodes,'cpu')}%</strong><small>nodos reportando</small></div>
+      <div><span>Streams activos</span><strong>{nodes.reduce((a,n)=>a+Number(n.activeStreams||0),0)}</strong><small>heartbeat actual</small></div>
     </div>
-    <div className="toolbar"><div className="module-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar nodo, IP o región..."/></div><NodeFilters filters={filters} setFilters={setFilters} regions={regions}/></div>
-    <div className="card module-table"><div className="table-info"><span>{loading?'Cargando...':`${filtered.length} registros`}</span><span>Fuente compartida por API</span></div><NodeTable nodes={filtered} onDelete={deleteNode} onCopyIp={copyIp}/></div>
+    <div className="nodes-hint"><Activity size={15}/><span>Los nodos remotos se registran con <b>IPZTREAM_NODE_REGISTRATION_TOKEN</b> y reportan heartbeat a <b>/api/stream-nodes/:id/heartbeat</b>.</span></div>
+    <div className="toolbar"><div className="module-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar nodo, IP, rol, capacidad o región..."/></div><NodeFilters filters={filters} setFilters={setFilters} regions={regions}/></div>
+    <div className="card module-table"><div className="table-info"><span>{loading?'Cargando...':`${filtered.length} registros`}</span><span>Fuente: API main/sub</span></div><NodeTable nodes={filtered} onDelete={deleteNode} onCopyIp={copyIp}/></div>
     {formOpen&&<NodeForm onCancel={()=>setFormOpen(false)} onSave={addNode}/>} 
   </div>;
 }
