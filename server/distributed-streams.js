@@ -35,7 +35,8 @@ export async function getDistributedStream(channelId){
   const target=await resolveChannelTarget(channelId,{allowOffline:true});
   if(target.type==='local')return localDecorate(getStream(channelId),target);
   if(target.node.status==='Fuera de línea')return{channelId:String(channelId),status:'error',desiredState:'unknown',nodeId:target.node.id,nodeName:target.node.name,execution:'remote',hlsUrl:null,error:'Nodo fuera de línea.',remotePending:true,logs:[]};
-  return getRemoteStream(target.node,channelId);
+  try{return await getRemoteStream(target.node,channelId)}
+  catch(error){return{channelId:String(channelId),status:'error',desiredState:'unknown',nodeId:target.node.id,nodeName:target.node.name,execution:'remote',hlsUrl:null,error:error.message,remotePending:true,logs:[]}}
 }
 export async function startDistributedStream(channelId,{persist=true}={}){
   const target=await resolveChannelTarget(channelId);
