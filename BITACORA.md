@@ -213,3 +213,23 @@ Cambios:
 - polling real de estados cada 3 segundos preservado.
 
 El cambio es frontend. No altera el trabajo 0.4.3 de nodos, MariaDB, FFmpeg/HLS ni la API. Versión: `0.4.4`.
+
+
+## 0.4.5 — Streams alineado con el diseño aprobado
+A partir de la comparación lado a lado se confirma que 0.4.4 tenía los colores correctos, pero todavía conservaba demasiada estructura del listado anterior. Se implementa una segunda corrección enfocada en proporciones y flujo.
+
+Implementado:
+- resumen superior compacto;
+- filtros Estado / Servidor / Tipo / Categoría;
+- selector funcional de columnas opcionales;
+- tabla de operación con servidor, estado, bitrate, resolución y clientes;
+- acciones simplificadas y menú secundario;
+- drawer lateral por stream;
+- preview HLS embebido en el drawer;
+- medición real de la fuente con `/api/source-probe` al abrir detalle;
+- pestañas de resumen, medición actual, clientes y logs;
+- historial operativo real en el drawer;
+- sin valores ficticios: métricas no disponibles muestran `—` o un mensaje de telemetría pendiente;
+- versión `0.4.5`.
+
+No se modifica la lógica del motor de streaming ni el trabajo Main/Sub 0.4.3/0.4.4.
