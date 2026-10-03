@@ -138,6 +138,7 @@ export async function applySchedulerPlan(assignments,{actor='system'}={}){
   const nodeMap=new Map(nodes.map((node)=>[String(node.id),node]));
   const applied=[];
   const skipped=[];
+  const appliedCounts=new Map(nodes.map((node)=>[String(node.id),0]));
 
   for(const row of assignments){
     const channelId=String(row.channelId||'');
@@ -146,6 +147,8 @@ export async function applySchedulerPlan(assignments,{actor='system'}={}){
     const node=nodeMap.get(nodeId);
     if(!channel){skipped.push({channelId,nodeId,reason:'channel-not-found'});continue}
     if(!node||!eligibleNode(node,'')){skipped.push({channelId,nodeId,reason:'node-not-eligible'});continue}
+    if(!supportsChannel(node,channel)){skipped.push({channelId,nodeId,reason:'node-capability-mismatch'});continue}
+    if(!hasCapacity(node,appliedCounts.get(nodeId)||0)){skipped.push({channelId,nodeId,reason:'node-at-capacity'});continue}
     if(await getStreamDesiredState(channelId)==='running'){
       skipped.push({channelId,nodeId,reason:'running'});
       continue;
@@ -159,6 +162,7 @@ export async function applySchedulerPlan(assignments,{actor='system'}={}){
     const saved=await updateItem(TABLES.channels,channelId,updated);
     if(!saved){skipped.push({channelId,nodeId,reason:'update-failed'});continue}
     channelMap.set(channelId,saved);
+    appliedCounts.set(nodeId,(appliedCounts.get(nodeId)||0)+1);
     applied.push({channelId,channelName:saved.name||channelId,fromNodeId:previousNodeId||null,toNodeId:nodeId,toNodeName:node.name});
   }
 
