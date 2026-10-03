@@ -260,7 +260,7 @@ export default function ChannelDetailDrawer({
             <div><Clock3 size={15}/><span>Tiempo activo</span><b>{running ? uptime(stream?.startedAt, now) : '—'}</b></div>
             <div><RotateCw size={15}/><span>Reinicios</span><b>{stream?.restartCount || 0}</b></div>
             <div><Users size={15}/><span>Clientes conectados</span><b>{clients === null ? '—' : clients}</b></div>
-            <div><Gauge size={15}/><span>Bitrate actual</span><b>{formatBitrate(media)}</b></div>
+            <div><Gauge size={15}/><span>Bitrate total</span><b>{formatBitrate(media)}</b></div>
             <div><Monitor size={15}/><span>Resolución</span><b>{formatResolution(media)}{media?.fps ? ' · ' + media.fps.toFixed(2) + ' FPS' : ''}</b></div>
             <div><Volume2 size={15}/><span>Audio</span><b>{audioText}</b></div>
             <div><Video size={15}/><span>PID FFmpeg</span><b>{stream?.pid || '—'}</b></div>
@@ -272,12 +272,14 @@ export default function ChannelDetailDrawer({
       {tab === 'stats' && <section className="drawer-section">
         <div className="drawer-section-title"><strong>Medición actual</strong><span>ffprobe bajo demanda</span></div>
         <div className="drawer-metric-grid">
-          <div><Gauge size={19}/><span>Bitrate</span><strong>{formatBitrate(media)}</strong></div>
+          <div><Gauge size={19}/><span>Bitrate total</span><strong>{formatBitrate(media)}</strong></div>
           <div><Monitor size={19}/><span>Resolución</span><strong>{formatResolution(media)}</strong></div>
           <div><Activity size={19}/><span>FPS</span><strong>{media?.fps ? media.fps.toFixed(2) : '—'}</strong></div>
           <div><Video size={19}/><span>Video</span><strong>{formatCodec(media?.videoCodec)}</strong></div>
+          <div><Gauge size={19}/><span>Bitrate video</span><strong>{media?.videoBitrateKbps ? formatBitrate({ bitrateKbps: media.videoBitrateKbps }) : '—'}</strong></div>
+          <div><Volume2 size={19}/><span>Bitrate audio</span><strong>{media?.audioBitrateKbps ? formatBitrate({ bitrateKbps: media.audioBitrateKbps }) : '—'}</strong></div>
         </div>
-        <div className="drawer-note">Las métricas mostradas corresponden a una medición real de la fuente. IPZStream no inventa histórico cuando el motor todavía no expone telemetría temporal.</div>
+        <div className="drawer-note">El bitrate total se calcula con todos los paquetes recibidos durante la muestra: video + audio + subtítulos/datos. Las métricas se actualizan automáticamente cada 5 s.</div>
       </section>}
 
       {tab === 'clients' && <section className="drawer-section">
