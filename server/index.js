@@ -329,6 +329,21 @@ async function handle(req, res) {
     });
   }
 
+  const streamNodeAssignments = pathname.match(/^\/api\/stream-nodes\/([^/]+)\/assignments$/);
+  if (streamNodeAssignments && req.method === 'GET') {
+    requireNodeToken(req);
+    const nodeId = decodeURIComponent(streamNodeAssignments[1]);
+    const node = await getStreamNode(nodeId);
+    if (!node) return send(res, 404, { message: 'Nodo no encontrado.' });
+    const channels = await listItems(TABLES.channels);
+    const assigned = channels.filter((channel) => String(channel.nodeId || '').trim() === nodeId);
+    const assignments = [];
+    for (const channel of assigned) {
+      assignments.push({ channel, desiredState: await getStreamDesiredState(channel.id) });
+    }
+    return send(res, 200, { nodeId, assignments });
+  }
+
   const streamNodeHeartbeats = pathname.match(/^\/api\/stream-nodes\/([^/]+)\/heartbeats$/);
   if (streamNodeHeartbeats && req.method === 'GET') {
     const nodeId = decodeURIComponent(streamNodeHeartbeats[1]);
