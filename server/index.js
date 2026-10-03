@@ -204,7 +204,7 @@ function requireNodeToken(req) {
     error.status = 503;
     throw error;
   }
-  const received = String(req.headers['x-ipztream-node-token'] || '').trim();
+  const received = String(req.headers['x-ipzstream-node-token'] || req.headers['x-ipztream-node-token'] || '').trim();
   if (received !== expected) {
     const error = new Error('Token de nodo inválido.');
     error.status = 401;
